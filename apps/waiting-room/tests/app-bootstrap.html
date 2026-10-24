@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"><title>Local application bootstrap probe</title></head>
+<body><output id="bootstrap-status">Loading actual application entrypoint…</output><div id="root"></div>
+<script type="module">
+const status=document.querySelector('#bootstrap-status');
+const probes=[
+  ['React',()=>import('react')],
+  ['API',()=>import('/client/runtime/api.ts')],
+  ['Check-in',()=>import('/client/check-in/CheckInPage.tsx')],
+  ['Phone',()=>import('/client/phone/PhoneRoute.tsx')],
+  ['Staff',()=>import('/client/staff/StaffPage.tsx')],
+  ['Vision',()=>import('/client/vision/VisionRoute.tsx')],
+  ['Face session',()=>import('/client/vision/StationVisionProvider.tsx')],
+  ['Application',()=>import('/client/main.tsx')],
+];
+status.textContent='';
+for(const [label,load] of probes){
+  try { await load(); status.append(document.createTextNode(`${label}: imported. `)); }
+  catch(error) { status.append(document.createTextNode(`${label}: ${error.message}. `)); }
+}
+</script></body></html>

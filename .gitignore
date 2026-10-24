@@ -1,0 +1,32 @@
+node_modules/
+.env
+.env.*
+!.env.example
+data/
+work/
+.DS_Store
+coverage/
+
+# Isolated Waiting Room Monitor artifacts
+/apps/waiting-room/.local/
+/apps/waiting-room/dist/
+
+# Local run data and generated visual evidence are not source code.
+.local/
+.worktrees/
+/apps/waiting-room/output/
+/apps/waiting-room/tests/*.jpg
+/apps/waiting-room/tests/*.png
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+*.pem
+*.key
+*.p12
+*.pfx

@@ -1,0 +1,18 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Local pose worker smoke test — synthetic blank frame</title><body><h1>Local pose worker smoke test</h1><pre id="result">Initializing local model; no camera or patient data is used.</pre><script type="module">
+const output=document.querySelector('#result');
+const debugging=new URLSearchParams(location.search).has('loader');
+const worker=new Worker(debugging?'/tests/sensor-integration-loader.worker.ts':'/client/runtime/inference.worker.ts',{type:'module'});
+const timeout=setTimeout(()=>{output.textContent='FAIL: local worker timed out';worker.terminate();},18000);
+worker.onerror=e=>{output.textContent='FAIL: '+e.message;clearTimeout(timeout);worker.terminate();};
+worker.onmessage=async event=>{
+ const value=event.data;
+ if(value.kind==='probe-result'){output.textContent=JSON.stringify(value);clearTimeout(timeout);worker.terminate();return;}
+ if(value.kind==='sensor-ready'){
+  const canvas=new OffscreenCanvas(160,160);const context=canvas.getContext('2d');context.fillStyle='#808080';context.fillRect(0,0,160,160);
+  const image=canvas.transferToImageBitmap();worker.postMessage({kind:'sensor-pose',id:2,frame:{runId:'synthetic_probe',seq:1,sourceAtMs:1000,monotonicMs:1000,width:160,height:160,image}},[image]);
+ }else if(value.kind==='sensor-pose-result'){
+  output.textContent=JSON.stringify({status:'PASS',evidence:'Real local WASM/model initialized in a dedicated worker and processed one explicitly synthetic blank frame',frameSeq:value.frameSeq,runId:value.runId,poseCount:value.landmarks.length,cameraUsed:false});clearTimeout(timeout);worker.terminate();
+ }else if(value.kind==='sensor-error'){output.textContent='FAIL: '+value.reason;clearTimeout(timeout);worker.terminate();}
+};
+if(!debugging)worker.postMessage({kind:'sensor-init',id:1});
+</script></body></html>
