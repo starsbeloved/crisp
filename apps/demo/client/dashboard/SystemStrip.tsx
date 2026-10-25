@@ -25,6 +25,7 @@ export function SystemStrip({ state, connected, now, voice, onVoice, onTestSound
         <span>Gemini · {state?.providers.gemini ? 'Configured' : 'Template'}</span>
         <span>ElevenLabs · {state?.providers.elevenlabs ? 'Configured' : 'Browser voice'}</span>
         <label className="system-vision-toggle"><input type="checkbox" checked={geminiVision} onChange={event => onGeminiVision(event.target.checked)} /> Gemini sees alert frame (opt in)</label>
+        <small>Sends one alert frame to Google Gemini; not stored</small>
         <span>Agent · {state?.providers.agent ? 'Configured' : 'Unavailable'}</span>
         <button className="secondary" onClick={onTestSound}>Test alert sound</button>
         <button className="secondary" disabled={busy || !state} onClick={onReset}>Reset demo</button>
