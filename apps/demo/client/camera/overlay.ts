@@ -30,7 +30,7 @@ function drawPill(ctx: CanvasRenderingContext2D, text: string, x: number, y: num
 }
 
 export function drawOverlay(ctx: CanvasRenderingContext2D, tracks: RenderTrack[], state: RoomState | null,
-  options: { cam: string; replayName: string | null; fps: number; now: number; privacy: boolean; debug?: boolean }) {
+  options: { cam: string; replayName: string | null; fps: number; now: number; privacy: boolean; debug?: boolean; modelStatus?: string }) {
   const { width, height } = ctx.canvas;
   const red = token('--c-red', 'red'), amber = token('--c-amber-box', 'orange'), leaf = token('--c-leaf', 'green');
   const redText = token('--c-red-text', 'red'), amberText = token('--c-amber-text', 'orange');
@@ -96,15 +96,17 @@ export function drawOverlay(ctx: CanvasRenderingContext2D, tracks: RenderTrack[]
     }
     if (options.debug) {
       const posture = reading.posture;
-      const lines = [`visitId: ${track.match?.visitId ?? 'unknown'} · source: ${track.source ?? 'face'}`,
+      const lines = [`track: ${track.id} · visit: ${track.match?.visitId ?? 'unknown'}`,
+        `source: ${track.source ?? 'face'} · referenceReady: ${reading.referenceReady ?? false}`,
         `slumpSec: ${(posture?.slumpSec ?? 0).toFixed(1)} · headDropSec: ${(posture?.headDropSec ?? 0).toFixed(1)}`,
-        `stillSec: ${(posture?.stillSec ?? 0).toFixed(1)} · fallSuspected: ${posture?.fallSuspected ?? false}`,
-        `referenceReady: ${reading.referenceReady ?? false}`];
+        `fallSuspected: ${posture?.fallSuspected ?? false} · velocity: ${(reading.velocity ?? 0).toFixed(2)}`,
+        `fps: ${options.fps.toFixed(1)} · ${options.modelStatus ?? 'Pose model: unknown'}`];
       ctx.font = '11px monospace';
       const debugWidth = Math.min(width - 8, Math.max(...lines.map(line => ctx.measureText(line).width)) + 12);
       const dx = Math.max(4, Math.min(width - debugWidth - 4, box.x));
-      const dy = Math.max(76, Math.min(height - 98, box.y + box.h + 70));
-      ctx.fillStyle = 'rgba(0,0,0,.86)'; ctx.fillRect(dx, dy, debugWidth, 66);
+      const debugHeight = lines.length * 15 + 8;
+      const dy = Math.max(76, Math.min(height - debugHeight - 36, box.y + box.h + 70));
+      ctx.fillStyle = 'rgba(0,0,0,.86)'; ctx.fillRect(dx, dy, debugWidth, debugHeight);
       ctx.fillStyle = '#fff'; lines.forEach((line, i) => ctx.fillText(line, dx + 6, dy + 14 + i * 15));
     }
   }

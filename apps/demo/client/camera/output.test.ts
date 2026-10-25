@@ -4,7 +4,7 @@ import { demoFixture } from '../dashboard/fixture.ts';
 import type { FaceTrack } from './tracking.ts';
 import type { SignalReading } from './signals/index.ts';
 const track: FaceTrack = { id: 'face-1', face: { box: { x: 64, y: 48, w: 128, h: 96 }, descriptor: [], landmarks: [], score: 0.9 }, lastSeen: 0, votes: [], match: { visitId: 'ama', name: 'Ama', score: 0.9 }, identity: 'identified' };
-const reading: SignalReading = { hrBpm: 86, hrQuality: 'good', rrBpm: 15, rrQuality: 'fair', posture: null, hint: null, hrSecondsCollected: 12, pulseTrace: [-0.5, 0.5] };
+const reading: SignalReading = { hrBpm: 86, hrQuality: 'good', rrBpm: 15, rrQuality: 'fair', posture: null, hint: null, hrSecondsCollected: 12, pulseTrace: [-0.5, 0.5], velocity: 0 };
 it('preserves real signal samples and replay metadata in normalized observations', () => {
   expect(makeObservation(track, reading, { cam: 'B', source: 'replay', now: 1000, width: 640, height: 480 })).toMatchObject({
     cameraId: 'B', at: 1000, trackId: 'face-1', visitId: 'ama', matchScore: 0.9, box: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 },

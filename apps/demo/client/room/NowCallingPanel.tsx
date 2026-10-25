@@ -7,8 +7,9 @@ import { useVoice } from '../dashboard/useVoice.ts';
 import { Crisp } from '../ui/Crisp.tsx';
 
 /** The hallway only receives the public call-out, never a visit's answers or phone. */
-export function NowCallingPanel({ call, connected }: { call: NowCalling | null; connected: boolean }) {
-  const [sound, setSound] = useState(false);
+export function NowCallingPanel({ call, connected, soundEnabled }: { call: NowCalling | null; connected: boolean; soundEnabled?: boolean }) {
+  const [localSound, setSound] = useState(false);
+  const sound = soundEnabled ?? localSound;
   const speech = call ? `${firstName(call.name)}, number ${call.queueNo}, please come to ${call.room}.` : '';
   const voice = useVoice(sound, call && (call.audio === 'ready' || call.audio === 'failed') ? [{
     key: call.id, id: call.id, url: call.audio === 'ready' ? api.callAudioUrl(call.id) : null, speech,
@@ -25,7 +26,7 @@ export function NowCallingPanel({ call, connected }: { call: NowCalling | null; 
     </div>
     <div className="room-call-mascot"><Crisp size={260} state={voice.talkingId ? 'talking' : call ? 'pointing' : 'idle'} /></div>
     {call && <p className="room-call-caption">“{speech}”</p>}
-    <button className="secondary room-sound" aria-pressed={sound} onClick={() => setSound(value => !value)}>{sound ? 'Disable sound' : 'Enable sound'}</button>
+    {soundEnabled === undefined && <button className="secondary room-sound" aria-pressed={sound} onClick={() => setSound(value => !value)}>{sound ? 'Disable sound' : 'Enable sound'}</button>}
     <p className="room-call-status" role="status">{voice.error || (!connected ? 'Reconnecting to the waiting room…' : sound ? 'Call-outs play once.' : 'Enable sound to hear call-outs.')}</p>
     <HallwayCheckBack />
     <p className="room-hallway-note">Feeling worse? Please tell the front desk.</p>

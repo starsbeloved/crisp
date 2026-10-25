@@ -19,6 +19,24 @@ function pose(x: number, head: number): PoseSample['landmarks'] {
   return p;
 }
 describe('camera to engine with hidden faces', () => {
+  it.each([[200, 'red'], [4000, 'none']] as const)('classifies a %s ms descent as %s with no fabricated vitals', (duration, expected) => {
+    const state = room(), bodies = new BodyTracker(), faces = new FaceTracker(), signal = createSignalTracker();
+    const gallery = [{ visitId: 'jason-3', name: 'Jason', descriptor: [0, 0] }];
+    for (let t = 0; t <= 200; t += 100) faces.update([{ box: { x: 162, y: 70, w: 60, h: 70 },
+      score: .95, descriptor: [0, 0], landmarks: [] }], gallery, t);
+    for (let t = 200; t <= 4400 + duration; t += 100) {
+      const shift = t <= 4400 ? 0 : .22 * (t - 4400) / duration;
+      const p = pose(.3, .2).map(point => ({ ...point, y: point.y + shift }));
+      bodies.update([p], t === 200 ? faces.current(200) : [], gallery, t, 640, 480);
+      const track = bodies.current(t)[0];
+      expect(track.match?.visitId).toBe('jason-3');
+      signal.pushPose({ t, landmarks: track.pose });
+      ingest(state, [makeObservation(track, signal.read(t), { cam: 'A', source: 'replay', now: 100_000 + t, width: 640, height: 480 })], 100_000 + t);
+    }
+    expect(state.vitals['jason-3']).toMatchObject({ level: expected, hrBpm: null, rrBpm: null });
+    if (expected === 'red') expect(state.alerts[0]).toMatchObject({ level: 'red', facts: { postureEvents: [{ kind: 'fall', seconds: 0 }] } });
+    else expect(state.alerts).toHaveLength(0);
+  });
   it.each([[.45, 3, 'red', 'headDrop'], [.24, 8, 'amber', 'slump']] as const)
     ('requests %s posture after %s seconds without a face', (head, seconds, level, kind) => {
       const state = room(), bodies = new BodyTracker(), faces = new FaceTracker();

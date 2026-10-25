@@ -135,11 +135,11 @@ export interface BodyTrack extends FaceTrack {
 }
 type Torso = { x: number; y: number; size: number };
 function torso(p: PoseSample['landmarks']): Torso | null {
-  if (![11, 12, 23, 24].every(i => p[i] && Number.isFinite(p[i].x) && Number.isFinite(p[i].y) && p[i].visibility >= .3)) return null;
+  // Seated hips are often hidden by the chair. Visible shoulders still form a usable body track.
+  if (![11, 12].every(i => p[i] && Number.isFinite(p[i].x) && Number.isFinite(p[i].y) && p[i].visibility >= .3)) return null;
   const sx = (p[11].x + p[12].x) / 2, sy = (p[11].y + p[12].y) / 2;
-  const hx = (p[23].x + p[24].x) / 2, hy = (p[23].y + p[24].y) / 2;
-  const size = Math.max(Math.hypot(p[11].x - p[12].x, p[11].y - p[12].y), Math.hypot(sx - hx, sy - hy) * .7);
-  return size >= .03 ? { x: (sx + hx) / 2, y: (sy + hy) / 2, size } : null;
+  const size = Math.hypot(p[11].x - p[12].x, p[11].y - p[12].y);
+  return size >= .03 ? { x: sx, y: sy, size } : null;
 }
 
 /** Identity survives a hidden face only on an unambiguous, continuously visible torso. */
@@ -154,7 +154,9 @@ export class BodyTracker {
     for (const track of previous) for (const [index, p] of visible.entries()) {
       const a = torso(track.pose)!, b = torso(p)!;
       const ratio = b.size / a.size, cost = Math.hypot(a.x - b.x, a.y - b.y) / Math.max(a.size, b.size);
-      if (ratio >= .5 && ratio <= 2 && cost < 1.7) candidates.push({ track, index, cost });
+      const fastDownward = now - track.lastSeen <= 400 && b.y > a.y &&
+        b.y - a.y < Math.max(a.size, b.size) * 3 && Math.abs(b.x - a.x) < Math.max(a.size, b.size) * .5;
+      if (ratio >= .5 && ratio <= 2 && (cost < 1.7 || fastDownward)) candidates.push({ track, index, cost });
     }
     const assigned = new Map<number, BodyTrack>(), used = new Set<string>();
     for (const candidate of candidates.sort((a, b) => a.cost - b.cost)) {
@@ -167,7 +169,7 @@ export class BodyTracker {
     const waiting = new Set(gallery.map(entry => entry.visitId));
     const freshFaces = faces.filter(face => now - face.lastSeen <= 700);
     this.tracks = visible.map((p, index) => {
-      const points = [0, 11, 12, 23, 24].map(i => p[i]).filter(point => point.visibility >= .3);
+      const points = [0, 11, 12, 23, 24].map(i => p[i]).filter(point => point && point.visibility >= .3);
       const x = Math.min(...points.map(point => point.x)) * width, y = Math.min(...points.map(point => point.y)) * height;
       const box = { x, y, w: Math.max(...points.map(point => point.x)) * width - x, h: Math.max(...points.map(point => point.y)) * height - y };
       const track: BodyTrack = assigned.get(index) ?? { id: `body-${this.nextId++}`, pose: p, lastSeen: now,

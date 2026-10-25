@@ -6,7 +6,7 @@ import { CameraPage } from '../camera/CameraPage.tsx';
 
 vi.mock('../lib/useRoomState.ts', () => ({ useRoomState: () => ({ state: null, connected: false }) }));
 vi.mock('../camera/useCameraSource.ts', () => ({ useCameraSource: () => ({ ready: false, message: 'Camera unavailable', devices: [] }) }));
-vi.mock('../camera/useVision.ts', () => ({ useVision: () => ({ models: 'Loading face models…', poseStatus: 'Loading pose model…', error: '', stats: { count: 0 }, tracker: { current: { current: () => [] } } }) }));
+vi.mock('../camera/useVision.ts', () => ({ useVision: () => ({ models: 'Loading face models…', poseStatus: 'Pose model: loading', error: '', stats: { count: 0, fps: 0 }, tracker: { current: { current: () => [] } } }) }));
 
 it('opens one local camera with overlays inside /room and retains the standalone camera page', async () => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -28,4 +28,19 @@ it('opens one local camera with overlays inside /room and retains the standalone
     expect(container.querySelector('.room-view')).toBeNull();
     expect(Array.from(container.querySelectorAll('button')).some(button => button.textContent === 'Demo view')).toBe(true);
   } finally { await act(() => root.unmount()); vi.unstubAllGlobals(); }
+});
+
+it('keeps every debug field visible when no face or body is detected and settings are closed', async () => {
+  vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+  history.replaceState(null, '', '/room?debug=1');
+  const container = document.createElement('div'), root = createRoot(container);
+  try {
+    await act(() => root.render(<CameraPage roomView />));
+    const debug = container.querySelector('[aria-label="Camera debug readings"]');
+    expect(debug).not.toBeNull();
+    expect(debug?.closest('[hidden]')).toBeNull();
+    for (const field of ['track', 'visit', 'source', 'referenceReady', 'slumpSec', 'headDropSec', 'fallSuspected', 'velocity', 'fps', 'Pose model: loading']) {
+      expect(debug?.textContent).toContain(field);
+    }
+  } finally { await act(() => root.unmount()); history.replaceState(null, '', '/'); vi.unstubAllGlobals(); }
 });

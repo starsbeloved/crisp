@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import type { NowCalling } from '../../shared/types.ts';
+import type { Alert, NowCalling } from '../../shared/types.ts';
 import { NowCallingPanel } from './NowCallingPanel.tsx';
+import { useAlertVoice, useMonitoringSound } from '../dashboard/useVoice.ts';
 import './room.css';
 
-export function RoomView({ call, connected, children }: { call: NowCalling | null; connected: boolean; children: ReactNode }) {
+export function RoomView({ call, connected, children, alerts = [], replayVisitIds = [] }: { call: NowCalling | null; connected: boolean; children: ReactNode; alerts?: Alert[]; replayVisitIds?: string[] }) {
   const room = useRef<HTMLDivElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const [fullscreen, setFullscreen] = useState(false);
   const [error, setError] = useState('');
+  const monitoring = useMonitoringSound();
+  const voice = useAlertVoice(monitoring.enabled, alerts, [], replayVisitIds);
 
   useEffect(() => {
     const overflow = document.body.style.overflow;
@@ -41,9 +44,10 @@ export function RoomView({ call, connected, children }: { call: NowCalling | nul
   return <div className="room-view" ref={room}>
     <div className="room-toolbar">
       <div><p className="room-eyebrow">Crisp · waiting room companion</p><h1 ref={heading} tabIndex={-1}>Room view</h1></div>
-      <div className="room-toolbar-actions"><a className="room-stations-link" href="/station?choose=1" title="Stations · Shift+S">Stations</a><a href="/camera">Camera only</a><button className="secondary" aria-pressed={fullscreen} onClick={() => void toggleFullscreen()}>{fullscreen ? 'Exit fullscreen' : 'Fullscreen'}</button></div>
+      <div className="room-toolbar-actions"><button aria-pressed={monitoring.enabled} onClick={monitoring.toggle}>{monitoring.enabled ? 'Monitoring · sound on' : 'Start monitoring (sound on)'}</button><a className="room-stations-link" href="/station?choose=1" title="Stations · Shift+S">Stations</a><a href="/camera">Camera only</a><button className="secondary" aria-pressed={fullscreen} onClick={() => void toggleFullscreen()}>{fullscreen ? 'Exit fullscreen' : 'Fullscreen'}</button></div>
     </div>
     {error && <p className="room-fullscreen-error" role="status">{error}</p>}
-    <div className="room-layout"><section className="room-camera" aria-label="This computer’s room camera">{children}</section><NowCallingPanel call={call} connected={connected} /></div>
+    {voice.error && <p role="status">{voice.error}</p>}
+    <div className="room-layout"><section className="room-camera" aria-label="This computer’s room camera">{children}</section><NowCallingPanel call={call} connected={connected} soundEnabled={monitoring.enabled} /></div>
   </div>;
 }
