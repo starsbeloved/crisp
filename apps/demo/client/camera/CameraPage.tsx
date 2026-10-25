@@ -87,7 +87,7 @@ export function CameraPage({ roomView = false }: { roomView?: boolean }) {
     </details>
       <p className="camera-technical">{vision.models} · {vision.poseStatus}</p>
     </div>
-    {requests.length > 0 && <div className="camera-check-request" role="alert"><strong>Check requested</strong> · {requests.map(alert => `${alert.facts.name} · #${alert.facts.queueNo}: ${alert.reasons[0] ?? 'may need a check'}`).join(' / ')} · May need a check</div>}
+    {requests.length > 0 && <div className="camera-check-request" role="alert"><strong>Check requested</strong> · {requests.map(alert => `${state?.vitals[alert.visitId]?.source === 'replay' ? 'REPLAY · ' : ''}${alert.facts.name} · #${alert.facts.queueNo}: ${alert.reasons[0] ?? 'may need a check'}`).join(' / ')} · May need a check</div>}
     <div className="camera-status"><Chip>{replay ? `REPLAY · ${filename}` : 'LIVE'}</Chip><Chip>{vision.stats.count} {vision.stats.count === 1 ? 'person' : 'people'}</Chip>{privacy && <Chip>Unknown faces blurred</Chip>}{debug && <Chip>Debug · face/body identity + posture counters</Chip>}</div>
     <p className="camera-source-message" role="status">{message}</p>
     <video ref={video} muted playsInline autoPlay className="source-video" aria-label="Camera source video" />

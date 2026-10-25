@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>P15a camera verification — SYNTHETIC</title>
+<style>
+body { max-width: 1100px; margin: 28px auto; padding: 0 24px; font: 16px/1.5 system-ui; background: #f6f6f8; color: #222; }
+h1 { font-size: 26px; } strong { background: #ffe5a8; padding: 4px 8px; }
+canvas { width: 100%; border-radius: 12px; } button { padding: 12px 18px; margin: 0 8px 14px 0; font: inherit; cursor: pointer; }
+pre { white-space: pre-wrap; background: white; padding: 18px; border: 1px solid #ddd; border-radius: 12px; }
+</style>
+<h1>P15a · Camera continuity verification</h1>
+<p><strong>SYNTHETIC / REPLAY — generated landmarks and descriptors. No camera accuracy claim.</strong></p>
+<p>Production tracking, posture, observations, and overlay. All vital readings stay unavailable.</p>
+<h2 id="summary">Running…</h2>
+<button id="head">Show head drop</button><button id="slump">Show slump</button>
+<button id="api">Send this SYNTHETIC scene to isolated local API</button>
+<p id="api-result">Use the API button only with the memory-only P15a verification server (providers disabled).</p>
+<canvas width="960" height="720" aria-label="Synthetic body continuity overlay"></canvas>
+<pre id="results"></pre>
+<script type="module">
+import { BodyTracker, FaceTracker } from './tracking.ts';
+import { createSignalTracker } from './signals/index.ts';
+import { makeObservation, identityLabel } from './output.ts';
+import { drawOverlay } from './overlay.ts';
+const canvas = document.querySelector('canvas'), ctx = canvas.getContext('2d');
+const gallery = [{visitId:'synthetic-jason-3', name:'SYNTHETIC Jason', descriptor:[0,0]}, {visitId:'synthetic-jason-4', name:'SYNTHETIC Jason', descriptor:[1,1]}];
+const visits = gallery.map((entry,i) => ({id:entry.visitId, name:entry.name, queueNo:i+3, status:'waiting'}));
+const state = {visits, vitals:{}, alerts:[]};
+let rendered = [], observations = [], scene = 'head';
+function paint(tracks=rendered, room=state) {
+  ctx.fillStyle='#343a40'; ctx.fillRect(0,0,960,720);
+  drawOverlay(ctx,tracks,room,{cam:'SYNTHETIC-P15a',replayName:'generated landmarks',fps:0,now:scene==='head'?7400:12400,privacy:false,debug:true});
+}
+function pose(x, head=.2) {
+  const p=Array.from({length:33},()=>({x,y:head,z:0,visibility:0}));
+  p[0]={x,y:head,z:0,visibility:.9};
+  p[11]={x:x-.08,y:.4,z:0,visibility:.9}; p[12]={x:x+.08,y:.4,z:0,visibility:.9};
+  p[23]={x:x-.06,y:.7,z:0,visibility:.9}; p[24]={x:x+.06,y:.7,z:0,visibility:.9};
+  return p;
+}
+function run(kind) {
+  scene=kind;
+  const faces=new FaceTracker(), bodies=new BodyTracker(), signals=new Map(gallery.map(entry=>[entry.visitId,createSignalTracker()]));
+  for(let t=0;t<=200;t+=100) faces.update([.28,.72].map((x,i)=>({box:{x:x*960-45,y:95,w:90,h:100},score:.95,descriptor:[i,i],landmarks:[]})),gallery,t);
+  const end=kind==='head'?7400:12400;
+  for(let t=200;t<=end;t+=200) {
+    const p=[pose(.28,t>=4400?(kind==='head'?.45:.24):.2),pose(.72)];
+    bodies.update(t%400?p:p.reverse(),t===200?faces.current(200):[],gallery,t,960,720);
+    rendered=bodies.current(t).map(track=>{
+      const signal=signals.get(track.match.visitId); signal.pushPose({t,landmarks:track.pose});
+      return {track,pose:track.pose,reading:signal.read(t)};
+    });
+  }
+  observations=rendered.map(({track,reading})=>makeObservation(track,reading,{cam:'SYNTHETIC-P15a',source:'replay',now:Date.now(),width:960,height:720}));
+  // The overlay gets actual production readings, with no synthetic HR/RR numbers.
+  paint();
+  const first=rendered.find(item=>item.track.match.visitId==='synthetic-jason-3');
+  const checks=[
+    ['Two same-name visits retain distinct visitIds',new Set(rendered.map(r=>r.track.match.visitId)).size===2],
+    ['Both identities continue from visible bodies, with no face',rendered.every(r=>r.track.source==='body')],
+    ['Face confidence and HR remain unavailable',observations.every(o=>o.matchScore===null&&o.hrBpm===null)],
+    ['Posture reference learned within 4 seconds',first.reading.referenceReady===true],
+    [kind==='head'?'Head below shoulders counted for 3 seconds':'Slump counted for 8 seconds',kind==='head'?first.reading.posture.headDropSec===3:first.reading.posture.slumpSec===8],
+    ['Queue labels distinguish the names',identityLabel(first.track,state).includes('#3')]
+  ];
+  document.querySelector('#summary').textContent=`${checks.filter(c=>c[1]).length}/${checks.length} browser checks passed · ${kind}`;
+  document.querySelector('#results').textContent=checks.map(([name,pass])=>`${pass?'PASS':'FAIL'} ${name}`).join('\n')+'\n\n'+JSON.stringify(observations,null,2);
+}
+document.querySelector('#head').onclick=()=>run('head');
+document.querySelector('#slump').onclick=()=>run('slump');
+document.querySelector('#api').onclick=async()=>{
+  const button=document.querySelector('#api'); button.disabled=true;
+  try {
+    const mapped=[], ids=new Map();
+    for(const [i,entry] of gallery.entries()) {
+      const response=await fetch('/api/visits',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:entry.name,descriptor:entry.descriptor,
+        answers:{reason:'SYNTHETIC P15a verification',reasonChips:[],onset:null,trend:null,followUp:null,via:'form'}})});
+      if(!response.ok) throw new Error(`Visit API ${response.status}`);
+      const visit=await response.json();
+      ids.set(entry.visitId,visit.id);
+      mapped.push({...observations.find(o=>o.visitId===entry.visitId),visitId:visit.id,at:Date.now()});
+    }
+    const response=await fetch('/api/observations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({observations:mapped})});
+    if(!response.ok) throw new Error(`Observation API ${response.status}`);
+    const room=await new Promise((resolve,reject)=>{
+      const events=new EventSource('/api/events');
+      const timer=setTimeout(()=>{events.close(); reject(new Error('SSE timeout'));},5000);
+      events.addEventListener('state',event=>{clearTimeout(timer);events.close();resolve(JSON.parse(event.data));});
+    });
+    paint(rendered.map(item=>({...item,track:{...item.track,match:{...item.track.match,visitId:ids.get(item.track.match.visitId)}}})),room);
+    const alert=room.alerts.find(alert=>alert.visitId===ids.get('synthetic-jason-3'));
+    if(alert?.level!==(scene==='head'?'red':'amber')) throw new Error(`Unexpected request level: ${alert?.level}`);
+    const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',.85));
+    const frame=await fetch('/api/frame?cam=SYNTHETIC-P15a&source=replay',{method:'POST',headers:{'Content-Type':'image/jpeg'},body:blob});
+    if(!frame.ok) throw new Error(`Frame API ${frame.status}`);
+    document.querySelector('#api-result').textContent=`SYNTHETIC ${scene} observations accepted. Verify the request on /room?debug=1 and /dashboard. All inputs are labeled REPLAY.`;
+  } catch(error) { document.querySelector('#api-result').textContent=String(error); }
+  finally { button.disabled=false; }
+};
+run('head');
+</script>
+</html>
