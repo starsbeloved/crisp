@@ -35,6 +35,7 @@ export function cached<T>(job: string, input: unknown, work: () => Promise<T>): 
 export async function generate<T>(options: {
   job: string; key: unknown; facts: unknown; task: string; schema: z.ZodType<T>;
   responseSchema: Schema; valid: (output: T) => boolean; fallback: T;
+  image?: Uint8Array; systemInstruction?: string;
 }): Promise<{ value: T; source: 'gemini' | 'template' }> {
   return cached(options.job, options.key, async () => {
     const start = Date.now();
@@ -49,8 +50,9 @@ export async function generate<T>(options: {
           // Two 2.5 s attempts via our own race (the Gemini API rejects per-request deadlines under 10 s).
           const response = await timed(signal => client.models.generateContent({
             model: config.GEMINI_MODEL || 'gemini-3.5-flash-lite',
-            contents: JSON.stringify({ task: options.task, facts: options.facts }),
-            config: { systemInstruction: instructions, temperature: 0, maxOutputTokens: 1024,
+            contents: options.image ? [{ role: 'user', parts: [{ text: options.task },
+              { inlineData: { mimeType: 'image/jpeg', data: Buffer.from(options.image).toString('base64') } }] }] : JSON.stringify({ task: options.task, facts: options.facts }),
+            config: { systemInstruction: options.systemInstruction ?? instructions, temperature: 0, maxOutputTokens: 1024,
               responseMimeType: 'application/json', responseSchema: options.responseSchema, abortSignal: signal },
           }), 2500);
           text = response.text;

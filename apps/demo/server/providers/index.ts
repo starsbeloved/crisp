@@ -93,7 +93,6 @@ export async function ask(question: string, state: RoomState): Promise<{ answer:
   return { ...result.value, source: result.source };
 }
 
-/** Optional vision stays unavailable: never upload a frame implicitly. */
-export async function describeSnapshot(_alert: Alert, _jpeg: Uint8Array): Promise<{ description: string; source: ProviderSource } | null> { return null; }
+export { describeSnapshot } from './vision.ts';
 
 export { speak } from './elevenlabs.ts';
