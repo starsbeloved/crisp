@@ -127,3 +127,7 @@ Camera values are **estimates** with signal-quality labels. Unavailable readings
 | [`apps/demo/public/models`](apps/demo/public/models/) | Required vision models, runtime files, manifests, and licenses. |
 
 Earlier prototypes are preserved in git history and the `checkpoint-*` tags. The default branch is **`crisp-demo`**.
+
+## License
+
+Crisp is released under the [MIT License](LICENSE) © 2026 Thanh Nguyen and Jason Lin. Bundled vision models keep their own licenses in [`apps/demo/public/models`](apps/demo/public/models/).
