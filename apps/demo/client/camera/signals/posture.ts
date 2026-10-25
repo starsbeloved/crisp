@@ -1,0 +1,117 @@
+import type { PostureState, Quality } from '../../../shared/types.ts';
+import type { PoseSample } from './index.ts';
+import { mean, median, resample, spectrum } from './dsp.ts';
+import { qualityForRatio } from './pulse.ts';
+
+export const POSE_THRESHOLDS = {
+  visibility: 0.7, referenceMs: 10_000, gapMs: 1000,
+  motionPerFrame: 0.003, headDescentWidths: 0.12, torsoAngleChangeDeg: 15,
+  fallDrop: 0.25, fallHoldMs: 1500,
+} as const;
+
+type Point = PoseSample['landmarks'][number];
+type Geometry = { t: number; head: number; angle: number; shoulderY: number; hipY: number;
+  width: number; points: Point[]; visible: boolean };
+
+const finitePoint = (p: Point | undefined): p is Point => !!p && Number.isFinite(p.x) && Number.isFinite(p.y);
+const visiblePoint = (p: Point | undefined): p is Point => finitePoint(p) &&
+  Number.isFinite(p.visibility) && p.visibility >= POSE_THRESHOLDS.visibility &&
+  p.x >= 0 && p.x <= 1 && p.y >= 0 && p.y <= 1;
+
+function geometry(s: PoseSample): Geometry | null {
+  const p = s.landmarks;
+  if (![11, 12].every(i => visiblePoint(p[i])) || ![23, 24].every(i => finitePoint(p[i]))) return null;
+  const shoulderY = (p[11].y + p[12].y) / 2, shoulderX = (p[11].x + p[12].x) / 2;
+  const hipY = (p[23].y + p[24].y) / 2, hipX = (p[23].x + p[24].x) / 2;
+  const width = Math.hypot(p[11].x - p[12].x, p[11].y - p[12].y);
+  if (width < 0.03) return null;
+  return { t: s.t, shoulderY, hipY, width,
+    head: finitePoint(p[0]) ? (p[0].y - shoulderY) / width : NaN,
+    angle: Math.atan2(shoulderX - hipX, hipY - shoulderY) * 180 / Math.PI,
+    points: [0, 11, 12, 23, 24].map(i => p[i]),
+    visible: [0, 11, 12, 23, 24].every(i => visiblePoint(p[i])) && hipY > shoulderY + 0.03 };
+}
+
+/** One reference and three continuous counters per recognized person. No browser or model state. */
+export function createPoseSignals() {
+  let lastAt: number | null = null, previous: Geometry | null = null, recent: Geometry[] = [];
+  let reference: { t: number; head: number; angle: number }[] = [], baseline: { head: number; angle: number } | null = null;
+  let slumpStart: number | null = null, headStart: number | null = null, stillStart: number | null = null;
+  let fallUntil = -Infinity, posture: PostureState | null = null;
+  let breaths: { t: number; value: number }[] = [], rrBpm: number | null = null, rrQuality: Quality = 'none', lastEstimate = -Infinity;
+
+  function breakContinuity() {
+    previous = null; recent = []; reference = []; slumpStart = headStart = stillStart = null;
+    fallUntil = -Infinity; posture = null;
+    breaths = []; rrBpm = null; rrQuality = 'none'; lastEstimate = -Infinity;
+  }
+
+  return {
+    push(s: PoseSample) {
+      if (!Number.isFinite(s.t) || (lastAt !== null && s.t <= lastAt)) return;
+      if (lastAt !== null && s.t - lastAt > POSE_THRESHOLDS.gapMs) breakContinuity();
+      const dt = lastAt === null ? 0 : s.t - lastAt;
+      lastAt = s.t;
+      const g = geometry(s);
+      if (!g) { breakContinuity(); rrQuality = 'low'; return; }
+      recent = recent.filter(v => s.t - v.t <= 1000);
+      const fell = recent.some(v => {
+        const shoulderDrop = g.shoulderY - v.shoulderY, hipDrop = g.hipY - v.hipY;
+        return (shoulderDrop + hipDrop) / 2 > POSE_THRESHOLDS.fallDrop && shoulderDrop > 0.15 && hipDrop > 0.15 ||
+          v.hipY < 0.98 && g.hipY >= 0.98 && shoulderDrop > 0.12;
+      });
+      if (fell) fallUntil = s.t + POSE_THRESHOLDS.fallHoldMs;
+      if (!g.visible) {
+        const observedUntil = fallUntil, fall = s.t <= observedUntil;
+        breakContinuity(); rrQuality = 'low';
+        // The hips may leave the image at exactly the fall; preserve that observed evidence.
+        if (fall) { fallUntil = observedUntil;
+          posture = { slumpSec: 0, headDropSec: 0, stillSec: 0, fallSuspected: true }; }
+        return;
+      }
+      recent.push(g);
+      const motion = previous && dt > 0 ? mean(g.points.map((p, i) =>
+        Math.hypot(p.x - previous!.points[i].x, p.y - previous!.points[i].y))) * (1000 / 30) / dt : null;
+      const stationary = motion !== null && motion < POSE_THRESHOLDS.motionPerFrame;
+      if (!baseline) {
+        if ((!previous || stationary) && g.head < 0 && Math.abs(g.angle) <= 20) {
+          reference.push({ t: s.t, head: g.head, angle: g.angle });
+          if (s.t - reference[0].t >= POSE_THRESHOLDS.referenceMs) {
+            baseline = { head: median(reference.map(v => v.head)), angle: median(reference.map(v => v.angle)) };
+            reference = [];
+          }
+        } else reference = [];
+      }
+      const slumped = baseline !== null && (g.head - baseline.head >= POSE_THRESHOLDS.headDescentWidths - 1e-9 ||
+        Math.abs(g.angle - baseline.angle) >= POSE_THRESHOLDS.torsoAngleChangeDeg - 1e-9);
+      slumpStart = slumped ? slumpStart ?? s.t : null;
+      headStart = g.head > 0 ? headStart ?? s.t : null;
+      stillStart = stationary ? stillStart ?? previous!.t : null;
+      posture = { slumpSec: slumpStart === null ? 0 : (s.t - slumpStart) / 1000,
+        headDropSec: headStart === null ? 0 : (s.t - headStart) / 1000,
+        stillSec: stillStart === null ? 0 : (s.t - stillStart) / 1000, fallSuspected: s.t <= fallUntil };
+      // Gross body motion cannot establish a breathing rate. Ordinary respiratory displacement can.
+      if (motion !== null && motion >= POSE_THRESHOLDS.motionPerFrame) {
+        breaths = []; rrBpm = null; rrQuality = 'low'; lastEstimate = -Infinity;
+      }
+      breaths.push({ t: s.t, value: g.shoulderY / g.width });
+      while (breaths.length > 2 && breaths[1].t < s.t - 30_000) breaths.shift();
+      previous = g;
+    },
+    read(now: number) {
+      const fresh = lastAt !== null && Number.isFinite(now) && now >= lastAt && now - lastAt <= 1000;
+      const duration = breaths.length > 1 ? breaths.at(-1)!.t - breaths[0].t : 0;
+      if (fresh && duration >= 20_000 && lastAt! - lastEstimate >= 1000) {
+        const cadence = (breaths.length - 1) * 1000 / duration;
+        const peak = cadence >= 2 ? spectrum(resample(breaths, 15, s => s.value), 15, 0.1, 0.7) : { hz: null, ratio: 0 };
+        rrQuality = qualityForRatio(peak.ratio);
+        rrBpm = peak.hz !== null && rrQuality !== 'low' ? peak.hz * 60 : null;
+        lastEstimate = lastAt!;
+      }
+      return { rrBpm: fresh ? rrBpm : null,
+        rrQuality: lastAt === null ? 'none' as const : !fresh ? 'low' as const : rrQuality,
+        posture: fresh && posture ? { ...posture, fallSuspected: now <= fallUntil } : null };
+    },
+    reset() { lastAt = null; baseline = null; breakContinuity(); },
+  };
+}
