@@ -1,0 +1,21 @@
+.station-picker { min-height: 100dvh; max-width: 1120px; display: flex; flex-direction: column; justify-content: center; padding: 48px 32px; }
+.station-heading { display: flex; align-items: center; gap: 24px; margin-bottom: 28px; }
+.station-heading h1 { font-size: clamp(32px, 5vw, 52px); }
+.station-heading p { margin: 8px 0; }
+.station-eyebrow { color: var(--c-leaf); text-transform: uppercase; font-size: 12px; font-weight: 700; letter-spacing: .12em; }
+.station-name { margin-bottom: 24px; font-size: 14px; }
+.station-name input { width: 320px; }
+.station-choices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+button.station-choice { position: relative; display: flex; align-items: flex-start; flex-direction: column; gap: 8px; min-height: 154px; text-align: left; padding: 20px; border: 1px solid var(--c-border); border-radius: var(--r-panel); background: var(--c-surface); color: var(--c-text); }
+button.station-choice:hover { background: var(--c-leaf-tint); border-color: var(--c-leaf); }
+.station-choice strong { font-size: 20px; font-weight: 650; }
+.station-choice > span:not(.station-arrow) { color: var(--c-text-2); font-size: 14px; }
+.station-choice .station-number { font-size: 12px; font-variant-numeric: tabular-nums; margin-bottom: 8px; }
+.station-choice .station-arrow { position: absolute; right: 20px; top: 18px; color: var(--c-leaf); font-size: 22px; }
+.station-hint { margin: 24px 0 0; font-size: 13px; max-width: 720px; }
+.station-hint kbd { font: inherit; border: 1px solid var(--c-border); border-radius: 4px; padding: 2px 4px; }
+button.station-corner { position: fixed; z-index: 1000; bottom: 4px; left: 4px; min-width: 44px; min-height: 44px; padding: 12px; background: transparent; border-color: transparent; color: var(--c-text-2); opacity: .35; touch-action: none; user-select: none; -webkit-touch-callout: none; }
+button.station-corner:hover, button.station-corner:focus-visible, button.station-corner:active { opacity: 1; background: var(--c-surface); color: var(--c-leaf); border-color: var(--c-border); }
+.station-status { border-top: 1px solid var(--c-hairline); padding-top: 8px; overflow-wrap: anywhere; }
+@media (max-width: 760px) { .station-picker { padding: 28px 20px; } .station-choices { grid-template-columns: repeat(2, minmax(0, 1fr)); } .station-heading { gap: 12px; } .station-heading .crisp-character { width: 80px; height: auto; } }
+@media (max-width: 430px) { .station-choices { grid-template-columns: 1fr; } button.station-choice { min-height: 120px; } }

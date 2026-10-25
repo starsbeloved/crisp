@@ -1,0 +1,50 @@
+export type StationSelection = { role: 'kiosk' | 'room' | 'command' | 'lobby' } | { role: 'exam'; room: '1' | '2' | '3' };
+export type StationProfile = { id: string; name: string; selection: StationSelection | null };
+export type StationPresence = StationSelection & { id: string; name: string; lastSeenAt: number; online: boolean };
+
+export const stationChoices: { selection: StationSelection; label: string; description: string }[] = [
+  { selection: { role: 'kiosk' }, label: 'Kiosk', description: 'Check in with Crisp' },
+  { selection: { role: 'room' }, label: 'Room view', description: 'Camera and hallway call-outs' },
+  { selection: { role: 'command' }, label: 'Command Center', description: 'Queue and staff controls' },
+  ...(['1', '2', '3'] as const).map(room => ({ selection: { role: 'exam' as const, room }, label: `Exam room ${room}`, description: 'Patient chart for the clinician' })),
+  { selection: { role: 'lobby' }, label: 'Lobby', description: 'Public queue and now calling' },
+];
+
+export function stationLabel(selection: StationSelection) {
+  return stationChoices.find(choice => choice.selection.role === selection.role && (choice.selection.role !== 'exam' || (selection.role === 'exam' && choice.selection.room === selection.room)))!.label;
+}
+
+export function stationUrl(selection: StationSelection): string {
+  switch (selection.role) {
+    case 'kiosk': return '/check-in';
+    case 'room': return '/room';
+    case 'command': return '/dashboard';
+    case 'exam': return `/exam?room=${selection.room}`;
+    case 'lobby': return '/lobby';
+  }
+}
+
+export function selectionFromLocation(path: string, search: string): StationSelection | null {
+  if (path === '/camera') return { role: 'room' };
+  if (path === '/exam') {
+    const room = new URLSearchParams(search).get('room') ?? '1';
+    return room === '1' || room === '2' || room === '3' ? { role: 'exam', room } : null;
+  }
+  return stationChoices.find(choice => stationUrl(choice.selection) === path)?.selection ?? null;
+}
+
+export function loadProfile(): StationProfile {
+  const id = globalThis.crypto?.randomUUID?.() ?? `station-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  const fallback: StationProfile = { id, name: `Laptop ${id.slice(-4)}`, selection: null };
+  try {
+    const saved = JSON.parse(localStorage.getItem('crisp-station') ?? 'null');
+    if (!saved || typeof saved.id !== 'string' || !/^[a-zA-Z0-9_-]{1,80}$/.test(saved.id) || typeof saved.name !== 'string' || !saved.name.trim() || saved.name.length > 60) return fallback;
+    const selection = stationChoices.find(({ selection }) => selection.role === saved.selection?.role && (selection.role !== 'exam' || selection.room === saved.selection?.room))?.selection ?? null;
+    return { id: saved.id, name: saved.name.trim(), selection };
+  } catch { return fallback; }
+}
+
+export function saveProfile(profile: StationProfile): boolean {
+  try { localStorage.setItem('crisp-station', JSON.stringify(profile)); return true; }
+  catch { return false; }
+}
