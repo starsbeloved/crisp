@@ -1,4 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { CommandResult } from '../../server/commands.ts';
+import { createStaffTools } from '../staff/tools.ts';
+import { useWakeWord } from '../staff/useWakeWord.ts';
+import { StaffToast } from '../staff/StaffToast.tsx';
+import '../staff/staff.css';
 import { ConversationProvider } from '@elevenlabs/react';
 import type { RoomState } from '../../shared/types.ts';
 import { useRoomState } from '../lib/useRoomState.ts';
@@ -27,43 +32,85 @@ export function roomDigest(state: RoomState | null, now = Date.now()): string {
   }) });
 }
 
-export function AskCrispVoice() {
-  const [holding, setHolding] = useState(false);
-  return <ConversationProvider isMuted={!holding}><NurseVoice holding={holding} setHolding={setHolding} /></ConversationProvider>;
+export interface StaffVoiceProps {
+  room?: string; visitId?: string; onRecord?: (result: unknown) => void;
+  enabled?: boolean;
+}
+export function AskCrispVoice(props: StaffVoiceProps = {}) {
+  const [holding, setHolding] = useState(false), [handsFree, setHandsFree] = useState(false);
+  return <ConversationProvider isMuted={!holding && !handsFree}><NurseVoice {...props} holding={holding} setHolding={setHolding} handsFree={handsFree} setHandsFree={setHandsFree} /></ConversationProvider>;
 }
 
-function NurseVoice({ holding, setHolding }: { holding: boolean; setHolding: (value: boolean) => void }) {
-  const { state, connected } = useRoomState();
-  const current = useRef(state); current.current = connected ? state : null;
-  const tools = useMemo(() => ({ get_room_digest: () => roomDigest(current.current) }), []);
-  const voice = useVoiceAgent('nurse', Boolean(state?.providers.agent), tools);
-  const { endSession } = voice;
+function NurseVoice({ holding, setHolding, handsFree, setHandsFree, room, visitId, onRecord, enabled = true }: StaffVoiceProps & {
+  holding: boolean; setHolding: (value: boolean) => void; handsFree: boolean; setHandsFree: (value: boolean) => void;
+}) {
+  const { state, connected: liveConnected } = useRoomState();
+  const connected = liveConnected && enabled;
+  const [wakeEnabled, setWakeEnabled] = useState(false);
+  const [notice, setNotice] = useState<CommandResult | null>(null);
+  const current = useRef({ state, connected, room, visitId, onRecord });
+  current.current = { state, connected, room, visitId, onRecord };
+  const pending = useRef<string | null>(null);
+  const starting = useRef(false);
+  const tools = useMemo(() => createStaffTools({
+    connected: () => current.current.connected,
+    digest: () => JSON.stringify({ ...JSON.parse(roomDigest(current.current.connected ? current.current.state : null)),
+      screenContext: { room: current.current.room ?? null, selectedVisitId: current.current.visitId ?? null } }),
+    notify: (result, tool) => {
+      setNotice(result);
+      const data = result.data as { suggestionId?: string } | undefined;
+      window.dispatchEvent(new CustomEvent('crisp-staff-change', { detail: { spokenSuggestionId: tool === 'shift_summary' && result.ok ? data?.suggestionId : undefined } }));
+    },
+    onRecord: result => current.current.onRecord?.(result),
+  }), []);
+  const context = JSON.stringify({ screen: room ? 'Exam room' : 'Crisp Command Center', room, selectedVisitId: visitId,
+    instruction: 'Use client tools for every staff action. Speak their returned confirmation exactly once. Ask for clarification on ambiguous names. Get the selected patient name from get_room_digest before any allergies request. Read allergies verbatim and label demo records fictional. Never diagnose or rank patients clinically.' });
+  const voice = useVoiceAgent('nurse', enabled && Boolean(state?.providers.agent), tools, context);
+  const { endSession, status, sendUserMessage } = voice;
+  const wake = useWakeWord(wakeEnabled && connected && voice.available && status === 'disconnected' && !handsFree && !holding,
+    command => { if (starting.current) return; pending.current = command || null; starting.current = true; setHandsFree(true); void voice.start(); });
   function release() { setHolding(false); }
-  useEffect(() => { if (!connected) setHolding(false); }, [connected, setHolding]);
+  function end() { pending.current = null; starting.current = false; setHandsFree(false); release(); void endSession(); }
   useEffect(() => {
-    const releaseMic = () => setHolding(false);
-    window.addEventListener('blur', releaseMic);
-    document.addEventListener('visibilitychange', releaseMic);
+    if (status !== 'connected') return;
+    starting.current = false;
+    if (pending.current) { const command = pending.current; pending.current = null; sendUserMessage(command); }
+  }, [status, sendUserMessage]);
+  useEffect(() => {
+    if (status === 'disconnected' && handsFree && !starting.current) setHandsFree(false);
+  }, [status, handsFree, setHandsFree]);
+  useEffect(() => {
+    if (!voice.available && handsFree) { starting.current = false; setHandsFree(false); setWakeEnabled(false); setNotice({ ok: false, message: 'Nurse voice unavailable. Use the on-screen actions or text Ask Crisp.' }); }
+  }, [voice.available, handsFree, setHandsFree]);
+  useEffect(() => { if (!connected) { setWakeEnabled(false); end(); } }, [connected]);
+  useEffect(() => {
+    const releaseMic = () => { release(); if (document.hidden) { setWakeEnabled(false); end(); } };
+    window.addEventListener('blur', releaseMic); document.addEventListener('visibilitychange', releaseMic);
     return () => { window.removeEventListener('blur', releaseMic); document.removeEventListener('visibilitychange', releaseMic); };
-  }, [setHolding]);
-  if (!voice.available) return null;
+  }, []);
   function hold() {
-    if (!connected) return;
-    setHolding(true); void voice.start();
+    if (!connected || starting.current) return;
+    wake.pause(); pending.current = null; setHolding(true); void voice.start();
   }
-  return <section aria-label="Ask Crisp by voice" style={{ padding: '12px 0' }}>
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+  return <section aria-label="Ask Crisp by voice" className="staff-voice">
+    <div className="staff-controls">
       <Crisp size={80} state={voice.mascotState} level={voice.level} />
-      <button type="button" aria-pressed={holding} disabled={!connected} style={{ minHeight: 44, touchAction: 'none' }}
+      <button type="button" aria-pressed={holding} disabled={!connected || !voice.available} style={{ minHeight: 44, touchAction: 'none' }}
         onPointerDown={event => { if (event.button !== 0) return; event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); hold(); }}
         onPointerUp={release} onPointerCancel={release} onLostPointerCapture={release} onBlur={release}
         onKeyDown={event => { if ((event.key === ' ' || event.key === 'Enter') && !event.repeat) { event.preventDefault(); hold(); } }}
         onKeyUp={event => { if (event.key === ' ' || event.key === 'Enter') { event.preventDefault(); release(); } }}>
-        {holding ? voice.status === 'connected' ? 'Listening… release to ask' : 'Connecting… keep holding' : 'Hold to ask Crisp'}
+        {holding ? status === 'connected' ? 'Listening… release to ask' : 'Connecting… keep holding' : 'Hold to ask Crisp'}
       </button>
-      {voice.status !== 'disconnected' && <button type="button" onClick={() => { release(); endSession(); }}>End voice</button>}
+      <button type="button" className="secondary" aria-pressed={wakeEnabled} disabled={!connected || !wake.available || !voice.available}
+        onClick={() => { const next = !wakeEnabled; setWakeEnabled(next); if (!next) end(); }}>
+        {wakeEnabled ? 'Stop listening for Hey Crisp' : 'Listen for Hey Crisp'}
+      </button>
+      {status !== 'disconnected' && <button type="button" onClick={end}>End voice</button>}
     </div>
-    <p role="status">{!connected ? 'Room disconnected. Use text Ask Crisp when connected.' : voice.status === 'connected' && !holding ? 'Microphone muted. Hold the button or Space to speak.' : 'Answers use recorded room information. You can also use text Ask Crisp.'}</p>
+    <p role="status" className="staff-mic">{!connected ? 'Mic off · room disconnected.' : !voice.available ? 'Mic off · nurse agent unavailable. Use text or on-screen actions.' : handsFree ? `Mic on · nurse session ${status}` : holding ? 'Mic on · hold to speak' : wakeEnabled ? wake.status : 'Mic off · wake word is off.'}</p>
+    <small>Wake listening uses browser speech recognition. Say “Hey Crisp”, then your request. End voice to return to wake listening.</small>
+    <StaffToast result={notice} />
     <div role="log" aria-label="Nurse voice captions" aria-live="polite" style={{ maxHeight: 160, overflowY: 'auto' }}>
       {voice.captions.map((caption, i) => <p key={i}><strong>{caption.speaker}:</strong> {caption.text}</p>)}
     </div>
