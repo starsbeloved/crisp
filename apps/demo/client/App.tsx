@@ -1,3 +1,4 @@
+import { Crisp } from './ui/Crisp.tsx';
 import { lazy, Suspense, useEffect, useRef, type ComponentType } from 'react';
 import { CheckInPage } from './checkin/CheckInPage.tsx';
 import { CameraPage } from './camera/CameraPage.tsx';
@@ -25,7 +26,9 @@ function AppleMark() {
 
 export function App() {
   const explicitRole = new URLSearchParams(location.search).has('role') ? selectionFromLocation(location.pathname, location.search) : null;
-  const path = explicitRole ? stationUrl(explicitRole).split('?')[0] : location.pathname;
+  const rawPath = explicitRole ? stationUrl(explicitRole).split('?')[0] : location.pathname;
+  // The app starts on check-in; the old launcher stays at /home.
+  const path = rawPath === '/' ? '/check-in' : rawPath === '/home' ? '/' : rawPath;
   const lobby = path === '/lobby';
   const navigation = useRef<HTMLElement>(null);
   useEffect(() => {
@@ -39,10 +42,10 @@ export function App() {
     return () => window.removeEventListener('resize', revealCurrentPage);
   }, [path]);
   return <StationShell path={path}>
-    {!lobby && <header><a href="/" className="wordmark"><AppleMark /><span>Crisp</span></a><nav ref={navigation} aria-label="Demo pages">{links.map(([url, title]) => <a href={url} key={url} aria-current={path === url.split('?')[0] ? 'page' : undefined}>{title}</a>)}</nav></header>}
+    {!lobby && <header><a href="/check-in" className="wordmark"><AppleMark /><span>Crisp</span></a><nav ref={navigation} aria-label="Demo pages">{links.map(([url, title]) => <a href={url} key={url} aria-current={path === url.split('?')[0] ? 'page' : undefined}>{title}</a>)}</nav></header>}
     <main className={lobby ? 'app-main-lobby' : undefined}>
       {path === '/check-in' ? <CheckInPage /> : path === '/camera' ? <CameraPage /> : path === '/dashboard' ? <DashboardPage /> : path === '/lobby' ? <LobbyPage /> : path === '/room' ? <CameraPage roomView /> : path === '/exam' ? <Suspense fallback={<p>Opening Exam room…</p>}>{ExamPage ? <ExamPage /> : <section className="card"><h1>Exam room is unavailable in this build.</h1><a href="/station?choose=1">Choose another station</a></section>}</Suspense> : <>
-        <section className="launcher-hero"><p className="launcher-kicker"><AppleMark /> Waiting room companion</p><h1>No one waits unseen.</h1><p className="launcher-intro">Crisp helps people check in, helps staff see the room, and keeps everyone informed while they wait.</p></section>
+        <section className="launcher-hero"><div className="launcher-hero-text"><p className="launcher-kicker"><AppleMark /> Waiting room companion</p><h1>No one waits unseen.</h1><p className="launcher-intro">Crisp helps people check in, helps staff see the room, and keeps everyone informed while they wait.</p></div><div className="launcher-hero-crisp" aria-hidden="true"><Crisp state="happy" size={340} /></div></section>
         <div className="launcher">{links.map(([url, title, description]) => <a className="card launcher-card" href={url} key={url}><strong>{title}</strong><span>{description}</span><span className="launcher-arrow" aria-hidden="true">→</span></a>)}</div>
         <p className="launcher-note">Use separate, tiled windows to keep camera processing active.</p>
       </>}

@@ -355,3 +355,9 @@ main:has(> .checkin){max-width:none;margin:0;padding:0}
   .checkin[data-step] .checkin-stable-layout .checkin-intro p { font-size:1.125rem; }
   .checkin-stable-layout .checkin-intro::after,.checkin-voice-scene .checkin-speech::after { top:32px; left:-16px; width:16px; height:16px; }
 }
+
+/* Big, friendly Crisp on the first and last screens; other steps keep the anchored size. */
+.checkin:is([data-step=welcome],[data-step=done]) .checkin-stable-layout { --voice-character-size: 320px; }
+.checkin:is([data-step=welcome],[data-step=done]) .checkin-stable-layout .checkin-companion-scene { align-items:center; }
+.checkin:is([data-step=welcome],[data-step=done]) .checkin-stable-layout .checkin-companion-scene .checkin-intro { align-self:center; }
+@media (max-width: 760px) { .checkin:is([data-step=welcome],[data-step=done]) .checkin-stable-layout { --voice-character-size: 150px; } }

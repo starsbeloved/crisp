@@ -119,3 +119,9 @@ main { padding-bottom: 5rem; }
   #root > header { background: var(--c-surface); backdrop-filter: none; }
   :focus-visible { outline-width: 4px; }
 }
+
+/* Landing hero: big waving Crisp next to the headline. */
+.launcher-hero { max-width: none; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 32px; }
+.launcher-hero-text { max-width: 760px; }
+.launcher-hero-crisp { display: flex; justify-content: center; }
+@media (max-width: 860px) { .launcher-hero { grid-template-columns: 1fr; } .launcher-hero-crisp { order: -1; } .launcher-hero-crisp svg { width: 220px; height: auto; } }
