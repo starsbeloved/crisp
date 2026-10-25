@@ -8,6 +8,8 @@ export interface CheckInAnswers {
   reason: string; reasonChips: string[]; onset: Onset | null; trend: Trend | null;
   followUp: { question: string; answer: string } | null;
   via: 'form' | 'voice';
+  dateOfBirth?: string | null;   // YYYY-MM-DD, used only to match demo records
+  phone?: string | null;
 }
 export interface NewVisitInput { name: string; descriptor: number[] | null; answers: CheckInAnswers }
 export interface Visit {

@@ -31,20 +31,21 @@ function VoiceCheckIn({ controller }: { controller: CheckInController }) {
     const timer = setTimeout(endSession, 8000);
     return () => { clearTimeout(timer); endSession(); };
   }, [controller.step, endSession]);
-  if (!voice.available || tapping || controller.step === 'done') return null;
+  if (tapping || controller.step === 'done') return null;
   const active = voice.status !== 'disconnected';
+  const showConversation = active || voice.captions.length > 0;
   return <section aria-label="Talk to Crisp" className={active ? 'checkin-voice-active' : 'checkin-voice-launch'}>
     <div className="checkin-conversation">
-      <div className="checkin-voice-character"><Crisp size={300} state={voice.mascotState} level={voice.level} />
-        <p className="checkin-voice-status" role="status"><span className="checkin-levels" aria-hidden="true">{[0.65, 1, 0.8, 0.5].map((scale, index) => <span key={index} style={{ transform: `scaleY(${Math.max(0.2, voice.level * scale)})` }} />)}</span>{voice.status === 'connecting' ? 'Connecting to Crisp…' : active ? voice.mascotState === 'talking' ? 'Crisp is speaking' : voice.mascotState === 'thinking' ? 'Saving what you said…' : 'Crisp is listening…' : 'Tell Crisp in your own words.'}</p>
-      </div>
-      <div className="checkin-captions" role="log" aria-label="Conversation captions" aria-live="polite">
+      {showConversation && <div className="checkin-voice-character"><Crisp size={300} state={voice.mascotState} level={voice.level} />
+        <p className="checkin-voice-status" role="status"><span className="checkin-levels" aria-hidden="true">{[0.65, 1, 0.8, 0.5].map((scale, index) => <span key={index} style={{ transform: `scaleY(${Math.max(0.2, voice.level * scale)})` }} />)}</span>{voice.status === 'connecting' ? 'Connecting to Crisp…' : voice.mascotState === 'talking' ? 'Crisp is speaking' : voice.mascotState === 'thinking' ? 'Saving what you said…' : 'Crisp is listening…'}</p>
+      </div>}
+      {showConversation && <div className="checkin-captions" role="log" aria-label="Conversation captions" aria-live="polite">
         {!voice.captions.length && <p>Say hello to Crisp. Your conversation will appear here.</p>}
-        {voice.captions.map((caption, i) => <div className="checkin-caption" data-speaker={caption.speaker} key={i}><strong>{caption.speaker}: </strong><p>{caption.text}{active && i === voice.captions.length - 1 && <span className="checkin-caption-caret" aria-hidden="true" />}</p></div>)}
-      </div>
+        {voice.captions.map((caption, i) => <div className="checkin-caption" data-speaker={caption.speaker} key={i}><strong>{caption.speaker}: </strong><p>{caption.text}{i === voice.captions.length - 1 && <span className="checkin-caption-caret" aria-hidden="true" />}</p></div>)}
+      </div>}
       <div className="checkin-voice-actions">
         {!active && <button type="button" className="checkin-primary checkin-voice-start" onClick={() => { controller.setVia('voice'); void voice.start(); }}><KioskIcon name="mic" />Talk to Crisp</button>}
-        <button type="button" className="checkin-secondary checkin-voice-tap" onClick={() => { voice.endSession(); controller.setVia('form'); setTapping(true); }}>I’d rather tap</button>
+        <button type="button" className="checkin-secondary checkin-voice-tap" onClick={() => { voice.endSession(); controller.setVia('form'); controller.goTo('name'); setTapping(true); }}>I’d rather tap</button>
       </div>
     </div>
     {active && <Understood controller={controller} />}

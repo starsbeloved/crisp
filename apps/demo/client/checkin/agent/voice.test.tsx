@@ -45,11 +45,11 @@ describe('voice widgets with a simulated ElevenLabs session', () => {
     const c = controller(); sdk.room!.providers.agent = false;
     const page = <CheckInContext value={c}><CrispAgent /></CheckInContext>;
     await render(page);
-    expect(container.querySelector('button')).toBeNull(); expect(fetch).not.toHaveBeenCalled();
+    expect(container.textContent).toContain('Talk to Crisp'); expect(container.textContent).toContain('I’d rather tap'); expect(fetch).not.toHaveBeenCalled();
     sdk.room!.providers.agent = true;
     vi.mocked(fetch).mockResolvedValue(new Response('{}', { status: 503 }));
     await render(<CheckInContext value={c}><CrispAgent /></CheckInContext>);
-    expect(container.querySelector('button')).toBeNull();
+    expect(container.textContent).toContain('Talk to Crisp'); expect(container.textContent).toContain('I’d rather tap');
   });
   it('starts with signed URL and tools, shows both captions, and preserves fields when switching to taps', async () => {
     const c = controller();
@@ -59,15 +59,15 @@ describe('voice widgets with a simulated ElevenLabs session', () => {
     expect(sdk.options).toMatchObject({ connectionType: 'websocket', signedUrl: expect.stringContaining('wss://') });
     await act(async () => { await sdk.options.clientTools.set_name({ name: 'Ama' });
       sdk.callbacks.onMessage({ role: 'user', source: 'user', message: 'My name is Ama' });
-      sdk.callbacks.onMessage({ role: 'agent', source: 'ai', message: 'Thanks, Ama' }); });
-    expect(c.name).toBe('Ama'); expect(container.textContent).toContain('You: My name is Ama'); expect(container.textContent).toContain('Crisp: Thanks, Ama');
+      sdk.callbacks.onMessage({ role: 'agent', source: 'ai', message: '[happy] Thanks, Ama [laughs]' }); });
+    expect(c.name).toBe('Ama'); expect(container.textContent).toContain('You: My name is Ama'); expect(container.textContent).toContain('Crisp: Thanks, Ama'); expect(container.textContent).not.toContain('[happy]');
     await act(async () => click('I’d rather tap'));
     expect(c.name).toBe('Ama'); expect(c.via).toBe('form'); expect(sdk.end).toHaveBeenCalled(); expect(container.querySelector('button')).toBeNull();
   });
   it('shows fallback after a session error', async () => {
     await render(<CheckInContext value={controller()}><CrispAgent /></CheckInContext>);
     await act(async () => sdk.callbacks.onError('microphone denied'));
-    expect(container.querySelector('button')).toBeNull();
+    expect(container.textContent).toContain('Talk to Crisp'); expect(container.textContent).toContain('I’d rather tap');
     expect(sdk.end).toHaveBeenCalled();
   });
   it('mutes nurse input on keyboard release even if connection finishes later, and fetches the current room digest', async () => {

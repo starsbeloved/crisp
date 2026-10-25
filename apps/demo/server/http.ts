@@ -12,7 +12,7 @@ import * as providers from './providers/index.ts';
 import { signedUrl } from './agent.ts';
 
 const descriptorSchema = z.array(z.number().finite()).min(1).max(512);
-const answersSchema = z.object({ reason: z.string().max(4000), reasonChips: z.array(z.string()).max(30), onset: z.enum(['<1h', 'today', '1-3d', 'longer']).nullable(), trend: z.enum(['worse', 'same', 'better']).nullable(), followUp: z.object({ question: z.string(), answer: z.string() }).nullable(), via: z.enum(['form', 'voice']) });
+const answersSchema = z.object({ reason: z.string().max(4000), reasonChips: z.array(z.string()).max(30), onset: z.enum(['<1h', 'today', '1-3d', 'longer']).nullable(), trend: z.enum(['worse', 'same', 'better']).nullable(), followUp: z.object({ question: z.string(), answer: z.string() }).nullable(), via: z.enum(['form', 'voice']), dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(), phone: z.string().max(40).nullable().optional() });
 const visitSchema = z.object({ name: z.string().trim().min(1).max(120), descriptor: descriptorSchema.nullable(), answers: answersSchema });
 const quality = z.enum(['good', 'fair', 'low', 'none']);
 const observationSchema = z.object({
