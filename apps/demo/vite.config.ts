@@ -6,4 +6,9 @@ export default defineConfig({
     host: process.env.HOST || '127.0.0.1', port: Number(process.env.WEB_PORT || 5173), strictPort: true,
     proxy: { '/api': { target: `http://127.0.0.1:${process.env.API_PORT || 8787}` } },
   },
+  // `npm run demo`: optimized build served with the same proxy (much faster than dev mode).
+  preview: {
+    host: process.env.HOST || '127.0.0.1', port: Number(process.env.WEB_PORT || 5173), strictPort: true,
+    proxy: { '/api': { target: `http://127.0.0.1:${process.env.API_PORT || 8787}` } },
+  },
 });
