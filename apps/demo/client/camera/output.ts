@@ -16,8 +16,8 @@ export function cameraRequests(state: RoomState | null) {
 }
 export function makeObservation(track: FaceTrack, reading: SignalReading, options: { cam: string; source: Observation['source']; now: number; width: number; height: number }): Observation {
   const known = track.match !== null;
-  const hasFace = known && track.source !== 'body';
-  return { cameraId: options.cam, trackId: track.id, at: options.now, visitId: track.match?.visitId ?? null, matchScore: track.source === 'body' ? null : track.match?.score ?? null,
+  const hasFace = known && track.source !== 'body' && !track.faceMissing;
+  return { cameraId: options.cam, trackId: track.id, at: options.now, visitId: track.match?.visitId ?? null, matchScore: hasFace ? track.match?.score ?? null : null,
     box: normalizedBox(track.face.box, options.width, options.height), source: options.source,
     hrBpm: hasFace ? reading.hrBpm : null, hrQuality: !known ? 'none' : hasFace ? reading.hrQuality : 'low',
     rrBpm: known ? reading.rrBpm : null, rrQuality: known ? reading.rrQuality : 'none',

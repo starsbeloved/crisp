@@ -68,3 +68,37 @@ it('draws at video cadence, caps face inference, and uploads a drop followed by 
   const fallReport = model.observations.mock.calls.find(call => call[0].some((observation: { posture: { fallSuspected: boolean } | null }) => observation.posture?.fallSuspected))![0];
   expect(fallReport.filter((observation: { visitId: string | null }) => observation.visitId === 'ama')).toHaveLength(1);
 });
+
+it.each(['drop', 'disappear'])('reports face-only %s immediately with the recognized visit and unavailable vitals', async kind => {
+  vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+  model.now = 0; model.poses = []; model.overlay.mockClear();
+  model.detectForVideo.mockReset().mockReturnValue({ landmarks: [] });
+  model.observations.mockReset().mockResolvedValue({});
+  model.detectFaces.mockReset().mockImplementation(async () => model.now >= 1250 && kind === 'disappear' ? [] : [{
+    box: { x: 162, y: model.now >= 1000 ? kind === 'drop' ? 190 : 130 : 70, w: 60, h: 70 },
+    descriptor: [0, 0], score: .95, landmarks: [],
+  }]);
+  vi.spyOn(performance, 'now').mockImplementation(() => model.now);
+  vi.spyOn(Date, 'now').mockImplementation(() => 100_000 + model.now);
+  const context = { drawImage: vi.fn(), getImageData: () => ({ data: new Uint8ClampedArray(320 * 240 * 4), width: 320, height: 240 }) };
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation((() => context) as unknown as HTMLCanvasElement['getContext']);
+  vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation(callback => callback(new Blob()));
+  function Harness() {
+    const video = useRef(document.createElement('video')), canvas = useRef(document.createElement('canvas'));
+    for (const [name, value] of Object.entries({ videoWidth: 640, videoHeight: 480, readyState: 4 })) {
+      Object.defineProperty(video.current, name, { configurable: true, value });
+    }
+    useVision(video, canvas, { ready: true, cam: 'FACE-REPLAY', replayName: 'generated boxes', state: room, privacy: false, debug: true });
+    return null;
+  }
+  root = createRoot(document.createElement('div'));
+  await act(() => root!.render(<Harness />));
+  for (let t = 0; t <= 1600; t += 50) {
+    model.now = t; await act(async () => { model.frame?.(); await new Promise(resolve => setTimeout(resolve, 0)); });
+  }
+  const fall = model.observations.mock.calls.flatMap(call => call[0]).find(o => o.posture?.fallSuspected);
+  expect(fall).toMatchObject({ visitId: 'ama', hrBpm: null, rrBpm: null, source: 'replay' });
+  expect(fall.at).toBeLessThan(101600);
+  expect(model.overlay.mock.calls.at(-1)![1][0].reading.fallTrigger).toBe(kind === 'drop' ? 'face-drop' : 'face-disappeared');
+  expect(model.detectFaces.mock.calls.slice(1).every(([, input]) => input === 640)).toBe(true);
+});

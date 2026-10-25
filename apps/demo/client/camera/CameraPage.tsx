@@ -92,7 +92,7 @@ export function CameraPage({ roomView = false }: { roomView?: boolean }) {
     {debug && <section className="camera-debug" aria-label="Camera debug readings">
       <div>fps: {vision.stats.fps.toFixed(1)} · {vision.poseStatus} · {vision.models}</div>
       {vision.debugTracks?.length ? vision.debugTracks.map(line => <pre key={line.split('\n')[0]}>{line}</pre>) :
-        <pre>{'No body/face tracked · track: none · visit: unknown · source: none\nreferenceReady: false · slumpSec: 0.0 · headDropSec: 0.0\nfallSuspected: false · velocity: 0.00'}</pre>}
+        <pre>{'No body/face tracked · track: none · visit: unknown · source: none\nreferenceReady: false · slumpSec: 0.0 · headDropSec: 0.0\nfallSuspected: false · velocity: 0.00\nfaceVelocity: 0.00 heights/s · trigger: none · faceBox: unavailable'}</pre>}
     </section>}
     <p className="camera-source-message" role="status">{message}</p>
     <video ref={video} muted playsInline autoPlay className="source-video" aria-label="Camera source video" />

@@ -35,6 +35,20 @@ it('flags a fast downward velocity when the body drops into a low posture', () =
   expect(tracker.read(4200).velocity).toBeGreaterThan(1);
 });
 
+it('detects a fast nose descent of one shoulder width before the hips are low', () => {
+  const tracker = createSignalTracker();
+  tracker.pushPose(pose(0));
+  tracker.pushPose(pose(250, 0, .42));
+  expect(tracker.read(250).posture?.fallSuspected).toBe(true);
+});
+
+it('also detects a nose-only drop after learning a seated reference', () => {
+  const tracker = createSignalTracker();
+  for (let t = 0; t <= 4000; t += 200) tracker.pushPose(pose(t));
+  tracker.pushPose(pose(4250, 0, .42));
+  expect(tracker.read(4250).posture?.fallSuspected).toBe(true);
+});
+
 it('keeps a head drop signal when the face landmark becomes unavailable but the body remains visible', () => {
   const tracker = createSignalTracker();
   for (let t = 0; t <= 4000; t += 200) tracker.pushPose(pose(t));

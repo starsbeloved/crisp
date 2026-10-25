@@ -3,12 +3,13 @@ import { median } from './dsp.ts';
 import { estimatePulse, validFace } from './pulse.ts';
 import { createPoseSignals } from './posture.ts';
 import { createHeartRateDisplay, type HeartRateDisplay } from './display.ts';
+import type { FallTrigger } from './faceMotion.ts';
 export { signalDisplayLabel } from './display.ts';
 export interface FaceSample { t: number; rgb: [number, number, number]; brightness: number; faceWidthPx: number }
 export interface PoseSample { t: number; landmarks: { x: number; y: number; z: number; visibility: number }[] }
 export interface SignalReading { hrBpm: number | null; hrQuality: Quality; rrBpm: number | null; rrQuality: Quality;
   posture: PostureState | null; hint: string | null; hrSecondsCollected: number; pulseTrace: number[] | null;
-  hrDisplay?: HeartRateDisplay; referenceReady?: boolean; velocity: number }
+  hrDisplay?: HeartRateDisplay; referenceReady?: boolean; velocity: number; faceVelocity?: number; fallTrigger?: FallTrigger }
 export interface SignalTracker { pushFace(s: FaceSample): void; pushPose(s: PoseSample): void; read(now: number): SignalReading; reset(): void }
 export function createSignalTracker(): SignalTracker {
   const pose = createPoseSignals();

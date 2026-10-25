@@ -11,6 +11,7 @@ import { drawOverlay, type RenderTrack } from './overlay.ts';
 import { makeObservation } from './output.ts';
 import { loadPoseModel } from './pose.ts';
 import { debugReading } from './debug.ts';
+import { withFaceMotion } from './signals/faceMotion.ts';
 
 export function useVision(videoRef: RefObject<HTMLVideoElement | null>, canvasRef: RefObject<HTMLCanvasElement | null>,
   options: { ready: boolean; cam: string; replayName: string | null; state: RoomState | null; privacy: boolean; debug?: boolean }) {
@@ -121,14 +122,17 @@ export function useVision(videoRef: RefObject<HTMLVideoElement | null>, canvasRe
         }
         const assignedPose = 'pose' in track && !missingBodies.has(track.id) && now - poseAt < 700 ? track.pose as PoseSample['landmarks'] : null;
         if (signal) {
-          const sample = pixels && track.source !== 'body' ? meanCheekSample(pixels, track.face, width, height, now, video.videoWidth) : null;
+          const sample = pixels && track.source !== 'body' && !track.faceMissing ? meanCheekSample(pixels, track.face, width, height, now, video.videoWidth) : null;
           if (sample) signal.tracker.pushFace(sample);
           // Count only fresh model results, never repeat a cached pose as evidence.
           if (assignedPose) signal.tracker.pushPose({ t: poseAt, landmarks: assignedPose });
         }
         let reading = signal?.tracker.read(now) ?? { hrBpm: null, hrQuality: 'none' as const, rrBpm: null, rrQuality: 'none' as const, posture: null, hint: null, hrSecondsCollected: 0, pulseTrace: null, velocity: 0 };
-        if (track.source === 'body') reading = { ...reading, hrBpm: null, hrQuality: 'low', pulseTrace: null,
-          hint: missingBodies.has(track.id) ? 'Body left view after fast downward movement' : 'Face hidden — tracking body',
+        const faceTrackId = 'faceTrackId' in track ? track.faceTrackId : track.id;
+        const faceTrack = faces.find(face => face.id === faceTrackId && face.match?.visitId === track.match?.visitId);
+        reading = withFaceMotion(reading, faceTrack?.faceMotion);
+        if (track.source === 'body' || track.faceMissing) reading = { ...reading, hrBpm: null, hrQuality: 'low', pulseTrace: null,
+          hint: track.faceMissing ? 'Face left view after downward movement' : missingBodies.has(track.id) ? 'Body left view after fast downward movement' : 'Face hidden — tracking body',
           hrDisplay: undefined };
         return { track, pose: assignedPose, reading };
       });
@@ -161,18 +165,19 @@ export function useVision(videoRef: RefObject<HTMLVideoElement | null>, canvasRe
             .catch(() => { if (!stopped) setError('Frame upload unavailable'); }).finally(() => { uploading = false; });
         }, 'image/jpeg', 0.7);
       }
-      // Pose runs independently at about 12 fps; face detection stays below 4 Hz and slows for stable tracks.
-      if (!faceDetecting && faceReady.current && now - lastFaceAt >= (faces.length ? 500 : faceInterval)) {
+      // Four fresh face samples/second are needed to catch a quick drop without a skeleton.
+      if (!faceDetecting && faceReady.current && now - lastFaceAt >= faceInterval) {
           faceDetecting = true; lastFaceAt = now;
           const largeFaces = faces.length > 0 && faces.every(face => face.face.box.w >= width * .16);
+          const smallFaces = !faces.length || faces.some(face => face.face.box.w < 80);
           detectorCanvas.width = Math.min(largeFaces ? 320 : 640, video.videoWidth);
           detectorCanvas.height = Math.round(video.videoHeight * detectorCanvas.width / video.videoWidth);
           detectorCtx!.drawImage(video, 0, 0, detectorCanvas.width, detectorCanvas.height);
           const sx = width / detectorCanvas.width, sy = height / detectorCanvas.height;
-          void detectFaces(detectorCanvas, largeFaces ? 320 : 512).then(faces => {
+          void detectFaces(detectorCanvas, largeFaces ? 320 : smallFaces ? 640 : 512).then(faces => {
             if (!stopped) tracker.current.update(faces.map(face => ({ ...face,
               box: { x: face.box.x * sx, y: face.box.y * sy, w: face.box.w * sx, h: face.box.h * sy },
-              landmarks: face.landmarks.map(p => ({ x: p.x * sx, y: p.y * sy })) })), gallery.current, performance.now());
+              landmarks: face.landmarks.map(p => ({ x: p.x * sx, y: p.y * sy })) })), gallery.current, now);
           })
             .catch(error => { if (!stopped) setModels(`Face models: error ${error instanceof Error ? error.message : String(error)}`); }).finally(() => { faceDetecting = false; });
       }

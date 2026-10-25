@@ -12,6 +12,38 @@ function face(x = 100, descriptor = [0.1, 0]): DetectedFace {
 }
 
 describe('face tracking and identity', () => {
+  it('detects a fast one-face-height descent without any skeleton', () => {
+    const tracker = new FaceTracker();
+    for (const t of [0, 250, 500]) tracker.update([face()], gallery, t);
+    tracker.update([{ ...face(), box: { ...face().box, y: 200 } }], gallery, 750);
+    expect(tracker.current(750)[0]).toMatchObject({ match: { visitId: 'ama' },
+      faceMotion: { fallSuspected: true, trigger: 'face-drop', velocity: 4 } });
+    expect(tracker.current(2400)).toEqual([]);
+  });
+
+  it('retains observed downward disappearance long enough to report a fall, with no face vitals', () => {
+    const tracker = new FaceTracker();
+    for (const t of [0, 250, 500]) tracker.update([face()], gallery, t);
+    tracker.update([{ ...face(), box: { ...face().box, y: 140 } }], gallery, 750);
+    tracker.update([], gallery, 1000);
+    expect(tracker.current(1600)[0]).toMatchObject({ match: { visitId: 'ama' }, faceMissing: true,
+      faceMotion: { fallSuspected: true, trigger: 'face-disappeared' } });
+    tracker.setGallery([]);
+    expect(tracker.current(1600)[0].match).toBeNull();
+    expect(tracker.current(2600)).toEqual([]);
+  });
+
+  it('ignores slow sitting, sideways loss, upward loss, jitter and stale samples', () => {
+    for (const [dx, dy, step] of [[0, 10, 250], [120, 0, 250], [0, -60, 250], [0, 5, 250], [0, 120, 1500]]) {
+      const tracker = new FaceTracker();
+      for (let i = 0; i < 4; i++) {
+        tracker.update([{ ...face(100 + dx * i), box: { ...face(100 + dx * i).box, y: 80 + dy * i } }], gallery, i * step);
+        expect(tracker.current(i * step).some(t => t.faceMotion?.fallSuspected)).toBe(false);
+      }
+      tracker.update([], gallery, 4 * step);
+      expect(tracker.current(4 * step).some(t => t.faceMotion?.fallSuspected)).toBe(false);
+    }
+  });
   it('requires three agreeing votes and follows identities through a seat swap', () => {
     const tracker = new FaceTracker();
     tracker.update([face(), face(400, [1, 0.9])], gallery, 0);
