@@ -1,7 +1,58 @@
-.lobby{--lobby-ink:#234535;--lobby-paper:#fffdf7;color:var(--lobby-ink)}
-.lobby-top{display:flex;align-items:center;justify-content:space-between;gap:20px}.lobby h1{font-size:clamp(26px,3vw,40px)}.lobby-eyebrow{text-transform:uppercase;letter-spacing:.12em;font-size:12px;margin:0;color:var(--lobby-ink)}.lobby-connection{font-size:13px;margin:8px 0 16px}
-.lobby-call{background:var(--lobby-paper);border:1px solid #d8e2d7;border-radius:24px;min-height:320px;display:flex;align-items:center;justify-content:center;gap:64px;padding:40px}.lobby-call h2{font-size:clamp(36px,6vw,80px);line-height:1.05;letter-spacing:-.04em;margin:10px 0 22px}.lobby-call p{font-size:22px;margin:0}.lobby-call strong{font-size:clamp(26px,4vw,48px);font-weight:600}.lobby-mascot{flex-shrink:0}.lobby-mascot svg{display:block}
-.lobby-queue{margin-top:28px}.lobby-queue-heading{display:flex;align-items:center;justify-content:space-between}.lobby-queue-heading h2{margin:0 0 16px}.lobby-queue ol{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:16px;list-style:none;margin:0;padding:0}.lobby-queue li{background:white;border:1px solid #d8e2d7;border-radius:16px;display:flex;align-items:center;gap:24px;padding:22px;font-size:32px}.lobby-queue li span{color:#5b655e}.lobby-footer{text-align:center;margin:32px 0 0}.lobby-call.speaking .lobby-mascot{animation:crisp-call .55s ease-in-out infinite alternate}
-@keyframes crisp-call{to{transform:translateY(-6px) rotate(2deg)}}
-@media(max-width:700px){.lobby-top{align-items:start}.lobby-call{flex-direction:column;gap:16px;padding:24px;text-align:center}.lobby-mascot svg{width:150px;height:150px}.lobby-call p{font-size:18px}.lobby-queue ol{grid-template-columns:repeat(2,1fr)}.lobby-queue li{padding:16px;font-size:26px}.lobby-top button{font-size:14px;padding:8px 12px;flex-shrink:0}}
-@media(prefers-reduced-motion:reduce){.lobby-call.speaking .lobby-mascot{animation:none}}
+.lobby { color: var(--c-text); min-height: calc(100vh - 1px); overflow: hidden; }
+.lobby-header { background: transparent; border: 0; justify-content: flex-start; padding: 0 0 var(--s-3); }
+.lobby-brand { align-items: center; color: var(--c-text); display: flex; flex: 1; font-size: 36px; font-weight: 700; gap: var(--s-3); letter-spacing: -.02em; }
+.lobby-brand:hover { color: var(--c-text); }
+.lobby-header time { color: var(--c-text); font-size: 40px; font-variant-numeric: tabular-nums; font-weight: 600; }
+.lobby-apple-mark { height: 48px; width: 48px; }
+.lobby-main { align-items: center; display: grid; gap: 64px; grid-template-columns: minmax(520px, 720px) minmax(0, 1fr); min-height: calc(100vh - 210px); padding: 0; }
+.lobby-mascot-stage { align-items: center; display: flex; flex-direction: column; justify-content: center; min-height: 700px; position: relative; }
+.lobby-mascot-disc { align-items: center; background: var(--c-leaf-tint); border-radius: 50%; display: flex; height: 620px; justify-content: center; width: 620px; }
+.lobby-mascot-disc .crisp-character { height: 600px; width: 680px; }
+.lobby-quote { background: var(--c-surface); border-radius: 40px 40px 40px 14px; box-shadow: var(--shadow-bubble); font-size: 44px; font-weight: 600; letter-spacing: -.02em; line-height: 1.2; margin: 0 0 var(--s-2); max-width: 640px; padding: 26px 36px; position: relative; z-index: 1; }
+.lobby-mascot-stage.speaking .lobby-mascot-disc { animation: lobby-bob .55s ease-in-out infinite alternate; }
+.lobby-call-panel { background: var(--c-surface); border-radius: 48px; box-shadow: 0 20px 60px color-mix(in srgb, var(--c-text) 8%, transparent); padding: 52px 64px; }
+.lobby-call-label { color: var(--c-leaf); font-size: 40px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+.lobby-called-person { align-items: baseline; display: flex; flex-wrap: wrap; gap: 40px; margin-top: var(--s-2); }
+.lobby-called-person span { font-size: clamp(96px, 10vw, 200px); font-weight: 700; letter-spacing: -.06em; line-height: 1; }
+.lobby-called-person strong { color: var(--c-text-2); font-size: 72px; font-weight: 600; }
+.lobby-room { align-items: center; background: var(--c-leaf); border-radius: 30px; color: var(--c-surface); display: inline-flex; font-size: 72px; font-weight: 700; gap: 22px; height: 116px; letter-spacing: -.02em; margin-top: 28px; padding: 0 44px 0 36px; }
+.lobby-room svg { fill: none; height: 64px; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2.4; width: 64px; }
+.lobby-idle-title { font-size: clamp(56px, 7vw, 100px); font-weight: 700; letter-spacing: -.05em; line-height: 1; margin-top: var(--s-3); }
+.lobby-idle-copy { font-size: 28px; margin: var(--s-3) 0 0; }
+.lobby-sound { margin-top: 28px; }
+.lobby-up-next { align-self: start; }
+.lobby-up-next h2 { color: var(--c-text-2); font-size: 36px; font-weight: 600; margin: 0 0 var(--s-3); }
+.lobby-up-next ol { display: flex; gap: var(--s-3); list-style: none; margin: 0; padding: 0; }
+.lobby-up-next li { align-items: center; background: var(--c-surface); border-radius: 32px; display: flex; flex: 1; font-size: 52px; font-weight: 700; height: 150px; justify-content: center; letter-spacing: -.02em; white-space: nowrap; }
+.lobby-up-next p { font-size: 24px; }
+.lobby-footer { align-items: center; color: var(--c-text); display: flex; font-size: 32px; gap: 18px; justify-content: center; padding: 28px 0 0; }
+.lobby-info { align-items: center; border: 2px solid currentColor; border-radius: 50%; display: inline-flex; font-size: 23px; font-weight: 700; height: 40px; justify-content: center; width: 40px; }
+@keyframes lobby-bob { to { transform: translateY(-6px) rotate(1deg); } }
+@media (max-width: 1550px) {
+  .lobby-main { gap: 40px; grid-template-columns: minmax(430px, 1fr) minmax(0, 1.1fr); }
+  .lobby-mascot-disc { height: min(48vw, 540px); width: min(48vw, 540px); }
+  .lobby-mascot-disc .crisp-character { height: min(46vw, 520px); width: min(52vw, 590px); }
+  .lobby-quote { font-size: 34px; }
+  .lobby-call-panel { padding: 40px 48px; }
+  .lobby-call-label { font-size: 32px; }
+  .lobby-called-person span { font-size: clamp(82px, 10vw, 150px); }
+  .lobby-called-person strong { font-size: 56px; }
+  .lobby-room { font-size: 54px; height: 92px; }
+  .lobby-room svg { height: 48px; width: 48px; }
+  .lobby-up-next li { font-size: 40px; }
+  .lobby-footer { font-size: 24px; }
+}
+@media (max-width: 960px) {
+  .lobby-header { padding-bottom: var(--s-2); }
+  .lobby-brand { font-size: 28px; }
+  .lobby-header time { font-size: 28px; }
+  .lobby-main { display: flex; flex-direction: column; gap: var(--s-4); min-height: 0; }
+  .lobby-mascot-stage { min-height: 0; }
+  .lobby-mascot-disc { height: min(78vw, 480px); width: min(78vw, 480px); }
+  .lobby-mascot-disc .crisp-character { height: min(74vw, 460px); width: min(84vw, 520px); }
+  .lobby-call-panel { border-radius: var(--r-kiosk); padding: 28px; width: 100%; }
+  .lobby-called-person span { font-size: clamp(72px, 16vw, 140px); }
+  .lobby-up-next { width: 100%; }
+  .lobby-footer { font-size: 18px; padding-bottom: var(--s-3); }
+}
+@media (prefers-reduced-motion: reduce) { .lobby-mascot-stage.speaking .lobby-mascot-disc { animation: none; } }
