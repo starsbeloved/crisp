@@ -74,6 +74,27 @@ describe('P4 vitals and baselines', () => {
     expect(state.vitals).toEqual({});
     expect(result).toEqual({ opened: [], updated: [] });
   });
+
+  it('does not turn repeated or older camera samples into a sustained HR alert', () => {
+    const state = room();
+    for (let seconds = 0; seconds <= 25; seconds++) {
+      ingest(state, [observation(start, { hrBpm: 118 })], start + seconds * 1000);
+    }
+    expect(state.alerts).toEqual([]);
+    expect(state.vitals.ama.history).toHaveLength(1);
+    expect(state.vitals.ama.baselineHr).toBeNull();
+    tick(state, 26, { hrBpm: 80 });
+    ingest(state, [observation(start + 1000, { hrBpm: 130 })], start + 27_000);
+    expect(state.vitals.ama.hrBpm).toBe(80);
+  });
+
+  it('expires the current level on a tick without fresh observations but keeps the alert', () => {
+    const state = room();
+    tick(state, 0, { posture: posture({ fallSuspected: true }) });
+    ingest(state, [], start + 4000);
+    expect(state.vitals.ama.level).toBe('none');
+    expect(state.alerts[0]).toMatchObject({ level: 'red', status: 'open' });
+  });
 });
 
 describe('P4 fusion alerts', () => {
@@ -109,6 +130,16 @@ describe('P4 fusion alerts', () => {
     expect(state.alerts[0]).toMatchObject({ level: 'amber', facts: { hrReason: 'baseline-delta', baselineHr: 80 } });
   });
 
+  it('keeps the sustained interval when an abnormal HR crosses into another abnormal band', () => {
+    const state = room();
+    run(state, 0, 60, { hrBpm: 80 });
+    run(state, 61, 70, { hrBpm: 100 });
+    run(state, 71, 80, { hrBpm: 118 });
+    expect(state.alerts).toEqual([]);
+    tick(state, 81, { hrBpm: 118 });
+    expect(state.alerts[0]).toMatchObject({ level: 'amber', facts: { hrReason: 'news2-high', baselineHr: 80 } });
+  });
+
   it('upgrades a resting slump alert in place when sustained high HR joins it', () => {
     const state = room();
     const slumped = posture({ slumpSec: 12 });
@@ -129,7 +160,7 @@ describe('P4 fusion alerts', () => {
     expect(first.reasons.join(' ')).toContain('Slumped forward 12 s');
     expect(first.reasons.join(' ')).toContain('Slumped forward 33 s');
     expect(state.vitals.ama.level).toBe('red');
-    tick(state, 22);
+    tick(state, 22, { hrBpm: 110 });
     expect(state.vitals.ama.level).toBe('none');
     expect(first.level).toBe('red');
     expect(first.status).toBe('acknowledged');
@@ -191,9 +222,34 @@ describe('P4 fusion alerts', () => {
     expect(interrupted.alerts).toHaveLength(1);
     const normal = room();
     run(normal, 0, 19, { hrBpm: 118 });
-    tick(normal, 20);
+    tick(normal, 20, { hrBpm: 110 });
     run(normal, 21, 40, { hrBpm: 118 });
     expect(normal.alerts).toEqual([]);
+  });
+
+  it('tolerates a short low-signal gap without treating the low reading as abnormal', () => {
+    const state = room();
+    run(state, 0, 18, { hrBpm: 118 });
+    tick(state, 19, { hrBpm: 130, hrQuality: 'low' });
+    tick(state, 20, { hrBpm: null, hrQuality: 'none' });
+    expect(state.alerts).toEqual([]);
+    tick(state, 21, { hrBpm: 118 });
+    expect(state.alerts[0]?.facts.hrReason).toBe('news2-high');
+  });
+
+  it('restores baseline samples, threshold duration, and checked cooldown from serialized room state', () => {
+    let state = room();
+    run(state, 0, 8, { hrBpm: 118 });
+    state = JSON.parse(JSON.stringify(state));
+    run(state, 9, 20, { hrBpm: 118 });
+    expect(state.vitals.ama.baselineHr).toBe(118);
+    expect(state.alerts).toHaveLength(1);
+    onChecked(state, state.alerts[0], start + 21_000);
+    state = JSON.parse(JSON.stringify(state));
+    tick(state, 80, { posture: posture({ fallSuspected: true }) });
+    expect(state.alerts).toHaveLength(1);
+    tick(state, 81, { posture: posture({ fallSuspected: true }) });
+    expect(state.alerts).toHaveLength(2);
   });
 
   it('resets baselines and posture on checked, suppresses sixty seconds, then opens a new episode', () => {

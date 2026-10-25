@@ -11,7 +11,7 @@ interface EngineMemory {
   hrSampleAt: number | null; rrSampleAt: number | null;
   hrRun: AbnormalRun | null; rrRun: AbnormalRun | null;
 }
-interface AbnormalRun { reason: NonNullable<AlertFacts['hrReason']>; since: number; lastAt: number }
+interface AbnormalRun { since: number; lastAt: number }
 type EngineVitals = Vitals & { _engine?: EngineMemory };
 const qualityRank = { none: 0, low: 1, fair: 2, good: 3 };
 
@@ -65,8 +65,8 @@ function rrReason(vitals: Vitals): AlertFacts['rrReason'] {
 
 function sustain(previous: AbnormalRun | null, reason: AlertFacts['hrReason'], available: boolean, now: number): AbnormalRun | null {
   if (reason === null) return !available && previous && now - previous.lastAt <= 3000 ? previous : null;
-  return previous && previous.reason === reason && now - previous.lastAt <= 3000 ?
-    { ...previous, lastAt: now } : { reason, since: now, lastAt: now };
+  return previous && now - previous.lastAt <= 3000 ?
+    { since: previous.since, lastAt: now } : { since: now, lastAt: now };
 }
 
 function evaluate(vitals: EngineVitals, now: number): { hr: AlertFacts['hrReason']; rr: AlertFacts['rrReason'] } {
@@ -114,6 +114,12 @@ function evidence(visit: Visit, vitals: EngineVitals, hr: AlertFacts['hrReason']
 
 export function ingest(state: RoomState, observations: Observation[], now: number): EngineResult {
   const result: EngineResult = { opened: [], updated: [] };
+  for (const vitals of Object.values(state.vitals)) {
+    vitals.history = vitals.history.filter(point => point.t >= now - 600_000);
+    if (now - vitals.lastSeenAt > 3000 || !state.visits.some(visit => visit.id === vitals.visitId && visit.status === 'waiting')) {
+      vitals.level = 'none';
+    }
+  }
   const selected = new Map<string, Observation>();
   for (const obs of observations) {
     if (!obs.visitId || !state.visits.some(visit => visit.id === obs.visitId && visit.status === 'waiting')) continue;
@@ -123,6 +129,8 @@ export function ingest(state: RoomState, observations: Observation[], now: numbe
   }
   for (const [visitId, obs] of selected) {
     const previous = state.vitals[visitId] as EngineVitals | undefined;
+    // A repeated frame cannot count as another second of evidence.
+    if (previous && obs.at <= previous.lastSeenAt) continue;
     const history = (previous?.history ?? []).filter(item => item.t >= now - 600_000);
     if (!history.length || now - history[history.length - 1].t >= 1000) {
       history.push({ t: now, hr: obs.hrBpm, rr: obs.rrBpm });
