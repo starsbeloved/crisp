@@ -20,7 +20,7 @@ export function App() {
   return <>
     {!lobby && <header><a href="/" className="wordmark"><AppleMark /><span>Crisp</span></a><nav aria-label="Demo pages">{links.map(([url, title]) => <a href={url} key={url} aria-current={path === url ? 'page' : undefined}>{title}</a>)}</nav></header>}
     <main className={lobby ? 'app-main-lobby' : undefined}>
-      {path === '/check-in' ? <CheckInPage /> : path === '/camera' ? <CameraPage /> : path === '/dashboard' ? <DashboardPage /> : path === '/lobby' ? <LobbyPage /> : <>
+      {path === '/room' ? <CameraPage roomView /> : path === '/check-in' ? <CheckInPage /> : path === '/camera' ? <CameraPage /> : path === '/dashboard' ? <DashboardPage /> : path === '/lobby' ? <LobbyPage /> : <>
         <section className="launcher-hero"><p className="launcher-kicker"><AppleMark /> Waiting room companion</p><h1>No one waits unseen.</h1><p className="launcher-intro">Crisp helps people check in, helps staff see the room, and keeps everyone informed while they wait.</p></section>
         <div className="launcher">{links.map(([url, title, description]) => <a className="card launcher-card" href={url} key={url}><strong>{title}</strong><span>{description}</span><span className="launcher-arrow" aria-hidden="true">→</span></a>)}</div>
         <p className="launcher-note">Use separate, tiled windows to keep camera processing active.</p>
