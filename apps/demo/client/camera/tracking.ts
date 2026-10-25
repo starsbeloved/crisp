@@ -1,0 +1,128 @@
+import type { GalleryEntry, Observation } from '../../shared/types.ts';
+import type { DetectedFace } from '../lib/face.ts';
+import type { PoseSample } from './signals/index.ts';
+
+export type Match = { visitId: string; name: string; score: number };
+export interface FaceTrack {
+  id: string;
+  face: DetectedFace;
+  lastSeen: number;
+  votes: (Match | null)[];
+  match: Match | null;
+  identity: 'identified' | 'identifying' | 'unknown';
+}
+type Box = DetectedFace['box'];
+
+function distance(a: number[], b: number[]): number {
+  if (!a.length || a.length !== b.length || !a.every(Number.isFinite) || !b.every(Number.isFinite)) return Infinity;
+  return Math.sqrt(a.reduce((sum, value, i) => sum + (value - b[i]) ** 2, 0));
+}
+function matchDescriptor(descriptor: number[], gallery: GalleryEntry[]): Match | null {
+  let best: Match | null = null;
+  for (const entry of gallery) {
+    const score = 1 - distance(descriptor, entry.descriptor);
+    if (score >= 0.5 && (!best || score > best.score)) best = { visitId: entry.visitId, name: entry.name, score };
+  }
+  return best;
+}
+function overlap(a: Box, b: Box): number {
+  const intersection = Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)) *
+    Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
+  return intersection / Math.max(1, a.w * a.h + b.w * b.h - intersection);
+}
+
+/** Small greedy tracker; descriptor affinity prevents a seat swap inheriting the old name. */
+export class FaceTracker {
+  private tracks: FaceTrack[] = [];
+  private nextId = 1;
+
+  update(faces: DetectedFace[], gallery: GalleryEntry[], now: number): void {
+    this.tracks = this.tracks.filter(track => now - track.lastSeen < 1000);
+    const candidates: { track: FaceTrack; index: number; cost: number }[] = [];
+    for (const track of this.tracks) for (const [index, face] of faces.entries()) {
+      const descriptorDistance = distance(track.face.descriptor, face.descriptor);
+      const a = track.face.box, b = face.box;
+      const shift = Math.hypot(a.x + a.w / 2 - b.x - b.w / 2, a.y + a.h / 2 - b.y - b.h / 2) / Math.max(a.w, b.w, 1);
+      if (descriptorDistance < 0.55 && (overlap(a, b) > 0.05 || shift < 1.5 || descriptorDistance < 0.3)) {
+        candidates.push({ track, index, cost: descriptorDistance * 3 + Math.min(shift, 4) * 0.15 - overlap(a, b) * 0.2 });
+      }
+    }
+    candidates.sort((a, b) => a.cost - b.cost);
+    const usedTracks = new Set<string>(), usedFaces = new Set<number>();
+    for (const { track, index } of candidates) {
+      if (usedTracks.has(track.id) || usedFaces.has(index)) continue;
+      track.face = faces[index]; track.lastSeen = now;
+      usedTracks.add(track.id); usedFaces.add(index);
+    }
+    // Stop rendering old occupants as soon as a different descriptor occupies their box.
+    this.tracks = this.tracks.filter(track => usedTracks.has(track.id) || !faces.some(face => overlap(track.face.box, face.box) > 0.35));
+    for (const [index, face] of faces.entries()) {
+      if (!usedFaces.has(index)) this.tracks.push({ id: `face-${this.nextId++}`, face, lastSeen: now, votes: [], match: null, identity: 'identifying' });
+    }
+    for (const track of this.tracks) {
+      if (track.lastSeen !== now) continue;
+      track.votes.push(matchDescriptor(track.face.descriptor, gallery));
+      track.votes = track.votes.slice(-10);
+    }
+    this.setGallery(gallery);
+  }
+
+  setGallery(gallery: GalleryEntry[]): void {
+    const waiting = new Set(gallery.map(entry => entry.visitId));
+    for (const track of this.tracks) {
+      track.votes = track.votes.map(vote => vote && waiting.has(vote.visitId) ? vote : null);
+    }
+    this.resolve();
+  }
+
+  assign(trackId: string, match: Match): void {
+    const track = this.tracks.find(item => item.id === trackId);
+    if (!track) return;
+    // Clear competing votes so a staff correction takes effect immediately.
+    for (const other of this.tracks) if (other !== track) other.votes = other.votes.map(vote => vote?.visitId === match.visitId ? null : vote);
+    track.votes = Array.from({ length: 10 }, () => ({ ...match }));
+    this.resolve();
+  }
+
+  current(now: number): FaceTrack[] { return this.tracks.filter(track => now - track.lastSeen < 700); }
+
+  private resolve(): void {
+    for (const track of this.tracks) {
+      track.match = null; track.identity = 'identifying';
+      const groups = new Map<string, Match[]>();
+      for (const vote of track.votes) if (vote) groups.set(vote.visitId, [...(groups.get(vote.visitId) ?? []), vote]);
+      const winner = [...groups.values()].sort((a, b) => b.length - a.length)[0];
+      if (winner && winner.length >= 3 && winner.length > track.votes.length / 2) {
+        track.match = { ...winner[0], score: winner.reduce((sum, vote) => sum + vote.score, 0) / winner.length };
+        track.identity = 'identified';
+      } else if (track.votes.filter(vote => vote === null).length >= 3 && track.votes.filter(vote => vote === null).length > track.votes.length / 2) track.identity = 'unknown';
+    }
+    const winners = new Map<string, FaceTrack>();
+    for (const track of this.tracks) {
+      if (!track.match) continue;
+      const previous = winners.get(track.match.visitId);
+      if (!previous || track.match.score > previous.match!.score) {
+        if (previous) { previous.match = null; previous.identity = 'identifying'; }
+        winners.set(track.match.visitId, track);
+      } else { track.match = null; track.identity = 'identifying'; }
+    }
+  }
+}
+
+export function normalizedBox(box: Box, width: number, height: number): Observation['box'] {
+  const left = Math.max(0, Math.min(width, box.x)), top = Math.max(0, Math.min(height, box.y));
+  return { x: left / width, y: top / height,
+    w: Math.max(0, Math.min(width, box.x + box.w) - left) / width,
+    h: Math.max(0, Math.min(height, box.y + box.h) - top) / height };
+}
+
+export function poseForFace(box: Box, poses: PoseSample['landmarks'][], width: number, height: number): PoseSample['landmarks'] | null {
+  const candidates = poses.filter(pose => {
+    const nose = pose[0];
+    return nose && nose.visibility >= 0.4 && nose.x * width >= box.x - box.w * 0.3 && nose.x * width <= box.x + box.w * 1.3 &&
+      nose.y * height >= box.y - box.h * 0.3 && nose.y * height <= box.y + box.h * 1.3;
+  });
+  candidates.sort((a, b) => Math.hypot(a[0].x * width - box.x - box.w / 2, a[0].y * height - box.y - box.h / 2) -
+    Math.hypot(b[0].x * width - box.x - box.w / 2, b[0].y * height - box.y - box.h / 2));
+  return candidates[0] ?? null;
+}
