@@ -8,7 +8,10 @@ const complaints = ['chest pain', 'breathing', 'dizziness/fainting', 'headache',
 function schema(fields: string[], enums: Record<string, string[]> = {}): Schema {
   return { type: Type.OBJECT, required: fields, properties: Object.fromEntries(fields.map(key => [key, { type: Type.STRING, ...(enums[key] ? { enum: enums[key] } : {}) }])) };
 }
-function complaint(answers: CheckInAnswers): string { return answers.reasonChips[0] || 'other'; }
+function complaint(answers: CheckInAnswers): typeof complaints[number] {
+  const chip = answers.reasonChips[0]?.toLowerCase();
+  return complaints.includes(chip as typeof complaints[number]) ? chip as typeof complaints[number] : 'other';
+}
 function answerText(answers: CheckInAnswers): string {
   return [answers.reason || answers.reasonChips.join(', ') || 'No reason given.', answers.onset ? `Onset: ${answers.onset}.` : '', answers.trend ? `Trend: ${answers.trend}.` : '', answers.followUp ? `${answers.followUp.question} ${answers.followUp.answer}` : ''].filter(Boolean).join(' ');
 }
@@ -27,7 +30,7 @@ export async function summarize(visit: Visit): Promise<Visit['summary']> {
     schema: z.object({ chiefComplaint: z.enum(complaints), summary: z.string().trim().min(1) }),
     responseSchema: schema(['chiefComplaint', 'summary'], { chiefComplaint: [...complaints] }),
     valid: output => grounded(output.summary, facts, 20, [visit.name]),
-    fallback: { chiefComplaint: complaint(visit.answers) as typeof complaints[number], summary: shorten(`${visit.name}: ${answerText(visit.answers)}`, 20) },
+    fallback: { chiefComplaint: complaint(visit.answers), summary: shorten(`${visit.name}: ${answerText(visit.answers)}`, 20) },
   });
   return { chiefComplaint: result.value.chiefComplaint, text: result.value.summary, source: result.source };
 }

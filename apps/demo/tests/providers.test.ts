@@ -117,6 +117,8 @@ describe('P6 grounded Gemini jobs', () => {
     expect(visit).toEqual(original);
     reply({ chiefComplaint: 'myocardial infarction', summary: 'Ama reports chest tightness.' });
     expect(await (await providers()).summarize({ ...visit, id: 'other' })).toMatchObject({ chiefComplaint: 'chest pain', source: 'template' });
+    transport.config = {};
+    expect(await (await providers()).summarize({ ...visit, id: 'unknown-chip', answers: { ...answers, reasonChips: ['made-up category'] } })).toMatchObject({ chiefComplaint: 'other', source: 'template' });
   });
 
   it('returns a per-complaint follow-up with no key and omits snapshot vision', async () => {
