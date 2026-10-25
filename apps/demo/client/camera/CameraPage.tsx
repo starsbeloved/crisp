@@ -28,13 +28,26 @@ export function CameraPage({ roomView = false }: { roomView?: boolean }) {
   useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(timer); }, []);
   const demoButton = useRef<HTMLButtonElement>(null);
   const settingsButton = useRef<HTMLButtonElement>(null);
+  const settingsPanel = useRef<HTMLDivElement>(null);
+  const settingsDone = useRef<HTMLButtonElement>(null);
+  function closeSettings() { setSettings(false); settingsButton.current?.focus(); }
   useEffect(() => {
     if (!settings) return;
+    settingsDone.current?.focus();
     function escape(event: KeyboardEvent) {
       if (event.key === 'Escape') { event.preventDefault(); setSettings(false); settingsButton.current?.focus(); }
     }
+    function outside(event: Event) {
+      if (event.target instanceof Node && !settingsPanel.current?.contains(event.target) && !settingsButton.current?.contains(event.target)) setSettings(false);
+    }
     window.addEventListener('keydown', escape);
-    return () => window.removeEventListener('keydown', escape);
+    document.addEventListener('pointerdown', outside);
+    document.addEventListener('focusin', outside);
+    return () => {
+      window.removeEventListener('keydown', escape);
+      document.removeEventListener('pointerdown', outside);
+      document.removeEventListener('focusin', outside);
+    };
   }, [settings]);
   useEffect(() => {
     if (!demoView) return;
@@ -72,8 +85,9 @@ export function CameraPage({ roomView = false }: { roomView?: boolean }) {
   }
   const Heading = roomView ? 'h2' : 'h1';
   const camera = <div className={`camera-page${demoView ? ' camera-demo-view' : ''}`}><div className="camera-page-heading"><div><p className="camera-eyebrow">Crisp · room camera</p><Heading>Room camera <span className="camera-id">{cam}</span></Heading><p>{connected ? 'Connected to the waiting room' : 'Connecting to the waiting room…'}</p></div><div className="camera-view-actions"><Chip className={replay ? 'camera-replay-chip' : streaming ? 'camera-live-chip' : 'camera-waiting-chip'}>{sourceStatus}</Chip>{!roomView && <button ref={demoButton} className="secondary" aria-pressed={demoView} onClick={() => { setDemoView(value => !value); setSettings(false); }}>{demoView ? 'Exit demo view' : 'Demo view'}</button>}{!roomView && <a href="/room">Room view</a>}<button ref={settingsButton} className="secondary camera-settings-toggle" aria-label="Camera settings" aria-expanded={settings} aria-controls="camera-settings" onClick={() => setSettings(value => !value)}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="m9 3-1 3-3 1-2 3 2 2-1 3 3 3 3-1 2 2 3-1 1-3 3-1 1-3-2-2 1-3-3-2-3 1-2-2Z" /><circle cx="12" cy="11" r="3" /></svg></button></div></div><Card className="camera-card">
-    <div id="camera-settings" className="camera-settings" hidden={!settings}>
-      <h2>Camera settings</h2>
+    <div ref={settingsPanel} id="camera-settings" className="camera-settings" role="dialog" aria-labelledby="camera-settings-heading" hidden={!settings}>
+      <div className="camera-settings-heading"><h2 id="camera-settings-heading">Camera settings</h2><button ref={settingsDone} className="secondary" onClick={closeSettings}>Done</button></div>
+      <div className="camera-settings-body">
     <div className="camera-controls">
       <label>Camera source<select aria-label="Camera source" value={deviceId} onChange={event => { setDeviceId(event.target.value); setReplay(null); setFilename(null); }} style={{ display: 'block', minHeight: 44, maxWidth: 320 }}>
         <option value="">Default camera</option>{devices.map((device, i) => <option key={device.deviceId || i} value={device.deviceId}>{device.label || `Camera ${i + 1}`}</option>)}
@@ -91,6 +105,7 @@ export function CameraPage({ roomView = false }: { roomView?: boolean }) {
       {correctionError && <p role="alert">{correctionError}</p>}
     </details>
       <p className="camera-technical">{vision.models} · {vision.poseStatus}</p>
+      </div>
     </div>
     {requests.length > 0 && <div className="camera-check-request" role="alert"><strong>Check requested</strong> · {requests.map(alert => `${state?.vitals[alert.visitId]?.source === 'replay' ? 'REPLAY · ' : ''}${alert.facts.name} · #${alert.facts.queueNo}: ${alert.reasons[0] ?? 'may need a check'}`).join(' / ')} · May need a check</div>}
     <div className="camera-status"><Chip>{replay ? `REPLAY · ${filename}` : sourceStatus}</Chip><Chip>{vision.stats.count} {vision.stats.count === 1 ? 'person' : 'people'}</Chip><Chip>{vision.poseStatus}</Chip><Chip>Overlay {vision.stats.fps.toFixed(1)} fps</Chip>{privacy && <Chip>Unknown faces blurred</Chip>}{debug && <Chip>Debug · face/body identity + posture counters</Chip>}</div>

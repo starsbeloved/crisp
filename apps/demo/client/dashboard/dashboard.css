@@ -61,7 +61,7 @@
 .dashboard .alert-banner.amber button { color: var(--c-amber-text); }
 .dashboard .alert-banner button:hover { background: var(--c-canvas); }
 
-.dashboard .dashboard-columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr); align-items: start; gap: var(--s-4); margin-top: var(--s-4); }
+.dashboard .dashboard-columns { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); align-items: stretch; gap: var(--s-4); margin-top: var(--s-4); }
 .dashboard .dashboard-queue { grid-column: 2; grid-row: 1; min-width: 0; }
 .dashboard .dashboard-left { grid-column: 1; grid-row: 1; }
 .dashboard .dashboard-left { display: grid; gap: var(--s-4); min-width: 0; }
@@ -209,7 +209,7 @@
   .dashboard .feeds:has(figure:nth-child(2)) .stream { aspect-ratio: 3 / 4; }
 }
 @media (max-width: 1000px) {
-  .dashboard .dashboard-columns { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); }
+  .dashboard .dashboard-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dashboard .row-vitals { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 760px) {
@@ -264,6 +264,25 @@
 .command-room-camera { width: 100%; }
 .command-room-camera .stream { width: 100%; max-height: 58vh; object-fit: contain; background: #171a18; }
 .command-room-camera .empty-camera { min-height: 220px; }
+
+/* Reserve the same room for video and the queue before any frames arrive. */
+@media (min-width: 761px) {
+  .dashboard .dashboard-columns { height: clamp(34rem, 70dvh, 46rem); }
+  .dashboard .dashboard-queue, .dashboard .command-room-camera { min-height: 0; }
+  .dashboard .queue-panel, .dashboard .video-panel { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+  .dashboard .queue-panel > .section-heading, .dashboard .queue-help, .dashboard .video-panel > .section-heading { flex: none; }
+  .dashboard .patient-list { min-height: 0; overflow-y: auto; overscroll-behavior-y: contain; scrollbar-gutter: stable; }
+  .dashboard .queue-empty { flex: 1; justify-content: center; min-height: 0; overflow-y: auto; }
+  .dashboard .queue-panel .row-actions { align-items: flex-start; }
+  .dashboard .queue-panel .room-picker { position: static; margin-top: .5rem; }
+  .dashboard .video-panel .feeds { flex: 1; min-height: 0; }
+  .dashboard .video-panel .feeds:empty { display: none; }
+  .dashboard .video-panel figure { display: flex; flex-direction: column; min-height: 0; }
+  .dashboard .video-panel figcaption { flex: none; }
+  .dashboard .command-room-camera .stream { flex: 1; height: 100%; min-height: 0; max-height: none; aspect-ratio: auto; object-fit: contain; }
+  .dashboard .command-room-camera .empty-camera { flex: 1; min-height: 0; overflow-y: auto; }
+  .dashboard .video-panel > .privacy-note, .dashboard .stream-options { flex: none; }
+}
 
 /* Keep the room and the people in one glance; supporting tools follow the work. */
 .dashboard .page-heading h1 { font-size: clamp(1.75rem, 2.5vw, 2.25rem); font-weight: 650; letter-spacing: -.035em; }

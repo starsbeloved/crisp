@@ -22,12 +22,13 @@ const steps: Step[] = ['welcome', 'name', 'face', 'questions', 'followup', 'done
 const titles: Record<Step, string> = { welcome: "Hi! I’m Crisp.", name: 'What should I call you?', face: 'Look at me for a moment.', pulse: 'Hold still for a moment.', questions: 'What brings you in today?', followup: 'One more thing.', done: 'You’re checked in.' };
 
 /** P7's agent mounts inside the same controller provider as the tap flow. */
-export function CrispAgentSlot() { return <CrispAgent />; }
+export function CrispAgentSlot({ optionsTarget }: { optionsTarget?: HTMLElement | null }) { return <CrispAgent optionsTarget={optionsTarget} />; }
 export function CheckInPage() {
   const c = useCheckIn();
   const [help, setHelp] = useState('');
   const [helpBusy, setHelpBusy] = useState(false);
   const [validation, setValidation] = useState('');
+  const [optionsTarget, setOptionsTarget] = useState<HTMLDivElement | null>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const stepIndex = steps.indexOf(c.step);
   useEffect(() => { setValidation(''); setHelp(''); heading.current?.focus(); }, [c.step]);
@@ -45,14 +46,14 @@ export function CheckInPage() {
   }
   const reasonText = c.answers.reason;
   return <CheckInContext.Provider value={c}><section className="checkin" data-step={c.step} aria-label="Check in with Crisp">
-    <div className="checkin-top"><div className="checkin-brand"><KioskIcon name="apple" /><span>{c.step === 'welcome' ? 'Crisp check-in' : c.step === 'done' ? 'All done' : c.step === 'pulse' ? 'Pulse check' : c.step === 'face' ? 'Face scan' : c.step === 'questions' ? 'In your own words' : c.step === 'followup' ? 'One more thing' : 'Your name'}</span></div><div className="checkin-navigation"><Button className="checkin-secondary" type="button" disabled={c.busy || c.step === 'welcome' || c.step === 'done'} onClick={() => c.goTo(c.step === 'pulse' ? 'face' : steps[Math.max(0, stepIndex - 1)])}>Back</Button><Button className="checkin-secondary" type="button" disabled={helpBusy} onClick={() => {
+    <div className="checkin-top"><div className="checkin-brand"><KioskIcon name="apple" /><span>{c.step === 'welcome' ? 'Crisp check-in' : c.step === 'done' ? 'All done' : c.step === 'pulse' ? 'Pulse check' : c.step === 'face' ? 'Face scan' : c.step === 'questions' ? 'In your own words' : c.step === 'followup' ? 'One more thing' : 'Your name'}</span></div><div className="checkin-navigation"><Button className="checkin-secondary" type="button" disabled={c.busy || c.step === 'welcome' || c.step === 'done'} onClick={() => c.goTo(c.step === 'pulse' ? 'face' : steps[Math.max(0, stepIndex - 1)])}>Back</Button><Button className="checkin-secondary checkin-help-button" type="button" disabled={helpBusy} onClick={() => {
       setHelpBusy(true);
       void fetch('/api/checkin/help', { method: 'POST', signal: AbortSignal.timeout(4000) }).then(response => {
         if (!response.ok) throw new Error();
         setHelp('A staff member has been notified');
       }).catch(() => setHelp('Could not notify staff. Please ask a staff member at the front desk to help you check in.'))
         .finally(() => setHelpBusy(false));
-    }} aria-expanded={Boolean(help)}>I need help</Button></div><KioskProgress step={c.step} /></div>
+    }} aria-expanded={Boolean(help)}><KioskIcon name="info" /><span>I need help</span></Button></div><KioskProgress step={c.step} /></div>
     <div className="checkin-card">
       {(c.via !== 'voice' || c.step === 'done') && <div className="checkin-intro-group"><div className="checkin-companion"><Crisp state={c.step === 'welcome' || c.step === 'done' ? 'happy' : c.face.status === 'scanning' && c.step === 'face' ? 'thinking' : 'idle'} size={c.step === 'welcome' ? 480 : c.step === 'done' ? 440 : c.step === 'face' ? 170 : 110} /></div>
       <div className="checkin-intro">
@@ -63,7 +64,7 @@ export function CheckInPage() {
         {c.step === 'face' && <p>Look at me for a second! Keep your face inside the oval.</p>}
         {c.step === 'questions' && <p>Tap or type — whatever is easier.</p>}
       </div></div>}
-      <div className="checkin-agent"><CrispAgentSlot /></div>
+      <div className="checkin-agent"><CrispAgentSlot optionsTarget={optionsTarget} /></div>
       {c.step === 'welcome' && <div className="checkin-welcome-actions"><ol className="checkin-how"><li>Tell Crisp your name</li><li>Look at the camera for two seconds</li><li>Say what brings you in, in your own words</li></ol></div>}
       {c.via === 'voice' && ['welcome', 'face', 'followup'].includes(c.step) && <div className="checkin-manual-continue">
         <p>If Crisp pauses, continue here. You can fill or correct each answer on screen.</p>
@@ -116,5 +117,6 @@ export function CheckInPage() {
       {help && <p className="checkin-help" role="status">{help}. You can skip the face scan and continue with the form.</p>}
     </div>
     {c.step === 'welcome' && <footer className="checkin-footer"><span>Crisp is a check-in helper, not a doctor. If you feel very unwell, tell the front desk right away.</span><span>We save a face pattern to find you in the waiting room — never your photo.</span></footer>}
+    <div className="checkin-bottom-options" ref={setOptionsTarget} />
   </section></CheckInContext.Provider>;
 }

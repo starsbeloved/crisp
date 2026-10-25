@@ -32,6 +32,8 @@ try {
   await page.route('**/api/checkin/follow-up', route => route.fulfill({ json: { question: 'Where do you feel the tightness?', source: 'gemini' } }));
   await page.goto('http://127.0.0.1:5202/check-in');
   await page.getByRole('button', { name: 'Talk to Crisp', exact: true }).click();
+  await page.getByText('View options', { exact: true }).click();
+  await page.getByRole('switch', { name: 'Show answer summary' }).check();
   await page.getByRole('region', { name: 'What Crisp understood' }).waitFor();
   assert.equal(await page.locator('.checkin').getAttribute('data-step'), 'name');
   assert.match(await page.evaluate(() => window.__p13cSession.context), /date of birth/);
