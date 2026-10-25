@@ -1,0 +1,5 @@
+.data/
+public/fixtures/*.mp4
+node_modules/
+dist/
+output/
