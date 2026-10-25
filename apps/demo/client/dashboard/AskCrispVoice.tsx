@@ -124,6 +124,7 @@ function NurseVoice({ holding, setHolding, handsFree, setHandsFree, room, visitI
     </div>
     <p role="status" className="staff-mic"><span className="staff-mic-light" data-live={wake.listening || holding || (handsFree && status === 'connected')} aria-hidden="true" />{!connected ? 'Mic off · room disconnected.' : !voice.available ? 'Mic off · nurse agent unavailable. Use text or on-screen actions.' : handsFree ? `Mic on · nurse session ${status}` : holding ? 'Mic on · hold to speak' : wakeEnabled ? wake.status : 'Mic off · wake word is off.'}</p>
     <p className="staff-last-heard">Last heard: {wake.lastHeard || voice.captions.filter(c => c.speaker === 'You').at(-1)?.text || 'Nothing yet'}</p>
+    <p className="staff-last-heard">Matched wake phrase: {wake.matchedPhrase || 'None yet'}</p>
     <small>Wake listening uses browser speech recognition. Say “Hey Crisp”, then your request. End voice to return to wake listening.</small>
     <StaffToast result={notice} />
     <div ref={captionBox} onScroll={event => { const box = event.currentTarget; followCaptions.current = box.scrollHeight - box.scrollTop - box.clientHeight < 48; }} role="log" aria-label="Nurse voice captions" aria-live="polite" style={{ maxHeight: 160, overflowY: 'auto' }}>

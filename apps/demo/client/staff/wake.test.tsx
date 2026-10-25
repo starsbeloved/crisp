@@ -50,3 +50,21 @@ it('shows the last heard phrase and restarts after Chrome ends recognition', asy
   await act(() => { instance.onend(); vi.advanceTimersByTime(400); });
   expect(instance.start).toHaveBeenCalledTimes(2);
 });
+
+it('accepts the requested fuzzy wake names and merged phrases, preserving the command', () => {
+  for (const greeting of ['hey', 'hi', 'okay']) for (const name of ['chris', 'kris', 'crisp', 'crisps', 'crispy', 'christ', 'krisp', 'grisp']) {
+    expect(wakeCommand(`${greeting} ${name}, list waiting`)).toBe('list waiting');
+    expect(wakeCommand(`${greeting}${name}! list waiting`)).toBe('list waiting');
+  }
+  for (const text of ['hey Christopher call Anna', 'hello crisp', 'hey list waiting', 'I said hey crisp']) expect(wakeCommand(text)).toBeNull();
+});
+it('shows the matched wake phrase separately from the request', async () => {
+  vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true); let instance: any;
+  class Recognition { onresult: any; onend: any; onerror: any; onstart: any; start = vi.fn(); abort = vi.fn(); constructor() { instance = this; } }
+  vi.stubGlobal('webkitSpeechRecognition', Recognition);
+  function Harness() { const value = useWakeWord(true, vi.fn()); return <p>{value.status}</p>; }
+  const node = document.createElement('div'); root = createRoot(node);
+  await act(() => root!.render(<Harness />));
+  await act(() => instance.onresult({ resultIndex: 0, results: [{ isFinal: true, 0: { transcript: 'Hi Grisp, list waiting' } }] }));
+  expect(node.textContent).toContain('Hi Grisp');
+});

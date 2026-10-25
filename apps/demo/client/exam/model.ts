@@ -1,3 +1,4 @@
+import { wakeCommand } from '../staff/useWakeWord.ts';
 import type { GalleryEntry, Quality, Visit } from '../../shared/types.ts';
 import type { DetectedFace } from '../lib/face.ts';
 
@@ -41,9 +42,9 @@ export function recognizeArrival(faces: DetectedFace[], gallery: GalleryEntry[],
 }
 export type ExamCommand = { kind: 'chart'; name: string } | { kind: 'allergies' | 'unsupported' };
 export function parseExamCommand(text: string): ExamCommand | null {
-  const wake = text.trim().match(/^hey[\s,]+(?:crisp|chris|crispy)\b[\s,.:;!?-]*(.*)$/i);
-  if (!wake) return null;
-  const command = wake[1].replace(/[.!?]+$/, '').trim();
+  const request = wakeCommand(text);
+  if (request === null) return null;
+  const command = request.replace(/[.!?]+$/, '').trim();
   const chart = command.match(/^(?:please\s+)?pull up (.+?)(?:['’]s)? chart$/i);
   if (chart) return { kind: 'chart', name: chart[1].trim() };
   if (/^(?:any allergies|what (?:are|about) (?:the |their |recorded )?allergies|read (?:the )?allergies)$/i.test(command)) return { kind: 'allergies' };
