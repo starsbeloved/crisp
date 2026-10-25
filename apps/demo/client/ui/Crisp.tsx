@@ -3,122 +3,84 @@ import { useId, type CSSProperties, type JSX } from 'react';
 export type CrispState = 'idle' | 'listening' | 'thinking' | 'talking' | 'happy' | 'pointing';
 export const CRISP_NAME = 'Crisp';
 
-type Arm = { arm: string; glove: string };
-type Pose = {
-  left: Arm;
-  right: Arm;
-  brow: [string, string];
-  pupil: string;
-  mouth: string;
-  open?: boolean;
-  talk?: boolean;
-  lean?: string;
-  dots?: boolean;
-  ear?: boolean;
-  wave?: boolean;
-  bounce?: boolean;
-};
-
-const hangLeft: Arm = { arm: 'M62 142 C44 152 40 168 44 182', glove: 'translate(44 182) rotate(172)' };
-const hangRight: Arm = { arm: 'M218 142 C236 152 240 168 236 182', glove: 'translate(236 182) rotate(-172)' };
-const hipLeft: Arm = { arm: 'M62 150 C42 160 44 186 70 188', glove: 'translate(70 188) rotate(80)' };
-const idleBrows: [string, string] = ['M104 94 Q118 86 130 92', 'M150 92 Q162 86 176 94'];
-const raisedBrows: [string, string] = ['M104 89 Q118 81 130 87', 'M150 87 Q162 81 176 89'];
-
+type Arm = { path: string; wrist: string };
+type Pose = { left: Arm; right: Arm; pupil: string; lean?: string; open?: boolean };
+const downLeft: Arm = { path: 'M62 144 C42 154 37 169 43 184', wrist: 'translate(43 184) rotate(170)' };
+const downRight: Arm = { path: 'M218 144 C238 154 243 169 237 184', wrist: 'translate(237 184) rotate(-170)' };
+const hip: Arm = { path: 'M218 149 C248 158 247 187 217 188', wrist: 'translate(217 188) rotate(80)' };
 const poses: Record<CrispState, Pose> = {
-  idle: { left: hangLeft, right: hangRight, brow: idleBrows, pupil: 'translate(0 0)', mouth: 'M126 160 Q140 172 154 160' },
-  listening: { left: hangLeft, right: { arm: 'M218 134 C242 126 248 104 238 90', glove: 'translate(238 90) rotate(-10)' }, brow: [idleBrows[0], 'M150 88 Q162 81 176 89'], pupil: 'translate(4 -1)', mouth: 'M128 162 Q140 170 152 162', lean: 'rotate(5 140 270)', ear: true },
-  thinking: { left: hipLeft, right: { arm: 'M218 150 C238 176 214 204 180 200', glove: 'translate(180 200) rotate(-70)' }, brow: ['M104 92 Q118 89 130 92', 'M150 86 Q164 80 176 88'], pupil: 'translate(3 -7)', mouth: 'M130 166 Q140 163 152 167', lean: 'rotate(-3 140 270)', dots: true },
-  talking: { left: { arm: 'M62 138 C40 128 30 110 34 94', glove: 'translate(34 94) rotate(-24)' }, right: hangRight, brow: idleBrows, pupil: 'translate(0 1)', mouth: 'M126 160 Q140 172 154 160', open: true, talk: true },
-  happy: { left: { arm: 'M62 136 C38 124 28 102 32 82', glove: 'translate(32 82) rotate(-22)' }, right: { arm: 'M218 136 C242 124 252 102 248 82', glove: 'translate(248 82) rotate(22)' }, brow: raisedBrows, pupil: 'translate(0 -2)', mouth: 'M126 160 Q140 172 154 160', open: true, wave: true, bounce: true },
-  pointing: { left: hipLeft, right: { arm: 'M218 140 C228 137 238 134 246 132', glove: 'translate(246 132) rotate(84)' }, brow: raisedBrows, pupil: 'translate(5 0)', mouth: 'M126 160 Q140 172 154 160', open: true },
+  idle: { left: downLeft, right: downRight, pupil: 'translate(0 0)' },
+  happy: { left: { path: 'M62 143 C32 141 23 119 29 99', wrist: 'translate(29 99) rotate(-8)' }, right: hip, pupil: 'translate(0 -2)', open: true },
+  listening: { left: downLeft, right: { path: 'M218 134 C241 124 246 104 238 92', wrist: 'translate(238 92) rotate(8)' }, pupil: 'translate(3 -1)', lean: 'rotate(4 140 267)' },
+  thinking: { left: { path: 'M62 150 C38 166 45 188 70 190', wrist: 'translate(70 190) rotate(-80)' }, right: { path: 'M218 150 C238 178 210 204 181 196', wrist: 'translate(181 196) rotate(-66)' }, pupil: 'translate(3 -6)', lean: 'rotate(-3 140 267)' },
+  talking: { left: { path: 'M62 140 C38 132 26 113 32 97', wrist: 'translate(32 97) rotate(-20)' }, right: downRight, pupil: 'translate(0 1)', open: true },
+  pointing: { left: { path: 'M62 150 C39 164 45 188 70 190', wrist: 'translate(70 190) rotate(-80)' }, right: { path: 'M218 140 C230 137 241 133 249 132', wrist: 'translate(249 132) rotate(84)' }, pupil: 'translate(4 0)', open: true },
 };
 
+/** Crisp's existing six states, drawn as a warm, vintage cartoon apple. */
 export function Crisp({ state = 'idle', size = 96, level = 0 }: { state?: CrispState; size?: number; level?: number }): JSX.Element {
-  const id = useId();
-  const pose = poses[state] ?? poses.idle;
+  const id = useId(), pose = poses[state] ?? poses.idle;
   const openness = Number.isFinite(level) ? Math.max(0, Math.min(1, level)) : 0;
-  const style = { '--crisp-mouth-scale': String(.45 + openness * .55) } as CSSProperties;
-  const label = `${CRISP_NAME} the apple, ${state}`;
+  const style = { '--crisp-mouth-scale': String(.5 + openness * .5) } as CSSProperties;
   return <svg className="crisp-character" data-state={state} width={size} height={Math.round(size * 300 / 340)} viewBox="-30 0 340 300" role="img" aria-labelledby={id} style={style}>
-    <title id={id}>{label}</title>
+    <title id={id}>{CRISP_NAME} the apple, {state}</title>
     <style>{`
       .crisp-character { display:block; overflow:visible; flex:0 0 auto; }
-      .crisp-character * { transform-box:fill-box; transform-origin:center; }
-      .crisp-bob { animation:crisp-bob ${pose.bounce ? '.7s' : '2.6s'} ease-in-out infinite; }
-      .crisp-eyes { animation:crisp-blink 4.2s infinite; }
-      .crisp-talk { animation:crisp-talk .8s ease-in-out infinite; transform-origin:center; }
+      .crisp-arrive { transform-box:fill-box; transform-origin:center bottom; animation:crisp-settle .28s ease-out both; }
+      .crisp-wave { transform-box:fill-box; transform-origin:center bottom; animation:crisp-wave .5s ease-in-out 2; }
+      .crisp-talk { transform-box:fill-box; transform-origin:center; animation:crisp-talk .55s ease-in-out infinite alternate; }
       .crisp-talk-level { animation:none; transform:scaleY(var(--crisp-mouth-scale)); }
-      .crisp-wave { animation:crisp-wave .9s ease-in-out infinite; transform-origin:center; }
-      .crisp-thought circle, .crisp-ear path { animation:crisp-fade 1.2s ease-in-out infinite; }
-      .crisp-thought circle:nth-child(2), .crisp-ear path:nth-child(2) { animation-delay:.2s; }
+      .crisp-thought circle { animation:crisp-thought 1.2s ease-in-out infinite; }
+      .crisp-thought circle:nth-child(2) { animation-delay:.2s; }
       .crisp-thought circle:nth-child(3) { animation-delay:.4s; }
-      @keyframes crisp-bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(${pose.bounce ? '-10px' : '-5px'})} }
-      @keyframes crisp-blink { 0%,92%,96%,100%{transform:scaleY(1)} 94%{transform:scaleY(.08)} }
-      @keyframes crisp-talk { 0%,100%{transform:scaleY(1)} 25%{transform:scaleY(.45)} 50%{transform:scaleY(.9)} 75%{transform:scaleY(.35)} }
-      @keyframes crisp-wave { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-16deg)} 60%{transform:rotate(14deg)} }
-      @keyframes crisp-fade { 0%,100%{opacity:.2} 50%{opacity:1} }
-      @media(prefers-reduced-motion:reduce) { .crisp-character * { animation:none!important; } }
+      @keyframes crisp-settle { from { opacity:.7; transform:translateY(3px); } to { opacity:1; transform:translateY(0); } }
+      @keyframes crisp-wave { 0%,100% { transform:rotate(0); } 50% { transform:rotate(-10deg); } }
+      @keyframes crisp-talk { from { transform:scaleY(.55); } to { transform:scaleY(1); } }
+      @keyframes crisp-thought { 0%,100% { opacity:.3; } 50% { opacity:1; } }
+      @media(prefers-reduced-motion:reduce) { .crisp-character * { animation:none!important; transition:none!important; } }
     `}</style>
-    <ellipse cx="140" cy="281" rx="62" ry="7" fill="var(--c-text)" opacity=".10" />
-    <g className="crisp-bob">
-      <g transform={pose.lean ?? 'rotate(0 140 270)'}>
-        <path d="M124 204 C122 226 118 244 114 258" fill="none" stroke="var(--c-text)" strokeWidth="5" strokeLinecap="round" />
-        <path d="M156 204 C158 226 162 244 166 258" fill="none" stroke="var(--c-text)" strokeWidth="5" strokeLinecap="round" />
-        <ellipse cx="106" cy="265" rx="17" ry="9.5" fill="var(--c-text)" /><ellipse cx="174" cy="265" rx="17" ry="9.5" fill="var(--c-text)" />
-        <ellipse cx="99" cy="261" rx="5.5" ry="2.4" fill="var(--c-surface)" opacity=".45" /><ellipse cx="167" cy="261" rx="5.5" ry="2.4" fill="var(--c-surface)" opacity=".45" />
-        <path d="M140 72 C120 56 72 58 60 100 C48 145 72 205 112 212 C124 214 132 208 140 208 C148 208 156 214 168 212 C208 205 232 145 220 100 C208 58 160 56 140 72 Z" fill="var(--c-red)" stroke="var(--c-text)" strokeWidth="3.5" strokeLinejoin="round" />
-        <path d="M207 112 C216 152 198 194 162 205 C190 186 206 156 207 112 Z" fill="var(--c-red-text)" opacity=".8" />
-        <ellipse cx="86" cy="102" rx="10" ry="21" transform="rotate(35 86 102)" fill="var(--c-surface)" opacity=".42" />
-        <path d="M140 76 C139 64 142 52 149 42" fill="none" stroke="var(--c-text)" strokeWidth="7" strokeLinecap="round" />
-        <path d="M146 56 C156 36 186 32 200 40 C190 58 164 66 146 56 Z" fill="var(--c-leaf)" stroke="var(--c-text)" strokeWidth="3" strokeLinejoin="round" />
-        <path d="M151 54 C166 47 180 43 194 41" fill="none" stroke="var(--c-leaf-hover)" strokeWidth="2" strokeLinecap="round" />
-        <g transform="rotate(-16 106 70)">
-          <path d="M84 82 L89 58 Q106 50 123 58 L128 82 Q106 88 84 82 Z" fill="var(--c-surface)" stroke="var(--c-text)" strokeWidth="3" strokeLinejoin="round" />
-          <rect x="103" y="60" width="6" height="16" rx="1.5" fill="var(--c-leaf)" /><rect x="98" y="65" width="16" height="6" rx="1.5" fill="var(--c-leaf)" />
-        </g>
-        <path d={pose.brow[0]} fill="none" stroke="var(--c-text)" strokeWidth="4" strokeLinecap="round" /><path d={pose.brow[1]} fill="none" stroke="var(--c-text)" strokeWidth="4" strokeLinecap="round" />
-        <g className="crisp-eyes">
-          <g transform="translate(118 124)"><ellipse rx="16" ry="22" fill="var(--c-surface)" stroke="var(--c-text)" strokeWidth="3" /><g transform={pose.pupil}><ellipse rx="8.5" ry="13" fill="var(--c-text)" /><path d="M0 -1 L3 -12 L8 -5 Z" fill="var(--c-surface)" /></g></g>
-          <g transform="translate(162 124)"><ellipse rx="16" ry="22" fill="var(--c-surface)" stroke="var(--c-text)" strokeWidth="3" /><g transform={pose.pupil}><ellipse rx="8.5" ry="13" fill="var(--c-text)" /><path d="M0 -1 L3 -12 L8 -5 Z" fill="var(--c-surface)" /></g></g>
-        </g>
-        <ellipse cx="94" cy="157" rx="11" ry="7" fill="var(--c-red)" opacity=".6" /><ellipse cx="186" cy="157" rx="11" ry="7" fill="var(--c-red)" opacity=".6" />
-        {!pose.open && <path d={pose.mouth} fill="none" stroke="var(--c-text)" strokeWidth="3.5" strokeLinecap="round" />}
-        {pose.open && <g transform="translate(140 158)"><g className={pose.talk ? `crisp-mouth-open crisp-talk${openness > 0 ? ' crisp-talk-level' : ''}` : 'crisp-mouth-open'}><path d="M-18 0 Q0 30 18 0 Q0 6 -18 0 Z" fill="var(--c-red-text)" stroke="var(--c-text)" strokeWidth="3" strokeLinejoin="round" /><ellipse cx="0" cy="10.5" rx="7" ry="3.5" fill="var(--c-red)" /></g></g>}
-        <path d={pose.left.arm} fill="none" stroke="var(--c-text)" strokeWidth="6" strokeLinecap="round" /><path d={pose.right.arm} fill="none" stroke="var(--c-text)" strokeWidth="6" strokeLinecap="round" />
-        <Glove transform={pose.left.glove} pointed={false} />
-        <g transform={pose.right.glove} className={pose.wave ? 'crisp-wave' : undefined}>
-          {state === 'pointing' ? <PointingGlove /> : <GloveShape />}
-        </g>
-        {pose.dots && <g className="crisp-thought"><circle cx="216" cy="74" r="4" fill="var(--c-border)" /><circle cx="232" cy="57" r="6.5" fill="var(--c-border)" /><circle cx="253" cy="35" r="9" fill="var(--c-border)" /></g>}
-        {pose.ear && <g className="crisp-ear" fill="none" stroke="var(--c-leaf)" strokeWidth="3" strokeLinecap="round"><path d="M262 52 Q271 66 262 80" /><path d="M274 42 Q288 66 274 90" /></g>}
+    <ellipse cx="140" cy="279" rx="54" ry="5" fill="var(--c-crisp-ink)" opacity=".08" />
+    <g key={state} className="crisp-arrive"><g transform={pose.lean}>
+      <g fill="none" stroke="var(--c-crisp-ink)" strokeWidth="4" strokeLinecap="round"><path d="M124 207 L117 253" /><path d="M156 207 L163 253" /></g>
+      <Shoe /><g transform="translate(280 0) scale(-1 1)"><Shoe /></g>
+      {[pose.left, pose.right].map((arm, i) => <g key={i} fill="none" strokeLinecap="round"><path d={arm.path} stroke="var(--c-crisp-ink)" strokeWidth="7" /><path d={arm.path} stroke="var(--c-crisp-body)" strokeWidth="3.5" /></g>)}
+      <path d="M140 62 C116 46 89 54 72 76 C49 103 49 153 69 183 C85 208 113 222 140 214 C167 222 195 208 211 183 C231 153 231 103 208 76 C191 54 164 46 140 62 Z" fill="var(--c-crisp-body)" stroke="var(--c-crisp-ink)" strokeWidth="3" strokeLinejoin="round" />
+      <path d="M211 96 C224 142 206 193 164 209 C196 182 209 142 211 96Z" fill="var(--c-crisp-shade)" />
+      <path d="M78 91 Q86 72 104 68" fill="none" stroke="var(--c-crisp-cream)" strokeWidth="4" strokeLinecap="round" opacity=".55" />
+      <path d="M140 66 Q138 49 147 36" fill="none" stroke="var(--c-crisp-ink)" strokeWidth="5" strokeLinecap="round" />
+      <path d="M145 50 C157 29 180 30 194 35 C183 52 163 58 145 50Z" fill="var(--c-leaf)" stroke="var(--c-crisp-ink)" strokeWidth="2.6" strokeLinejoin="round" />
+      <path d="M150 48 Q167 39 186 37" fill="none" stroke="var(--c-leaf-hover)" strokeWidth="1.6" strokeLinecap="round" />
+      <g fill="none" stroke="var(--c-crisp-ink)" strokeWidth="2.3" strokeLinecap="round">
+        <path d={state === 'thinking' ? 'M92 88 Q108 85 122 91 M158 84 Q175 77 188 87' : 'M92 88 Q107 79 122 87 M158 87 Q173 79 188 88'} />
+        <path d="m98 101-4-7m14 4-1-8m12 9 2-7m41 8-2-7m13 5 1-8m10 11 5-7" />
       </g>
-    </g>
+      {[110, 170].map(x => <g key={x} transform={`translate(${x} 129) rotate(${x < 140 ? 8 : 12})`}>
+        <ellipse rx="18" ry="27" fill="var(--c-crisp-cream)" stroke="var(--c-crisp-ink)" strokeWidth="2.5" />
+        <g transform={pose.pupil}><ellipse cx="2" cy="6" rx="10" ry="18" fill="var(--c-crisp-ink)" /><path d="M0 6 6-10 10-2Z" fill="var(--c-crisp-cream)" /></g>
+      </g>)}
+      <ellipse cx="140" cy="151" rx="3.5" ry="4" fill="var(--c-crisp-ink)" />
+      <g stroke="var(--c-crisp-ink)" strokeWidth="2" strokeLinecap="round"><path d="m78 145 8 2m-5 9 7 1m104-10 9-2m-8 12 7-1" /></g>
+      {state === 'thinking' ? <path d="M129 174 Q141 170 152 175" fill="none" stroke="var(--c-crisp-ink)" strokeWidth="2.6" strokeLinecap="round" /> : <g transform="translate(140 169)"><g className={state === 'talking' ? `crisp-talk${openness > 0 ? ' crisp-talk-level' : ''}` : undefined}>
+        <path d={pose.open ? 'M-23-3 Q0 6 23-3 Q14 25 0 23 Q-14 22-23-3Z' : 'M-23-3 Q0 4 23-3 Q13 12 0 11 Q-13 12-23-3Z'} fill="var(--c-crisp-ink)" stroke="var(--c-crisp-ink)" strokeWidth="2" strokeLinejoin="round" />
+        <path d="M-20-1 Q0 6 20-1 Q0 12-20-1Z" fill="var(--c-crisp-cream)" />
+        {pose.open && <path d="M-10 18 Q0 10 10 18 Q0 25-10 18Z" fill="var(--c-crisp-shade)" />}
+      </g></g>}
+      <g transform={pose.left.wrist}><g className={state === 'happy' ? 'crisp-wave' : undefined}><Glove pointing={state === 'happy'} /></g></g>
+      <g transform={pose.right.wrist}><Glove pointing={state === 'pointing'} /></g>
+      {state === 'thinking' && <g className="crisp-thought" fill="var(--c-text-2)"><circle cx="225" cy="71" r="3" /><circle cx="240" cy="54" r="4.5" /><circle cx="259" cy="36" r="6" /></g>}
+      {state === 'listening' && <g fill="none" stroke="var(--c-leaf)" strokeWidth="2.5" strokeLinecap="round"><path d="M259 73 Q268 86 259 99M271 64 Q285 86 271 108" /></g>}
+    </g></g>
   </svg>;
 }
 
-function Glove({ transform, pointed }: { transform: string; pointed: boolean }) {
-  return <g transform={transform}>{pointed ? <PointingGlove /> : <GloveShape />}</g>;
+function Shoe() {
+  return <g fill="var(--c-crisp-shade)" stroke="var(--c-crisp-ink)" strokeWidth="2.5" strokeLinejoin="round"><path d="M108 251 Q117 246 122 253 L123 267 Q111 271 86 269 Q82 259 103 257Z" /><path d="M85 266 Q103 267 123 265 L123 272 L85 272Z" fill="var(--c-crisp-body)" /><path d="M105 255 Q110 252 115 254" fill="none" stroke="var(--c-crisp-cream)" strokeWidth="2" strokeLinecap="round" /></g>;
 }
 
-function GloveShape() {
-  return <>
-    <ellipse cx="-8" cy="-36" rx="4.6" ry="8" transform="rotate(-12 -8 -36)" fill="var(--c-surface)" stroke="var(--c-text)" strokeWidth="2.5" />
-    <ellipse cx="0" cy="-39" rx="4.6" ry="8.5" fill="var(--c-surface)" stroke="var(--c-text)" strokeWidth="2.5" />
-    <ellipse cx="8" cy="-36" rx="4.6" ry="8" transform="rotate(12 8 -36)" fill="var(--c-surface)" stroke="var(--c-text)" strokeWidth="2.5" />
-    <ellipse cx="14" cy="-21" rx="6.5" ry="4.5" transform="rotate(30 14 -21)" fill="var(--c-surface)" stroke="var(--c-text)" strokeWidth="2.5" />
-    <ellipse cx="0" cy="-24" rx="13" ry="12" fill="var(--c-surface)" stroke="var(--c-text)" strokeWidth="2.5" />
-    <path d="M-4 -30 L-4 -20 M4 -30 L4 -20" fill="none" stroke="var(--c-text)" strokeWidth="1.8" strokeLinecap="round" />
-    <path d="M-11 -12 L11 -12 L13 -1 Q0 4 -13 -1 Z" fill="var(--c-surface)" stroke="var(--c-text)" strokeWidth="2.5" strokeLinejoin="round" />
-  </>;
-}
-
-function PointingGlove() {
-  return <>
-    <rect x="-4.5" y="-60" width="9" height="30" rx="4.5" fill="var(--c-surface)" stroke="var(--c-text)" strokeWidth="2.5" />
-    <ellipse cx="-13" cy="-22" rx="5" ry="7" transform="rotate(-20 -13 -22)" fill="var(--c-surface)" stroke="var(--c-text)" strokeWidth="2.5" />
-    <ellipse cx="0" cy="-24" rx="12" ry="11" fill="var(--c-surface)" stroke="var(--c-text)" strokeWidth="2.5" />
-    <path d="M-6 -20 Q0 -17 6 -20 M-6 -27 Q0 -24 6 -27" fill="none" stroke="var(--c-text)" strokeWidth="1.8" strokeLinecap="round" />
-    <path d="M-11 -12 L11 -12 L13 -1 Q0 4 -13 -1 Z" fill="var(--c-surface)" stroke="var(--c-text)" strokeWidth="2.5" strokeLinejoin="round" />
-  </>;
+function Glove({ pointing = false }: { pointing?: boolean }) {
+  return <g fill="var(--c-crisp-cream)" stroke="var(--c-crisp-ink)" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+    <path d={pointing ? 'M-10-11 C-19-18-17-26-10-28 L-5-28 L-5-46 Q-5-53 1-52 Q6-52 6-46 L6-29 Q17-30 17-20 Q16-13 10-10Z' : 'M-10-10 C-20-15-20-23-15-26 Q-12-29-8-24 L-11-34 Q-13-40-8-41 Q-4-42-2-33 L-2-37 Q-2-44 3-43 Q7-43 7-34 Q12-40 16-36 Q20-32 12-20 Q16-15 10-10Z'} />
+    <path d="M-6-24 Q0-18 7-22 M-5-17 2-16" fill="none" strokeWidth="1.6" />
+    <path d="M-11-11 Q0-8 11-11 L12-2 Q0 2-12-2Z" />
+  </g>;
 }

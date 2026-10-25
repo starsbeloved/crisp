@@ -83,3 +83,11 @@ video[hidden] { display: none; }
 .launcher-note { font-size: 14px; margin-top: var(--s-4); }
 .app-main-lobby { max-width: none; padding: 48px 80px 56px; }
 @media (max-width: 960px) { .app-main-lobby { padding: 24px 20px 32px; } }
+
+/* Mascot colors are distinct from patient status treatments. */
+:root {
+  --c-crisp-body: color-mix(in srgb, var(--c-amber-box) 84%, var(--c-amber-tint));
+  --c-crisp-shade: color-mix(in srgb, var(--c-amber-box) 75%, var(--c-amber));
+  --c-crisp-ink: var(--c-text);
+  --c-crisp-cream: var(--c-surface);
+}
