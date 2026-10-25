@@ -31,6 +31,19 @@ describe('exam room page', () => {
     expect(node.textContent).not.toContain('Penicillin'); expect(node.textContent).toContain("Ben's words");
     room.state.visits = []; await render(); expect(node.textContent).not.toContain("Ben's words");
   });
+  it('opens a newly called chart even if staff had manually selected an older chart', async () => {
+    setup(); const old = { ...visit('Old'), room: 'one', calledAt: 1000 };
+    room.state = { ...empty(), visits: [old] };
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => ({ ok: true, json: async () => ({ visitId: new URL(url, 'http://localhost').searchParams.get('visitId'), record: null }) })));
+    await render();
+    const select = node.querySelector('select')!;
+    await act(() => { select.value = old.id; select.dispatchEvent(new Event('change', { bubbles: true })); });
+    room.state.visits.push({ ...visit('Anna'), room: 'Room one', calledAt: 2000 });
+    await render();
+    expect(node.querySelector('h1')?.textContent).toBe('Anna');
+    expect(node.textContent).toContain('#1 · Anna — Room 1');
+    expect(node.textContent).not.toContain("Old's words");
+  });
   it('marks disconnected information and prevents voice lookup and arrival recognition', async () => {
     setup(); room.state = { ...empty(), visits: [visit('Ama')] }; room.connected = false;
     vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({ visitId: 'Ama', record: null }) })));

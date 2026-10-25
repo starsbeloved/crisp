@@ -1,3 +1,4 @@
+import { normalizeRoom } from '../client/staff/rooms.ts';
 import { randomUUID } from 'node:crypto';
 import type { RoomState, Visit } from '../shared/types.ts';
 import type { RoomStore } from './store.ts';
@@ -11,8 +12,8 @@ export interface Suggestion {
 export interface Disposition { status: 'done' | 'left'; at: number; name: string; queueNo: number; room: string | null }
 export interface SuggestionState { suggestions: Suggestion[]; dispositions: Record<string, Disposition> }
 type Entry = Suggestion & { key: string; status: 'pending' | 'accepted' | 'dismissed' | 'expired'; acceptedAt?: number };
-const roomKey = (room: string) => room.trim().replace(/^room\s*/i, '').trim().toLowerCase();
-const roomLabel = (room: string | null | undefined) => !room ? 'the room' : /^room\b/i.test(room.trim()) ? room.trim() : `Room ${room.trim()}`;
+const roomKey = normalizeRoom;
+const roomLabel = (room: string | null | undefined) => !room ? 'the room' : `Room ${normalizeRoom(room)}`;
 
 export class ProactiveAgent {
   private entries: Entry[] = [];
@@ -32,7 +33,7 @@ export class ProactiveAgent {
   private valid(entry: Entry, now: number): boolean {
     const visit = this.store.state.visits.find(v => v.id === entry.visitId);
     if (entry.kind === 'shift_summary' || entry.kind === 'kiosk_help') return true;
-    if (entry.kind === 'chart_ready') return Boolean(visit?.status === 'called' && visit.room === entry.room && this.store.state.handoffs[visit.id]);
+    if (entry.kind === 'chart_ready') return Boolean(visit?.status === 'called' && Boolean(visit.room && entry.room && roomKey(visit.room) === roomKey(entry.room)) && this.store.state.handoffs[visit.id]);
     if (!visit || visit.status !== 'waiting') return false;
     if (entry.kind === 'room_free') return Boolean(entry.room && !this.occupied(entry.room) && this.waiting()[0]?.id === visit.id);
     if (entry.kind === 'long_wait') return now - visit.createdAt > 45 * 60_000 && visit.answers.trend === 'worse' && !this.wasChecked(visit.id);

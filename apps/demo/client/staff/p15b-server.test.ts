@@ -15,11 +15,11 @@ async function post(path: string, body: unknown = {}) { return (await fetch(base
 async function get(path: string) { return (await fetch(base + path)).json(); }
 
 it('removes a selected visit from the queue, retains its record and records staff confirmation', async () => {
-  app.store.state.visits = [visit('1', 'Ama'), visit('2', 'Ben')];
+  app.store.state.visits = [{ ...visit('1', 'Anna'), answers: { ...visit('1').answers, dateOfBirth: '1997-07-21' } }, visit('2', 'Ben')];
   const result = await post('/api/visits/1/remove');
   expect(result.ok).toBe(true);
   expect((await post('/api/commands/list_waiting')).data.waiting.map((v: Visit) => v.name)).toEqual(['Ben']);
-  expect((await post('/api/commands/get_record', { name: 'Ama' })).data.record.name).toBe('Ama');
+  expect((await post('/api/commands/get_record', { name: 'Anna' })).data.record.name).toBe('Anna Lopez');
   expect((await get('/api/suggestions')).dispositions['1'].status).toBe('left');
   expect((await post('/api/visits/1/remove')).ok).toBe(false);
   expect((await post('/api/visits/missing/remove')).ok).toBe(false);

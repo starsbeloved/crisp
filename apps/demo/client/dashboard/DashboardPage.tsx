@@ -14,6 +14,7 @@ import type { SuggestionState } from '../../server/proactive.ts';
 import { useSuggestions } from '../staff/useSuggestions.ts';
 import { Suggestions } from '../staff/Suggestions.tsx';
 import { StaffToast } from '../staff/StaffToast.tsx';
+import { normalizeRoom } from '../staff/rooms.ts';
 import { staffRequest } from '../staff/tools.ts';
 import { useVoice } from './useVoice.ts';
 import './dashboard.css';
@@ -70,6 +71,7 @@ export function DashboardPage() {
     acknowledge: (id: string) => { if (synthetic) fixtureAction('acknowledged', id); else void perform(() => api.acknowledge(id)); },
     checked: (id: string) => { if (synthetic) fixtureAction('checked', id); else void perform(() => api.checked(id)); },
     call: (id: string, room: string) => {
+      room = normalizeRoom(room);
       if (synthetic) { setFixture(current => current ? { ...current, visits: current.visits.map(v => v.id === id ? { ...v, status: 'called', room, calledAt: now } : v), handoffs: { ...current.handoffs, [id]: { visitId: id, text: 'SYNTHETIC · example handoff based on the illustrated check-in.', source: 'template', createdAt: now } } } : current); }
       else void perform(() => api.callIn(id, room));
     },

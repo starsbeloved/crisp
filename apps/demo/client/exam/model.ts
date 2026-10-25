@@ -1,9 +1,10 @@
+import { normalizeRoom } from '../staff/rooms.ts';
 import { wakeCommand } from '../staff/useWakeWord.ts';
 import type { GalleryEntry, Quality, Visit } from '../../shared/types.ts';
 import type { DetectedFace } from '../lib/face.ts';
 
 export const RECORDS_LABEL = 'Demo records — fictional';
-export const normalizeRoom = (room: string) => room.trim().replace(/^room\s*/i, '').toLowerCase();
+export { normalizeRoom } from '../staff/rooms.ts';
 export function examVisits(visits: Visit[], room: string): Visit[] {
   return visits.filter(visit => visit.status === 'called' && visit.room && normalizeRoom(visit.room) === normalizeRoom(room))
     .sort((a, b) => (b.calledAt ?? 0) - (a.calledAt ?? 0));

@@ -30,7 +30,7 @@ export function ExamChart({ visit, state, record, recordStatus, connected }: {
   return <article className="exam-chart" aria-label={`${visit.name}'s read-only chart`}>
     <div className="exam-patient">
       <div><p className="exam-eyebrow">Patient chart · read only</p><h1>{visit.name}</h1><p>DOB {visit.answers.dateOfBirth || 'Not provided'} · {age === null ? 'Age not available' : `${age} years`}<br />Phone {visit.answers.phone || 'Not provided'}</p></div>
-      <div className="exam-queue"><strong>#{visit.queueNo}</strong><span>Waited {Math.max(0, Math.floor(((visit.calledAt ?? state.serverNow) - visit.createdAt) / 60000))} min</span></div>
+      <div className="exam-queue"><strong title="Queue number">#{visit.queueNo}</strong><span>Waited {Math.max(0, Math.floor(((visit.calledAt ?? state.serverNow) - visit.createdAt) / 60000))} min</span></div>
     </div>
     <div className="exam-chart-columns">
       <div className="exam-chart-main">
@@ -49,8 +49,8 @@ export function ExamChart({ visit, state, record, recordStatus, connected }: {
         </section>
       </div>
       <section className="exam-section exam-history"><p className="exam-eyebrow">History</p><h2>Prior record</h2><span className="exam-demo-label">{RECORDS_LABEL}</span>
-        {recordStatus === 'loading' ? <p role="status">Retrieving record…</p> : recordStatus === 'error' ? <p role="alert">Record unavailable. Retry the record lookup.</p> : !record ? <p>No prior record found</p> : <>
-          <p className="exam-muted">Matched by exact name + date of birth.</p>
+        {recordStatus === 'loading' ? <p role="status">Retrieving record…</p> : recordStatus === 'error' ? <p role="alert">Record unavailable. Retry the record lookup.</p> : !record ? <p>I don't have earlier records for {visit.name.trim().split(/\s+/)[0]} in this demo system.</p> : <>
+          <p className="exam-muted">{visit.answers.dateOfBirth ? 'Matched by first name + date of birth.' : 'matched by name only'}</p>
           <div className="exam-allergies"><h3>Recorded allergies</h3><RecordList items={record.allergies} /></div>
           <h3>Medications</h3><RecordList items={record.medications} />
           <h3>Problem list · recorded</h3><RecordList items={record.problems} />
