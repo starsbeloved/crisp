@@ -55,6 +55,6 @@ export function DashboardPage() {
     <div className="dashboard-columns"><div className="dashboard-left"><VideoPanel cameras={state?.cameras ?? {}} now={now} /><AskCrisp synthetic={synthetic} /></div>
       {state ? <Queue state={state} now={synthetic ? state.serverNow : now} onSelect={setSelected} actions={actions} busy={busy} talkingId={audio.talkingId} synthetic={synthetic} /> : <section className="panel"><h2>Waiting queue</h2><p>Connecting to the room…</p></section>}
     </div>
-    {selectedVisit && state && <PatientDrawer key={selectedVisit.id} visit={selectedVisit} state={state} onClose={() => setSelected(null)} synthetic={synthetic} />}
+    {selectedVisit && state && <PatientDrawer key={selectedVisit.id} visit={selectedVisit} state={state} onClose={() => setSelected(null)} synthetic={synthetic} actions={actions} actionBusy={busy} />}
   </div>;
 }
