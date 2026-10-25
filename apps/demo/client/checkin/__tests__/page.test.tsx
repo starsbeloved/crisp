@@ -15,6 +15,7 @@ it('starts with an empty preferred name and keeps help and Back available', asyn
     expect(button('Start')).toBeUndefined();
     expect(button('Talk to Crisp')).toBeDefined(); expect(button('I’d rather tap')).toBeDefined();
     expect(button('Back')).toBeDefined(); expect(button('I need help')).toBeDefined();
+    expect(container.querySelectorAll('svg.crisp-character')).toHaveLength(1);
     await act(async () => button('I’d rather tap')!.click());
     expect(container.querySelector('input')?.value).toBe('');
     expect(container.querySelectorAll('h1')).toHaveLength(1);
