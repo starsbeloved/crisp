@@ -1,0 +1,57 @@
+.exam-page { max-width: 1240px; margin: 0 auto; }
+.exam-toolbar, .exam-tools, .exam-arrival, .exam-patient { display: flex; gap: 16px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.exam-toolbar { padding-bottom: 20px; }
+.exam-toolbar h2 { margin: 0 0 8px; }
+.exam-eyebrow { color: var(--c-leaf); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; margin: 0 0 8px; }
+.exam-demo-label, .exam-tag { display: inline-flex; align-items: center; border-radius: var(--r-pill); background: var(--c-bubble-gray); color: var(--c-text-2); padding: 5px 10px; font-size: 12px; font-weight: 600; line-height: 1.5; }
+.exam-demo-label { color: var(--c-amber-text); background: var(--c-amber-tint); }
+.exam-connection { color: var(--c-leaf); font-size: 13px; }
+.exam-connection.offline { color: var(--c-amber-text); }
+.exam-tools { justify-content: flex-start; align-items: flex-start; padding: 16px 20px; border: 1px solid var(--c-hairline); border-radius: var(--r-panel); background: var(--c-surface); }
+.exam-tools label { font-size: 13px; }
+.exam-tools select { margin-top: 8px; max-width: 320px; }
+.exam-tools button { margin-top: 20px; }
+.exam-camera { margin-left: auto; display: grid; grid-template-columns: 108px minmax(120px, 1fr); align-items: center; gap: 12px; max-width: 360px; }
+.exam-camera video { width: 108px; height: 80px; object-fit: cover; background: var(--c-text); }
+.exam-camera p { font-size: 12px; margin: 0; }
+.exam-camera button { margin: 6px 0 0; padding: 5px 10px; min-height: 36px; font-size: 12px; }
+.exam-arrival { justify-content: flex-start; flex-wrap: nowrap; background: var(--c-leaf-tint); border-radius: var(--r-panel); margin: 20px 0; padding: 8px 20px; }
+.exam-arrival p { color: var(--c-leaf-hover); margin: 0; }
+.exam-arrival strong { display: block; font-size: 18px; margin-bottom: 4px; }
+.exam-chart { overflow-wrap: anywhere; }
+.exam-patient { padding: 20px 4px 24px; }
+.exam-patient h1 { font-size: clamp(36px, 5vw, 56px); margin-bottom: 8px; }
+.exam-patient p { margin-bottom: 0; }
+.exam-queue { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.exam-queue strong { font-size: 36px; font-variant-numeric: tabular-nums; }
+.exam-queue span { color: var(--c-text-2); font-size: 14px; }
+.exam-chart-columns { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr); gap: 20px; align-items: start; }
+.exam-chart-main { display: grid; gap: 20px; }
+.exam-section { min-width: 0; border: 1px solid var(--c-hairline); border-radius: var(--r-panel); background: var(--c-surface); padding: 24px; }
+.exam-section h2 { margin: 0 0 16px; }
+.exam-section h3 { font-size: 15px; margin: 24px 0 8px; }
+.exam-section p { font-size: 14px; margin: 8px 0; }
+.exam-section blockquote { font-size: 23px; line-height: 1.5; margin: 16px 0; padding-left: 16px; border-left: 3px solid var(--c-leaf); }
+.exam-facts { display: flex; flex-wrap: wrap; gap: 16px 28px; font-size: 14px; }
+.exam-facts dt { color: var(--c-text-2); font-size: 12px; margin-bottom: 5px; }
+.exam-facts dd { margin: 0; font-weight: 600; }
+.exam-followup { border-top: 1px solid var(--c-hairline); margin-top: 20px; }
+.exam-muted { color: var(--c-text-2); font-size: 12px !important; line-height: 1.6; }
+.exam-allergies { background: var(--c-amber-tint); border-left: 3px solid var(--c-amber); border-radius: 8px; padding: 16px; margin: 20px 0; }
+.exam-allergies h3 { color: var(--c-amber-text); margin: 0 0 8px; }
+.exam-record-list { margin: 8px 0; padding-left: 18px; line-height: 1.7; font-size: 14px; }
+.exam-record-list li + li { margin-top: 8px; }
+.exam-record-list time { color: var(--c-text-2); font-size: 12px; }
+.exam-timeline { list-style: none; padding: 0; margin: 24px 0 0; }
+.exam-timeline li { display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 12px; padding: 0 0 20px; font-size: 14px; }
+.exam-timeline time { color: var(--c-text-2); font-size: 12px; font-variant-numeric: tabular-nums; }
+.exam-handoff { white-space: pre-wrap; line-height: 1.7; }
+.exam-idle { padding: 64px 24px; text-align: center; }
+.exam-idle .crisp-character { margin: 0 auto 24px; }
+.exam-idle h1 { font-size: clamp(26px, 4vw, 42px); }
+.exam-voice-status { min-height: 24px; font-size: 13px; }
+@media (max-width: 800px) { .exam-chart-columns { grid-template-columns: minmax(0, 1fr); } .exam-tools { gap: 12px; } .exam-camera { margin-left: 0; } }
+@media (max-width: 480px) { .exam-section { padding: 18px; } .exam-tools select { max-width: 100%; } .exam-queue { align-items: flex-start; } .exam-timeline li { grid-template-columns: 70px minmax(0, 1fr); } }
+.exam-replay { flex-basis: 100%; color: var(--c-text-2); }
+.exam-replay input { width: min(100%, 420px); font-size: 12px; padding: 6px 10px; }
+.exam-agent { border-top: 1px solid var(--c-hairline); padding: 12px 0; margin-bottom: 12px; }

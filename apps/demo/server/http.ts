@@ -173,6 +173,7 @@ export function createAppServer(options: { dataDir?: string | null; apiPort?: nu
     if (method === 'GET' && path === '/api/stations') { json(response, 200, { stations: stations.list() }); return; }
     if (method === 'POST' && path === '/api/stations') { json(response, 200, stations.register(await jsonBody(request))); return; }
     if (method === 'GET' && path === '/api/waittime') { json(response, 200, estimateWaitTimes(store.state.visits)); return; }
+    if (await (await import('./records.ts')).handleExamRequest(request, response, url, store)) return;
     json(response, 404, { error: 'Route not found' });
   }
   server.on('close', () => store.flush());
