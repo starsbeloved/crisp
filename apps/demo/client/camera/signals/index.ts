@@ -49,7 +49,11 @@ export function createSignalTracker(): SignalTracker {
             estimates.push(pulse.bpm); estimates = estimates.slice(-5); pendingJump = null;
           }
           if (pulse.bpm !== null) pulse.bpm = median(estimates);
-        } else if (pulse.bpm === null) { estimates = []; pendingJump = null; }
+        } else if (pulse.bpm === null) {
+          // A brief bad window must not erase the previous rate and bypass jump confirmation.
+          // A source gap or reset() clears that history in clearFace().
+          pendingJump = null;
+        }
       }
       const usable = fresh && validFace(latest) && hint !== 'hold still';
       return { hrBpm: usable && seconds >= 10 ? pulse.bpm : null,

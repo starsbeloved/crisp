@@ -43,7 +43,8 @@ describe('P3 camera heart rate', () => {
   it('returns an actual normalized waveform after five seconds', () => {
     const tracker = createSignalTracker();
     expect(collect(tracker, 0, 4900).pulseTrace).toBeNull();
-    const reading = collect(tracker, 4934, 15_000);
+    expect(collect(tracker, 4934, 5500).pulseTrace).toHaveLength(60);
+    const reading = collect(tracker, 5534, 15_000);
     expect(reading.pulseTrace).toHaveLength(60);
     expect(Math.max(...reading.pulseTrace!)).toBeGreaterThan(0.5);
     expect(Math.min(...reading.pulseTrace!)).toBeLessThan(-0.5);
@@ -118,12 +119,26 @@ describe('P3 camera heart rate', () => {
     expect(tracker.read(15_000)).toMatchObject({ hrBpm: null, hrQuality: 'low', pulseTrace: null });
   });
 
-  it('does not let an irregular sub-ten-second spectral update bypass median smoothing', () => {
+  it('publishes heart rate with irregular read timing after ten seconds', () => {
     const tracker = createSignalTracker();
     collect(tracker, 0, 9800, 72);
     collect(tracker, 9834, 10_200, 72);
-    // The first publishable reading must have a full ten seconds, not be a cached partial window.
     expect(tracker.read(10_200).hrBpm).not.toBeNull();
     expect(tracker.read(10_200).hrSecondsCollected).toBe(10);
+  });
+
+  it('requires three seconds of consistent evidence for a large jump across a low-quality transition', () => {
+    const tracker = createSignalTracker();
+    const readings = new Map<number, number | null>();
+    for (let t = 0; t <= 30_000; t += 40) {
+      const cycles = t < 20_000 ? 1.2 * t / 1000 : 24 + 110 / 60 * (t - 20_000) / 1000;
+      const p = Math.sin(2 * Math.PI * cycles);
+      tracker.pushFace({ t, rgb: [120 + 0.35 * p, 100 + 1.2 * p, 80 + 0.1 * p], brightness: 100, faceWidthPx: 150 });
+      if (t >= 10_000 && t % 1000 === 0) readings.set(t, tracker.read(t).hrBpm);
+    }
+    expect(readings.get(20_000)).toBeCloseTo(72, 0);
+    expect(readings.get(26_000)).toBeNull();
+    expect(readings.get(28_000)).toBeNull();
+    expect(readings.get(30_000)).toBeCloseTo(110, 0);
   });
 });

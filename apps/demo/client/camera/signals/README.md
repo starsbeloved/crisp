@@ -42,7 +42,7 @@ No periodic wave is synthesized from the heart-rate number.
 ## Breathing and posture
 
 Breathing uses shoulder midpoint y divided by shoulder width, detrends, resamples at 15 Hz,
-and finds a spectral peak in 0.1–0.7 Hz. Window: up to 30 s; first result after 20 s. Gross pose motion
+and finds a spectral peak in 0.1–0.7 Hz. Window: up to 30 s; first result after 20 s; minimum input cadence: 2 Hz. Gross pose motion
 restarts breathing collection. Breathing never consumes face RGB or HR.
 
 Posture learns median torso angle and nose-to-shoulder offset during the first 10 s of stable visible
@@ -79,3 +79,19 @@ It does not download UBFC. A no-reading result prints `MAE: unavailable`, not ze
 Human checks after P2 integration: resting face reaches reference HR ±5 bpm within ~15 s; periodic waveform;
 covered face shows low signal; brief bend recovers without a sustained slump; safe staged rapid downward
 motion shows a fall cue. Test on the actual camera, lighting and frame rate used for filming.
+
+## Packet verification record (2026-10-24)
+
+- `npm test`: 46 passing tests (40 P3 + 6 existing server smoke tests). Includes noisy 72/110 bpm,
+  irregular timing, RGB glitches, >20% bad samples, ten-second gaps, waveform onset/normalization,
+  large-jump confirmation across bad quality, breathing 9/15/30 per minute, pose sequences,
+  undersampling rejection, fall expiry during occlusion, and CSV CLI execution.
+- `npm run typecheck`: passed. No frozen interface or route changes.
+- Actual Chrome: 10/10 synthetic browser checks using the Vite-served production module. Measured
+  72.003 / 110.001 bpm and 15.000 breaths/min; checked waveforms, flat input, gap/restart, slump/recovery.
+  This proves browser execution, not webcam accuracy. No video fixtures were available.
+- `API_PORT=8783 WEB_PORT=5183 npm run dev` hit `EMFILE` in Node's watch mode. Browser verification
+  used Vite on 5183 and a temporary synthetic-only harness on 8783, with no provider file or camera input.
+- Final review was self-review; this session had no callable subagent tool.
+- Still pending: real webcam/reference validation, recorded-video/UBFC evaluation, and P2/P8 wiring.
+  P2/P8 should use the input contract above and reset trackers on Mark checked or identity/source changes.

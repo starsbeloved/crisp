@@ -57,15 +57,15 @@ export function createPoseSignals() {
       recent = recent.filter(v => s.t - v.t <= 1000);
       const fell = recent.some(v => {
         const shoulderDrop = g.shoulderY - v.shoulderY, hipDrop = g.hipY - v.hipY;
-        return (shoulderDrop + hipDrop) / 2 > 0.25 && shoulderDrop > 0.15 && hipDrop > 0.15 ||
+        return (shoulderDrop + hipDrop) / 2 > POSE_THRESHOLDS.fallDrop && shoulderDrop > 0.15 && hipDrop > 0.15 ||
           v.hipY < 0.98 && g.hipY >= 0.98 && shoulderDrop > 0.12;
       });
       if (fell) fallUntil = s.t + POSE_THRESHOLDS.fallHoldMs;
       if (!g.visible) {
-        const fall = s.t <= fallUntil;
+        const observedUntil = fallUntil, fall = s.t <= observedUntil;
         breakContinuity(); rrQuality = 'low';
         // The hips may leave the image at exactly the fall; preserve that observed evidence.
-        if (fall) { fallUntil = s.t + POSE_THRESHOLDS.fallHoldMs;
+        if (fall) { fallUntil = observedUntil;
           posture = { slumpSec: 0, headDropSec: 0, stillSec: 0, fallSuspected: true }; }
         return;
       }
@@ -102,14 +102,15 @@ export function createPoseSignals() {
       const fresh = lastAt !== null && Number.isFinite(now) && now >= lastAt && now - lastAt <= 1000;
       const duration = breaths.length > 1 ? breaths.at(-1)!.t - breaths[0].t : 0;
       if (fresh && duration >= 20_000 && lastAt! - lastEstimate >= 1000) {
-        const peak = spectrum(resample(breaths, 15, s => s.value), 15, 0.1, 0.7);
+        const cadence = (breaths.length - 1) * 1000 / duration;
+        const peak = cadence >= 2 ? spectrum(resample(breaths, 15, s => s.value), 15, 0.1, 0.7) : { hz: null, ratio: 0 };
         rrQuality = qualityForRatio(peak.ratio);
         rrBpm = peak.hz !== null && rrQuality !== 'low' ? peak.hz * 60 : null;
         lastEstimate = lastAt!;
       }
       return { rrBpm: fresh ? rrBpm : null,
         rrQuality: lastAt === null ? 'none' as const : !fresh ? 'low' as const : rrQuality,
-        posture: fresh && posture ? { ...posture } : null };
+        posture: fresh && posture ? { ...posture, fallSuspected: now <= fallUntil } : null };
     },
     reset() { lastAt = null; baseline = null; breakContinuity(); },
   };

@@ -87,6 +87,18 @@ describe('P3 posture', () => {
     }
   });
 
+  it('does not repeat a past fall while hips remain outside the visible frame', () => {
+    const tracker = createSignalTracker();
+    hold(tracker, 0, 2000, 0, 0.1);
+    for (let t = 2400; t <= 5000; t += 40) {
+      const outOfFrame = pose(t, 0, 0.3);
+      outOfFrame.landmarks[23].visibility = outOfFrame.landmarks[24].visibility = 0.1;
+      tracker.pushPose(outOfFrame);
+      if (t === 2400) expect(tracker.read(t).posture?.fallSuspected).toBe(true);
+    }
+    expect(tracker.read(5000).posture?.fallSuspected ?? false).toBe(false);
+  });
+
   it('withholds stale posture and clears counters across a gap', () => {
     const tracker = createSignalTracker();
     hold(tracker, 0, 11_000);
@@ -136,6 +148,14 @@ describe('P3 independent pose breathing', () => {
 
   it('rejects motion above the breathing frequency band', () => {
     expect(breathe(createSignalTracker(), 35_000, 72)).toMatchObject({ rrBpm: null, rrQuality: 'low' });
+  });
+
+  it('does not estimate breathing from undersampled pose motion', () => {
+    const tracker = createSignalTracker();
+    for (let t = 0; t <= 35_000; t += 1000) {
+      tracker.pushPose(pose(t, 0, 0.002 * Math.sin(2 * Math.PI * 0.7 * t / 1000)));
+    }
+    expect(tracker.read(35_000)).toMatchObject({ rrBpm: null, rrQuality: 'low' });
   });
 
   it('drops stale breathing readings and resets collection on missing pose', () => {
