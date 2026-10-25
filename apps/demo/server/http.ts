@@ -167,6 +167,7 @@ export function createAppServer(options: { dataDir?: string | null; apiPort?: nu
     if (method === 'POST' && path === '/api/reset') {
       const status = store.state.providers; store.reset(); store.state.providers = status; mjpeg.reset(); orchestrator.reset(); json(response, 200, { ok: true }); return;
     }
+    if (await (await import('./records.ts')).handleExamRequest(request, response, url, store)) return;
     json(response, 404, { error: 'Route not found' });
   }
   server.on('close', () => store.flush());
