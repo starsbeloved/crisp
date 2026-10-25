@@ -1,4 +1,4 @@
-.camera-page { color: var(--c-text); font-family: var(--font); }
+.camera-page { position: relative; color: var(--c-text); font-family: var(--font); }
 .camera-page-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--s-4); margin-bottom: var(--s-4); }
 .camera-page-heading h1 { margin: 0; font-size: 2rem; line-height: 1.1; letter-spacing: -.04em; }
 .camera-page-heading p { margin: 6px 0 0; color: var(--c-text-2); font-size: 0.875rem; }
@@ -32,7 +32,7 @@
 .camera-view-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
 .camera-id { color: var(--c-text-2); font-weight: 400; }
 .camera-settings-toggle { padding: 10px; width: 44px; flex: none; }
-.camera-settings { position: fixed; z-index: 50; top: 1rem; right: 1rem; display: flex; flex-direction: column; width: min(32.5rem, calc(100% - 2rem)); max-height: calc(100dvh - 2rem); overflow: hidden; padding: 0; border: 1px solid var(--c-border); border-radius: var(--r-panel); background: var(--c-surface); box-shadow: var(--shadow-bubble); }
+.camera-settings { position: absolute; z-index: 50; top: 0; right: 0; display: flex; flex-direction: column; width: min(32.5rem, 100%); max-height: min(100%, calc(100dvh - 2rem)); overflow: hidden; padding: 0; border: 1px solid var(--c-border); border-radius: var(--r-panel); background: var(--c-surface); box-shadow: var(--shadow-bubble); }
 .camera-settings[hidden] { display: none; }
 .camera-settings-heading { display: flex; align-items: center; justify-content: space-between; flex: none; gap: 1rem; padding: 1rem 1.25rem; border-bottom: 1px solid var(--c-hairline); }
 .camera-settings h2 { margin: 0; font-size: 1.25rem; overflow-wrap: anywhere; }
@@ -44,15 +44,15 @@
 .camera-technical { font-size: 0.8125rem; }
 .camera-page .camera-source-message { margin: 12px 0; font-size: 1rem; }
 .camera-stage { display: grid; place-items: center; min-width: 0; border-radius: var(--r-control); background: var(--c-text); }
-.camera-demo-view { position: fixed; z-index: 30; inset: 0; display: flex; flex-direction: column; padding: 24px 32px; background: var(--c-canvas); overflow: auto; }
+.camera-demo-view { display: flex; flex: 1; min-height: 0; flex-direction: column; padding: 24px 32px; background: var(--c-canvas); overflow: auto; }
 .camera-demo-view .camera-page-heading { margin-bottom: 16px; }
 .camera-demo-view .camera-page-heading h1 { font-size: 2.5rem; }
 .camera-demo-view .camera-eyebrow { display: none; }
 .camera-demo-view .camera-card { display: flex; flex: 1; min-height: 0; flex-direction: column; padding: 16px 20px; }
 .camera-demo-view .camera-status { margin: 0; }
 .camera-demo-view .camera-status .chip { font-size: 1.0625rem; min-height: 38px; }
-.camera-demo-view .camera-stage { flex: 1; min-height: 160px; }
-.camera-demo-view .camera-canvas { width: 100%; height: calc(100dvh - 270px); object-fit: contain; }
+.camera-demo-view .camera-stage { flex: 1; min-height: 160px; overflow: hidden; }
+.camera-demo-view .camera-canvas { width: 100%; height: 100%; min-height: 0; object-fit: contain; }
 .camera-demo-view .camera-footnote { margin-bottom: 0; }
 @media (max-width: 760px) { .camera-demo-view { padding: 16px; } .camera-demo-view .camera-page-heading { flex-direction: row; flex-wrap: wrap; } .camera-demo-view .camera-page-heading h1 { font-size: 1.75rem; } }
 @media (prefers-reduced-motion: reduce) { .camera-page * { transition: none !important; animation: none !important; } }

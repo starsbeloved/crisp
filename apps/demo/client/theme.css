@@ -132,4 +132,8 @@ main { padding-bottom: 5rem; }
 .nav-expand { position: fixed; bottom: 12px; left: 12px; z-index: 60; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1px solid var(--c-hairline); border-radius: 999px; background: rgba(255,255,255,.9); backdrop-filter: blur(12px); font-size: .875rem; font-weight: 600; color: var(--c-text); cursor: pointer; box-shadow: var(--shadow-card, 0 2px 8px rgba(0,0,0,.08)); opacity: .55; transition: opacity .2s; }
 .nav-expand:hover, .nav-expand:focus-visible { opacity: 1; }
 .nav-expand .apple-mark { width: 18px; height: 18px; }
-[data-nav-collapsed] .room-view { height: 100dvh; }
+/* Camera surfaces fill the space left by the actual header, including when it wraps or is hidden. */
+#root:has(> main > :is(.room-view, .camera-demo-view)) { display: flex; flex-direction: column; height: 100dvh; }
+#root:has(> main > :is(.room-view, .camera-demo-view)) > header { flex: none; }
+main:has(> :is(.room-view, .camera-demo-view)) { display: flex; flex-direction: column; flex: 1; min-height: 0; width: 100%; max-width: none; padding: 0; }
+#root:has(> main > .camera-demo-view) > .station-corner { position: fixed; left: auto; right: 12px; bottom: 12px; margin: 0; }

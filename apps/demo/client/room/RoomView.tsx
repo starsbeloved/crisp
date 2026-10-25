@@ -14,19 +14,15 @@ export function RoomView({ call, connected, children, alerts = [], replayVisitId
 
   useEffect(() => {
     const overflow = document.body.style.overflow;
-    const header = document.querySelector<HTMLElement>('#root > header');
-    const inert = header?.inert ?? false;
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const element = room.current;
     document.body.style.overflow = 'hidden';
-    if (header) header.inert = true;
     heading.current?.focus();
     const changed = () => setFullscreen(document.fullscreenElement === element);
     document.addEventListener('fullscreenchange', changed);
     return () => {
       document.removeEventListener('fullscreenchange', changed);
       document.body.style.overflow = overflow;
-      if (header) header.inert = inert;
       if (document.fullscreenElement === element) void document.exitFullscreen().catch(() => {});
       if (previousFocus?.isConnected) previousFocus.focus();
     };

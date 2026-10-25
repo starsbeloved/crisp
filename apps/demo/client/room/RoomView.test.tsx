@@ -38,10 +38,10 @@ it('composes the local camera and public hallway, and releases page chrome on un
   expect(document.body.style.overflow).toBe('scroll');
 });
 
-it('makes covered navigation inert only while the room is open', async () => {
+it('keeps the visible navigation interactive while the room is open', async () => {
   header.inert = false;
   await render();
-  expect(header.inert).toBe(true);
+  expect(header.inert).toBe(false);
   await act(() => root.render(null));
   expect(header.inert).toBe(false);
 });

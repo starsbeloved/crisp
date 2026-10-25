@@ -53,15 +53,13 @@ export function CameraPage({ roomView = false }: { roomView?: boolean }) {
     if (!demoView) return;
     const previous = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    const header = document.querySelector<HTMLElement>('#root > header');
-    if (header) header.inert = true;
     function escape(event: KeyboardEvent) {
       if (event.key !== 'Escape') return;
       if (settings) { setSettings(false); settingsButton.current?.focus(); }
       else { setDemoView(false); demoButton.current?.focus(); }
     }
     window.addEventListener('keydown', escape);
-    return () => { document.body.style.overflow = previous; if (header) header.inert = false; window.removeEventListener('keydown', escape); };
+    return () => { document.body.style.overflow = previous; window.removeEventListener('keydown', escape); };
   }, [demoView, settings]);
   const { ready, message, devices } = useCameraSource(video, cam, replay, deviceId);
   const vision = useVision(video, canvas, { ready, cam, replayName: replay ? filename || 'local video' : null, state, privacy, debug });
