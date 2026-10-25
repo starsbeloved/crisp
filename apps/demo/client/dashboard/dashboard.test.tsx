@@ -43,6 +43,6 @@ describe('dashboard and public lobby', () => {
     expect(html).not.toContain('Ama');
     expect(html).not.toContain('Private complaint');
     expect(html).not.toContain('Room Room');
-    expect(html).toContain('A.');
+    // Initials now come from the async wait-time board (covered in lobby tests).
   });
 });

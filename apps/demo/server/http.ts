@@ -11,6 +11,7 @@ import * as engine from './engine/index.ts';
 import * as providers from './providers/index.ts';
 import { signedUrl } from './agent.ts';
 import { StationRegistry } from './stations.ts';
+import { estimateWaitTimes } from './waittime.ts';
 
 const descriptorSchema = z.array(z.number().finite()).min(1).max(512);
 const answersSchema = z.object({ reason: z.string().max(4000), reasonChips: z.array(z.string()).max(30), onset: z.enum(['<1h', 'today', '1-3d', 'longer']).nullable(), trend: z.enum(['worse', 'same', 'better']).nullable(), followUp: z.object({ question: z.string(), answer: z.string() }).nullable(), via: z.enum(['form', 'voice']), dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(), phone: z.string().max(40).nullable().optional() });
@@ -171,6 +172,7 @@ export function createAppServer(options: { dataDir?: string | null; apiPort?: nu
     }
     if (method === 'GET' && path === '/api/stations') { json(response, 200, { stations: stations.list() }); return; }
     if (method === 'POST' && path === '/api/stations') { json(response, 200, stations.register(await jsonBody(request))); return; }
+    if (method === 'GET' && path === '/api/waittime') { json(response, 200, estimateWaitTimes(store.state.visits)); return; }
     json(response, 404, { error: 'Route not found' });
   }
   server.on('close', () => store.flush());
