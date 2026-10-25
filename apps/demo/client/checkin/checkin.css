@@ -102,6 +102,10 @@ main:has(> .checkin){max-width:none;margin:0;padding:0}
 .checkin[data-step=face] .checkin-agent{grid-row:3}
 /* Completion: the ticket is the actual queue number returned by the server. */
 .checkin[data-step=done] .checkin-card{gap:26px 64px;grid-template-columns:minmax(300px,460px) minmax(0,600px)}
+.checkin[data-step=done] .checkin-companion{grid-row:1/3}
+.checkin[data-step=done] .checkin-intro{grid-row:1}
+.checkin[data-step=done] .checkin-done-content{grid-row:2;align-self:start}
+.checkin[data-step=done] .checkin-ticket-row{align-items:flex-start}
 .checkin[data-step=done] .checkin-companion::before{width:420px}
 .checkin[data-step=done] h1{font-size:3.75rem;line-height:1.05;letter-spacing:-1.2px;margin-top:6px}
 .checkin[data-step=done] .checkin-done-greeting{font-size:1.625rem;margin:0}
@@ -292,36 +296,62 @@ main:has(> .checkin){max-width:none;margin:0;padding:0}
   .checkin-manual-continue { flex-direction: column; align-items: stretch; }
 }
 
-/* P22b pulse step: same kiosk surfaces, type, color and controls. */
-.checkin-pulse { display:flex; flex-direction:column; gap:16px; min-width:0; }
-.checkin-pulse-summary { display:flex; align-items:center; gap:18px; }
-.checkin-pulse-summary h2 { margin-bottom:8px; }
-.checkin-pulse-clock { flex:0 0 88px; width:88px; height:88px; position:relative; color:var(--c-leaf); }
-.checkin-pulse-clock svg { width:100%; height:100%; transform:rotate(-90deg); fill:none; stroke:var(--c-border); stroke-width:5; }
-.checkin-pulse-clock circle:last-child { stroke:var(--c-leaf); stroke-linecap:round; }
-.checkin-pulse-clock span { position:absolute; inset:0; display:grid; place-items:center; font-size:1.5rem; font-weight:600; font-variant-numeric:tabular-nums; }
-.checkin p.checkin-pulse-value { color:var(--c-text); font-size:1.375rem; font-weight:600; margin-top:12px; }
-.checkin-pulse-wave { width:100%; height:90px; border-bottom:1px solid var(--c-border); }
-.checkin-pulse-wave polyline { fill:none; stroke:var(--c-leaf); stroke-width:2; stroke-linejoin:round; }
-.checkin-pulse .checkin-status-chip { align-self:flex-start; }
-.checkin-pulse-actions { display:flex; gap:12px; }
-.checkin-pulse-actions button { flex:1; }
-.checkin-pulse-debug { font-size:.875rem; overflow-wrap:anywhere; }
-.checkin-pulse-debug summary { min-height:44px; display:flex; align-items:center; cursor:pointer; }
-.checkin-pulse-debug label { font-size:1rem; }
-.checkin-pulse-debug input { min-height:44px; font-size:1rem; margin-bottom:12px; }
-.checkin-pulse-notice { grid-column:1/-1; padding:12px 0; font-size:1rem; }
-.checkin[data-step=pulse] .checkin-face-layout { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:28px; align-items:center; }
-.checkin[data-step=pulse] .checkin-card:has(.checkin-voice-active) .checkin-form { display:flex; }
-@media(max-width:760px) {
-  .checkin[data-step=pulse] .checkin-face-layout { display:flex; flex-direction:column; gap:20px; }
-  .checkin[data-step=pulse] .checkin-preview { width:100%; max-height:240px; }
-  .checkin[data-step=pulse] .checkin-companion { display:none; }
-  .checkin-pulse-summary { gap:12px; }
-  .checkin-pulse-clock { flex-basis:72px; width:72px; height:72px; }
-}
-
-.checkin .checkin-navigation .checkin-help-button { min-height:60px; padding:.75rem 1.25rem; border:1px solid var(--c-leaf); border-radius:var(--r-control); background:var(--c-leaf); color:var(--c-surface); font-size:1.125rem; font-weight:650; white-space:normal; }
-.checkin .checkin-navigation .checkin-help-button:hover:not(:disabled) { background:var(--c-leaf-hover); }
+.checkin .checkin-navigation .checkin-help-button { min-height:60px; padding:.75rem 1.25rem; border:1px solid #bd6865; border-radius:var(--r-control); background:#f4b9b5; color:#72232a; font-size:1.125rem; font-weight:650; white-space:normal; }
+.checkin .checkin-navigation .checkin-help-button:hover:not(:disabled) { background:#eda39d; }
 .checkin-help-button svg { width:1.5rem; height:1.5rem; flex:none; }
 .checkin-help-button span { min-width:0; overflow-wrap:anywhere; }
+
+/* Every step shares one companion anchor; longer captions grow downward. */
+.checkin { --voice-character-size:160px; }
+.checkin[data-step] .checkin-card.checkin-stable-layout {
+  display:flex; flex-direction:column; align-items:stretch; justify-content:flex-start;
+  max-width:1064px; padding:8px 40px 24px; gap:24px;
+}
+.checkin-stable-layout > .checkin-agent,
+.checkin-stable-layout > .checkin-intro-group { width:100%; max-width:54rem; margin-inline:auto; }
+.checkin[data-step] .checkin-stable-layout .checkin-companion-scene {
+  display:grid; position:relative; width:100%; height:auto; overflow:visible; clip-path:none;
+  grid-template-columns:var(--voice-character-size) minmax(0,1fr);
+  align-items:start; gap:16px 24px; min-height:180px;
+}
+.checkin[data-step] .checkin-stable-layout .checkin-companion-scene :is(.checkin-companion,.checkin-voice-character) {
+  display:flex; grid-column:1; grid-row:1/4; align-self:start; justify-content:flex-start;
+  width:var(--voice-character-size); min-width:0; flex:none; margin:0;
+}
+.checkin[data-step] .checkin-stable-layout .checkin-companion-scene :is(.checkin-companion,.checkin-voice-character)>svg {
+  width:var(--voice-character-size); max-width:100%; height:auto;
+}
+.checkin-stable-layout .checkin-companion::before { display:none; }
+.checkin-stable-layout .crisp-arrive { animation:none; }
+.checkin[data-step] .checkin-stable-layout :is(.checkin-intro,.checkin-speech) {
+  grid-column:2; grid-row:1; align-self:start; position:relative; min-width:0;
+  padding:20px; margin:0; border-radius:24px; background:var(--c-surface);
+  box-shadow:none; text-align:left; overflow-wrap:anywhere;
+}
+.checkin-stable-layout .checkin-intro::after,
+.checkin-voice-scene .checkin-speech::after {
+  content:''; position:absolute; left:-20px; top:60px; width:20px; height:20px;
+  background:var(--c-surface); clip-path:polygon(100% 0,100% 100%,0 100%);
+}
+.checkin[data-step] .checkin-stable-layout .checkin-intro h1 {
+  position:static; width:auto; height:auto; overflow:visible; clip-path:none;
+  font-size:2rem; line-height:1.2; letter-spacing:-.5px; margin:0;
+}
+.checkin[data-step] .checkin-stable-layout .checkin-intro p { font-size:1.375rem; line-height:1.4; margin:12px 0 0; }
+.checkin[data-step] .checkin-stable-layout .checkin-intro .checkin-done-greeting { margin:0 0 8px; }
+.checkin-voice-scene .checkin-latest-reply { grid-column:2; grid-row:2; text-align:left; }
+.checkin-voice-character .checkin-voice-status { max-width:100%; flex-wrap:wrap; overflow-wrap:anywhere; }
+.checkin[data-step=face] .checkin-stable-layout .checkin-form { display:flex; }
+.checkin-stable-layout .checkin-face-layout:not([hidden]) { display:flex; flex-direction:column; gap:20px; }
+.checkin-stable-layout .checkin-preview { align-self:start; }
+.checkin[data-step] .checkin-stable-layout .checkin-manual-continue { order:1; }
+.checkin-stable-layout .checkin-done-content { width:100%; max-width:54rem; margin-inline:auto; }
+@media (max-width:760px) {
+  .checkin { --voice-character-size:88px; }
+  .checkin[data-step] .checkin-card.checkin-stable-layout { padding:8px 20px 24px; gap:20px; }
+  .checkin[data-step] .checkin-stable-layout .checkin-companion-scene { gap:12px 16px; min-height:100px; }
+  .checkin[data-step] .checkin-stable-layout :is(.checkin-intro,.checkin-speech) { padding:16px; border-radius:20px; }
+  .checkin[data-step] .checkin-stable-layout .checkin-intro h1 { font-size:1.375rem; }
+  .checkin[data-step] .checkin-stable-layout .checkin-intro p { font-size:1.125rem; }
+  .checkin-stable-layout .checkin-intro::after,.checkin-voice-scene .checkin-speech::after { top:32px; left:-16px; width:16px; height:16px; }
+}

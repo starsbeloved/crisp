@@ -12,14 +12,13 @@ import { ResetCountdown } from './ui/ResetCountdown.tsx';
 import { detailsError, localToday } from './details.ts';
 import { FollowUpContext } from './ui/FollowUpContext.tsx';
 import { complaintQuestion } from './followup-policy.ts';
-import { PulseCheck } from './ui/PulseCheck.tsx';
 import './checkin.css';
 
 const reasons = ['chest pain', 'trouble breathing', 'dizziness or fainting', 'headache', 'fever', 'stomach pain', 'injury', 'nausea', 'allergic reaction', 'other'];
 const onsets: Array<[Onset, string]> = [['<1h', 'Less than an hour'], ['today', 'Today'], ['1-3d', '1–3 days'], ['longer', 'Longer']];
 const trends: Array<[Trend, string]> = [['worse', 'Getting worse'], ['same', 'About the same'], ['better', 'Getting better']];
 const steps: Step[] = ['welcome', 'name', 'face', 'questions', 'followup', 'done'];
-const titles: Record<Step, string> = { welcome: "Hi! I’m Crisp.", name: 'What should I call you?', face: 'Look at me for a moment.', pulse: 'Hold still for a moment.', questions: 'What brings you in today?', followup: 'One more thing.', done: 'You’re checked in.' };
+const titles: Record<Step, string> = { welcome: "Hi! I’m Crisp.", name: 'What should I call you?', face: 'Look at me for a moment.', questions: 'What brings you in today?', followup: 'One more thing.', done: 'You’re checked in.' };
 
 /** P7's agent mounts inside the same controller provider as the tap flow. */
 export function CrispAgentSlot({ optionsTarget }: { optionsTarget?: HTMLElement | null }) { return <CrispAgent optionsTarget={optionsTarget} />; }
@@ -46,7 +45,7 @@ export function CheckInPage() {
   }
   const reasonText = c.answers.reason;
   return <CheckInContext.Provider value={c}><section className="checkin" data-step={c.step} aria-label="Check in with Crisp">
-    <div className="checkin-top"><div className="checkin-brand"><KioskIcon name="apple" /><span>{c.step === 'welcome' ? 'Crisp check-in' : c.step === 'done' ? 'All done' : c.step === 'pulse' ? 'Pulse check' : c.step === 'face' ? 'Face scan' : c.step === 'questions' ? 'In your own words' : c.step === 'followup' ? 'One more thing' : 'Your name'}</span></div><div className="checkin-navigation"><Button className="checkin-secondary" type="button" disabled={c.busy || c.step === 'welcome' || c.step === 'done'} onClick={() => c.goTo(c.step === 'pulse' ? 'face' : steps[Math.max(0, stepIndex - 1)])}>Back</Button><Button className="checkin-secondary checkin-help-button" type="button" disabled={helpBusy} onClick={() => {
+    <div className="checkin-top"><div className="checkin-brand"><KioskIcon name="apple" /><span>{c.step === 'welcome' ? 'Crisp check-in' : c.step === 'done' ? 'All done' : c.step === 'face' ? 'Face scan' : c.step === 'questions' ? 'In your own words' : c.step === 'followup' ? 'One more thing' : 'Your name'}</span></div><div className="checkin-navigation"><Button className="checkin-secondary" type="button" disabled={c.busy || c.step === 'welcome' || c.step === 'done'} onClick={() => c.goTo(steps[Math.max(0, stepIndex - 1)])}>Back</Button><Button className="checkin-secondary checkin-help-button" type="button" disabled={helpBusy} onClick={() => {
       setHelpBusy(true);
       void fetch('/api/checkin/help', { method: 'POST', signal: AbortSignal.timeout(4000) }).then(response => {
         if (!response.ok) throw new Error();
@@ -54,8 +53,8 @@ export function CheckInPage() {
       }).catch(() => setHelp('Could not notify staff. Please ask a staff member at the front desk to help you check in.'))
         .finally(() => setHelpBusy(false));
     }} aria-expanded={Boolean(help)}><KioskIcon name="info" /><span>I need help</span></Button></div><KioskProgress step={c.step} /></div>
-    <div className="checkin-card">
-      {(c.via !== 'voice' || c.step === 'done') && <div className="checkin-intro-group"><div className="checkin-companion"><Crisp state={c.step === 'welcome' || c.step === 'done' ? 'happy' : c.face.status === 'scanning' && c.step === 'face' ? 'thinking' : 'idle'} size={c.step === 'welcome' ? 480 : c.step === 'done' ? 440 : c.step === 'face' ? 170 : 110} /></div>
+    <div className="checkin-card checkin-stable-layout">
+      {(c.via !== 'voice' || c.step === 'done') && <div className="checkin-intro-group checkin-companion-scene"><div className="checkin-companion"><Crisp state={c.step === 'welcome' || c.step === 'done' ? 'happy' : c.face.status === 'scanning' && c.step === 'face' ? 'thinking' : 'idle'} size={160} /></div>
       <div className="checkin-intro">
         {c.step === 'done' && <p className="checkin-done-greeting">You’re checked in, {c.name.trim()}.</p>}
         <h1 ref={heading} tabIndex={-1}>{c.step === 'done' ? 'You’re number' : titles[c.step]}</h1>
@@ -85,15 +84,15 @@ export function CheckInPage() {
           <Button className="checkin-primary" type="submit">Continue</Button>
         </div>}
 
-        <div className="checkin-face-layout" hidden={c.step !== 'face' && c.step !== 'pulse'}>
-          <div className="checkin-preview"><video ref={c.videoRef} autoPlay muted playsInline aria-label="Check-in camera preview" />{c.step !== 'pulse' && <><FaceGuide message={c.face.message} saved={c.face.status === 'saved'} /><div className="checkin-face-status" role="status" aria-live="polite"><span className="checkin-status-chip" data-saved={c.face.status === 'saved'}>{c.face.message}</span></div></>}{c.replay && <span className="checkin-replay">REPLAY · {c.replay.split('/').pop()}</span>}<span className="checkin-photo-note">Face pattern only — no photo is stored</span></div>
-          {c.step === 'pulse' ? <PulseCheck view={c.pulse} replay={Boolean(c.replay)} skip={() => c.completePulse([], 'skipped')} complete={() => c.completePulse(c.pulse?.samples ?? [], 'complete')} /> : <aside className="checkin-face-aside">
+        <div className="checkin-face-layout" hidden={c.step !== 'face'}>
+          <div className="checkin-preview"><video ref={c.videoRef} autoPlay muted playsInline aria-label="Check-in camera preview" /><FaceGuide message={c.face.message} saved={c.face.status === 'saved'} /><div className="checkin-face-status" role="status" aria-live="polite"><span className="checkin-status-chip" data-saved={c.face.status === 'saved'}>{c.face.message}</span></div>{c.replay && <span className="checkin-replay">REPLAY · {c.replay.split('/').pop()}</span>}<span className="checkin-photo-note">Face pattern only — no photo is stored</span></div>
+          <aside className="checkin-face-aside">
             <p className="checkin-face-instruction">One person at a time. Face the camera in good light. Only a face descriptor is saved, never a photo.</p>
             <p className="checkin-camera-message">{c.cameraMessage}</p>
             <div className="checkin-scan-hints"><p>What the scan may tell you</p><div><span>Looking for your face…</span><span>Move a little closer</span><span>Only one person, please</span><span>More light, please</span>{c.face.status === 'saved' && <span className="is-saved">✓ Face saved</span>}</div></div>
             <div className="checkin-scan-actions">{c.face.status === 'saved' ? <><Button className="checkin-primary" type="button" onClick={() => c.goTo('questions')}>Continue</Button><Button className="checkin-secondary" type="button" onClick={() => void c.startFaceScan()}>Retake</Button></> : c.face.status !== 'scanning' && <Button className="checkin-primary" type="button" onClick={() => void c.startFaceScan()}>Try face scan again</Button>}
             <Button className="checkin-secondary checkin-skip" type="button" onClick={c.skipFace}>Skip — staff will help</Button></div>
-          </aside>}
+          </aside>
         </div>
         {c.step === 'questions' && <>
           <section className="checkin-question-panel"><label className="checkin-question-title" htmlFor="checkin-reason">1. What brings you in today?</label>
@@ -111,7 +110,6 @@ export function CheckInPage() {
           <Button className="checkin-secondary checkin-skip" type="button" disabled={c.busy} onClick={() => { c.setAnswers({ followUp: null }); void c.finish().catch(() => {}); }}>Skip question and check in</Button>
         </section>}
       </form>
-      {c.pulseNotice && <p className="checkin-pulse-notice" role="status">{c.pulseNotice}</p>}
       {c.step === 'done' && <div className="checkin-done-content" role="status"><div className="checkin-ticket-row"><strong className="checkin-queue">{c.queueNo}</strong><p>Please take a seat. Crisp will call you by name on the screen when it’s your turn.</p></div><p className="checkin-done-note"><KioskIcon name="info" />If you feel worse while you wait, tell the front desk right away.</p><div className="checkin-done-actions"><Button className="checkin-secondary" onClick={c.reset}>Check in someone else</Button><ResetCountdown /></div></div>}
       {(validation || c.error) && <p id="checkin-error" className="checkin-error" role="alert">{validation || c.error}</p>}
       {help && <p className="checkin-help" role="status">{help}. You can skip the face scan and continue with the form.</p>}
