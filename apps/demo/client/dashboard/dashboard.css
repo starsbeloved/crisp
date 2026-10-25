@@ -33,6 +33,19 @@
 .dashboard .system-popover { position: absolute; z-index: 10; top: calc(100% + 8px); right: 0; display: grid; width: min(420px, calc(100vw - 48px)); gap: 8px; padding: 14px; border: 1px solid var(--c-hairline); border-radius: var(--r-panel); background: var(--c-surface); box-shadow: var(--shadow-bubble); color: var(--c-text-2); font-size: 12px; }
 .dashboard .system-popover span { display: block; padding: 4px 0; }
 .dashboard .strip-actions button { min-height: 44px; }
+.dashboard .system-vision-toggle { display: flex; align-items: center; gap: 8px; padding: 6px 0; color: var(--c-text); }
+.dashboard .system-vision-toggle input { width: 18px; height: 18px; margin: 0; }
+
+.dashboard .incident-debrief { display: grid; gap: 14px; margin: var(--s-3) 0; padding: 18px 20px; border: 1px solid var(--c-red); border-radius: var(--r-panel); background: var(--c-red-tint); }
+.dashboard .incident-debrief-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.dashboard .incident-debrief-heading .eyebrow { margin-bottom: 4px; }
+.dashboard .incident-debrief h2 { font-size: 20px; }
+.dashboard .incident-debrief-lead { margin: 0; font-size: 15px; line-height: 1.5; }
+.dashboard .incident-debrief dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0; }
+.dashboard .incident-debrief dl > div { min-width: 0; padding: 12px; border-radius: var(--r-control); background: var(--c-surface); }
+.dashboard .incident-debrief dt { color: var(--c-text-2); font-size: 12px; font-weight: 700; }
+.dashboard .incident-debrief dd { margin: 5px 0 0; font-size: 14px; line-height: 1.4; overflow-wrap: anywhere; }
+.dashboard .incident-debrief-next { margin: 0; font-weight: 700; }
 
 .dashboard .alert-banner { display: flex; align-items: center; gap: var(--s-3); min-height: 92px; margin: var(--s-3) 0; padding: 16px 20px 16px 16px; border: 0; border-radius: var(--r-panel); background: var(--c-leaf-tint); color: var(--c-text); }
 .dashboard .alert-banner::before { content: '!'; display: inline-flex; flex: none; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: var(--c-leaf); color: var(--c-surface); font-size: 20px; font-weight: 800; }

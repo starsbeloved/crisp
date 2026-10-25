@@ -7,7 +7,7 @@ import { activeAlert, estimate, referenceMae, sourceLabel } from './presentation
 import { CallInPopover } from './CallInPopover.tsx';
 import type { QueueActions } from './QueueRow.tsx';
 
-export function PatientDrawer({ visit, state, onClose, synthetic, actions, actionBusy }: { visit: Visit; state: RoomState; onClose: () => void; synthetic: boolean; actions: QueueActions; actionBusy: boolean }) {
+export function PatientDrawer({ visit, state, onClose, synthetic, actions, actionBusy, geminiVision }: { visit: Visit; state: RoomState; onClose: () => void; synthetic: boolean; actions: QueueActions; actionBusy: boolean; geminiVision: boolean }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [reference, setReference] = useState(''), [message, setMessage] = useState(''), [busy, setBusy] = useState(false);
   const [visionHidden, setVisionHidden] = useState(false), [description, setDescription] = useState('');
@@ -56,8 +56,8 @@ export function PatientDrawer({ visit, state, onClose, synthetic, actions, actio
       {a.explanation && <p>{a.explanation.bubble} <span className="tag">{sourceLabel(a.explanation.source)}</span></p>}
     </article>)}
       {latest && <ReplayPlayer alert={latest} vitals={vitals} synthetic={synthetic} />}
-      {latest && !visionHidden && <><p className="privacy-note">Opt in to send one alert snapshot to Gemini for a posture description.</p><button className="secondary" disabled={busy || synthetic} onClick={vision}>Describe snapshot (Gemini)</button></>}
-      {description && <p>{description}</p>}
+      {latest && !visionHidden && <><p className="privacy-note">{geminiVision ? 'Gemini sees one alert frame only; it is not stored.' : 'Enable “Gemini sees alert frame” in System to describe one alert snapshot.'}</p><button className="secondary" disabled={busy || synthetic || !geminiVision} onClick={vision}>Describe snapshot (Gemini)</button></>}
+      {description && <p><strong>Gemini sees:</strong> {description}</p>}
     </section>
     <section><h3>Clinician handoff {note && <span className="tag">{sourceLabel(note.source)}</span>}</h3><p className="handoff">{note?.text ?? (visit.status === 'called' ? 'Preparing handoff…' : 'Call this person in to prepare a handoff.')}</p>
       {note && <button className="secondary" onClick={() => { void navigator.clipboard.writeText(note.text).then(() => setMessage('Handoff copied.')).catch(() => setMessage('Copy unavailable. Select and copy the note above.')); }}>Copy handoff</button>}

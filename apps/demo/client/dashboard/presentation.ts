@@ -22,7 +22,7 @@ export function postureLabel(vitals?: Vitals) {
   if (p.stillSec >= 30) return `Still ${Math.floor(p.stillSec)} s`;
   return 'Upright';
 }
-export function sourceLabel(source: string) { return source === 'gemini' ? 'Gemini' : 'Template'; }
+export function sourceLabel(source: string) { return source === 'gemini' ? '✦ Gemini' : 'Template'; }
 export function firstName(name: string) { return name.trim().split(/\s+/)[0] || 'Guest'; }
 export function referenceMae(state: RoomState, visitId: string) {
   const pairs = state.references.filter(s => s.visitId === visitId && s.cameraBpm != null && Number.isFinite(s.cameraBpm));

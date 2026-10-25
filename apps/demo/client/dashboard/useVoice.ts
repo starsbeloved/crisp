@@ -31,7 +31,7 @@ export function alertVoiceItems(alerts: Alert[], replayVisitIds: string[] = []):
     const cue = alert.facts.postureEvents.some(event => event.kind === 'fall') ? 'Fall-like movement detected. ' :
       alert.facts.postureEvents.some(event => event.kind === 'headDrop') ? 'Head below shoulders. ' : '';
     const speech = `${replayVisitIds.includes(alert.visitId) ? 'Replay. ' : ''}${cue}${alert.facts.name}, number ${alert.facts.queueNo}, may need a check.`;
-    const browser = { key: `alert:${alert.id}:${alert.level}:browser`, id: alert.id, url: null, priority: true, interrupt: alert.level === 'red', speech };
+    const browser = { key: `alert:${alert.id}:${alert.level}:browser`, id: alert.id, url: null, priority: true, interrupt: alert.level === 'red', speech: alert.explanation?.speech ?? speech };
     const provider = alert.level === 'red' && alert.audio === 'ready' ? [{ key: `alert:${alert.id}:${alert.level}:provider`, id: alert.id,
       url: api.alertAudioUrl(alert.id), speech: alert.explanation?.speech ?? speech, priority: true, fallback: false, expiresAt: alert.openedAt + 5000 }] : [];
     return [browser, ...provider];

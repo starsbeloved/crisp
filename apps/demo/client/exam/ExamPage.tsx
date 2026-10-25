@@ -4,6 +4,7 @@ import type { RecordResult } from '../../server/records.ts';
 import { useRoomState } from '../lib/useRoomState.ts';
 import { Crisp } from '../ui/Crisp.tsx';
 import { ExamChart } from './ExamChart.tsx';
+import { DoctorBrief } from './DoctorBrief.tsx';
 import { PatientDone } from '../staff/PatientDone.tsx';
 import { DoctorAgent } from './DoctorAgent.tsx';
 import { examVisits, normalizeRoom, RECORDS_LABEL, resolveExamName, type ExamCommand } from './model.ts';
@@ -99,6 +100,7 @@ export function ExamPage() {
     }} />}
     {!visit || !state ? <section className="exam-idle"><Crisp size={120} /><h1>Room {room} · waiting for patient</h1><p>Call a patient to this room from the Command Center. Their chart will preload here.</p></section> : <>
       <div className="exam-arrival"><Crisp size={80} state={arrived ? 'happy' : 'idle'} /><p><strong>{arrived ? `${visit.name} · ${recognition.replay ? 'REPLAY face match' : 'face recognized'}` : `${visit.name} is on the way`}</strong>{arrived ? 'Their chart is on screen.' : 'Chart preloaded from call-in. Arrival has not been confirmed.'}</p></div>
+      <DoctorBrief visit={visit} state={{ ...state, serverNow: now }} />
       <ExamChart visit={visit} state={{ ...state, serverNow: now }} record={record} recordStatus={recordStatus} connected={connected} />
       {recordStatus === 'error' && <button type="button" className="secondary" onClick={() => setRetry(value => value + 1)}>Retry record lookup</button>}
     </>}
