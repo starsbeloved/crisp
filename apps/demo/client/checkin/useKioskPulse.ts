@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { detectFaces, faceDistance, type DetectedFace } from '../lib/face.ts';
 import { meanCheekSample } from '../camera/sampling.ts';
+import { scheduleVideoFrame } from '../lib/camera.ts';
 import { createKioskPulse, type KioskPulseSample, type KioskPulseView } from './pulse.ts';
 
 export function useKioskPulse(videoRef: RefObject<HTMLVideoElement | null>, active: boolean, ready: boolean,
@@ -11,10 +12,16 @@ export function useKioskPulse(videoRef: RefObject<HTMLVideoElement | null>, acti
     if (!active) { setView(null); return; }
     const start = performance.now(), session = createKioskPulse(start, Date.now());
     let stopped = false, face: DetectedFace | null = null, faceAt = -Infinity;
-    let detecting = false, detectAt = -Infinity, lastVideoTime = -1, lastPaint = -Infinity;
+    let detecting = false, detectAt = -Infinity, frameReady = false, lastPaint = -Infinity;
     let previousFace: DetectedFace | null = null, motionUntil = -Infinity;
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d', { willReadFrequently: true });
+    let cancelFrame = () => {};
+    function nextFrame() {
+      if (stopped || !videoRef.current) return;
+      cancelFrame = scheduleVideoFrame(videoRef.current, () => { frameReady = true; nextFrame(); });
+    }
+    nextFrame();
     function clear() { face = null; previousFace = null; session.missing(); }
     const timer = setInterval(() => {
       if (stopped) return;
@@ -34,8 +41,8 @@ export function useKioskPulse(videoRef: RefObject<HTMLVideoElement | null>, acti
             previousFace = next; face = next; faceAt = performance.now();
           }).catch(() => { if (!stopped) clear(); }).finally(() => { detecting = false; });
         }
-        if (face && now - faceAt <= 400 && video.currentTime !== lastVideoTime) {
-          lastVideoTime = video.currentTime;
+        if (face && now - faceAt <= 400 && frameReady) {
+          frameReady = false;
           canvas.width = 320; canvas.height = Math.max(1, Math.round(320 * video.videoHeight / video.videoWidth));
           try {
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -53,11 +60,11 @@ export function useKioskPulse(videoRef: RefObject<HTMLVideoElement | null>, acti
       if (now < motionUntil) next.reading.hint = 'hold still';
       if (now - lastPaint >= 100) { setView(next); lastPaint = now; }
       if (next.expired || (next.elapsed >= 17 && next.reading.hrBpm !== null && ['good', 'fair'].includes(next.reading.hrQuality))) {
-        stopped = true; clearInterval(timer);
+        stopped = true; clearInterval(timer); cancelFrame();
         onComplete(session.samples(), next.reading.hrBpm !== null ? 'complete' : 'timeout');
       }
     }, 16);
-    return () => { stopped = true; clearInterval(timer); session.missing(); };
+    return () => { stopped = true; clearInterval(timer); cancelFrame(); session.missing(); };
   }, [active, videoRef, descriptor, onComplete]);
   return view;
 }

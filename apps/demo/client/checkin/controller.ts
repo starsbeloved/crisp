@@ -9,7 +9,7 @@ import { assessFace, averageDescriptors } from './enrollment.ts';
 import { detailsError } from './details.ts';
 import { loadFollowUp } from './followup.ts';
 import { useKioskPulse } from './useKioskPulse.ts';
-import { pulseObservations, type KioskPulseSample, type KioskPulseView } from './pulse.ts';
+import { sharePulse, type KioskPulseSample, type KioskPulseView } from './pulse.ts';
 
 type ScanResult = { ok: boolean; reason: string | null };
 type FormState = Pick<CheckInController, 'step' | 'name' | 'answers' | 'face' | 'queueNo' | 'via' | 'followUpPrompt'> & {
@@ -89,8 +89,10 @@ export function useCheckIn(): CheckInState {
     state.step === 'pulse' || (state.step === 'face' && (state.face.status === 'scanning' || state.face.status === 'saved')), replay);
   const completePulse = useCallback((samples: KioskPulseSample[], outcome: 'complete' | 'timeout' | 'skipped') => {
     pulseSamples.current = outcome === 'skipped' ? [] : samples;
+    const last = samples.at(-1);
     update({ step: 'questions', pulseNotice: outcome === 'skipped' ? 'Pulse check skipped — that’s okay.' :
-      outcome === 'timeout' ? 'Couldn’t get a clear reading — that’s okay.' : 'Pulse check saved · camera estimate' });
+      outcome === 'timeout' ? 'Couldn’t get a clear reading — that’s okay.' : last ?
+        `Pulse check: ${Math.round(last.bpm)} bpm · ${last.quality} · camera estimate · measured at ${new Date(last.at).toLocaleTimeString()}` : 'No pulse reading saved.' });
     pendingPulse.current?.resolve(true); pendingPulse.current = null;
   }, [update]);
   const pulse = useKioskPulse(videoRef, state.step === 'pulse', ready, state.descriptor, completePulse);
@@ -168,9 +170,8 @@ export function useCheckIn(): CheckInState {
       answers: { ...value.answers, reason, via: value.via } }).then(async visit => {
       if (submission.current === promise && pulseSamples.current.length) {
         // Separate normal requests preserve chronological sample order through the existing route.
-        const observations = pulseObservations(pulseSamples.current, visit.id, Boolean(replay));
         try {
-          for (const observation of observations) await api.observations([observation]);
+          await sharePulse(pulseSamples.current, visit.id, Boolean(replay));
         } catch {
           if (submission.current === promise) update({ pulseNotice: 'You’re checked in. The pulse reading could not be shared with staff.' });
         }

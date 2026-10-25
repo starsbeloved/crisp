@@ -40,3 +40,13 @@ export function pulseObservations(samples: KioskPulseSample[], visitId: string, 
     matchScore: null, box: sample.box, hrBpm: sample.bpm, hrQuality: sample.quality,
     rrBpm: null, rrQuality: 'none', posture: null, hint: null, pulseTrace: sample.trace, source: replay ? 'replay' : 'live' }));
 }
+
+/** Bound the whole upload so an optional pulse cannot stall a saved check-in. */
+export async function sharePulse(samples: KioskPulseSample[], visitId: string, replay: boolean) {
+  const signal = AbortSignal.timeout(4000);
+  for (const observation of pulseObservations(samples, visitId, replay)) {
+    const response = await fetch('/api/observations', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ observations: [observation] }), signal });
+    if (!response.ok) throw new Error('Kiosk pulse upload unavailable');
+  }
+}

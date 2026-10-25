@@ -307,6 +307,7 @@ main:has(> .checkin){max-width:none;margin:0;padding:0}
 @media(max-width:760px) {
   .checkin[data-step=pulse] .checkin-face-layout { display:flex; flex-direction:column; gap:20px; }
   .checkin[data-step=pulse] .checkin-preview { width:100%; max-height:240px; }
+  .checkin[data-step=pulse] .checkin-companion { display:none; }
   .checkin-pulse-summary { gap:12px; }
   .checkin-pulse-clock { flex-basis:72px; width:72px; height:72px; }
 }

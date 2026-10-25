@@ -21,6 +21,8 @@ beforeEach(async () => {
   vi.mocked(detectFaces).mockReset().mockResolvedValue([face]);
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({ drawImage() {}, getImageData() { return {}; } } as unknown as ReturnType<HTMLCanvasElement['getContext']>);
   Object.defineProperties(video, { readyState: { value: 4, configurable: true }, videoWidth: { value: 640, configurable: true }, videoHeight: { value: 480, configurable: true }, currentTime: { get: () => performance.now() / 1000, configurable: true } });
+  video.requestVideoFrameCallback = callback => window.setTimeout(() => callback(performance.now(), {} as VideoFrameCallbackMetadata), 40);
+  video.cancelVideoFrameCallback = id => window.clearTimeout(id);
   host = document.createElement('div'); document.body.append(host); root = createRoot(host);
   await act(async () => root.render(<Harness />));
 });
