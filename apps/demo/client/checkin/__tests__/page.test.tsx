@@ -6,6 +6,7 @@ import { CheckInPage } from '../CheckInPage.tsx';
 vi.mock('../../lib/face.ts', () => ({ loadFaceModels: vi.fn().mockResolvedValue(undefined), detectFaces: vi.fn().mockResolvedValue([]) }));
 it('starts with an empty preferred name and keeps help and Back available', async () => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
   vi.stubGlobal('EventSource', class extends EventTarget { close() {} });
   const container = document.createElement('div'); document.body.append(container);
   const root = createRoot(container);
@@ -23,6 +24,7 @@ it('starts with an empty preferred name and keeps help and Back available', asyn
     expect(container.textContent).toContain('only to staff');
     expect(container.querySelectorAll('h1')).toHaveLength(1);
     await act(async () => button('I need help')!.click());
-    expect(container.textContent).toContain('ask a staff member');
+    expect(container.textContent).toContain('A staff member has been notified');
+    expect(fetch).toHaveBeenCalledWith('/api/checkin/help', expect.objectContaining({ method: 'POST' }));
   } finally { await act(async () => root.unmount()); container.remove(); vi.unstubAllGlobals(); }
 });

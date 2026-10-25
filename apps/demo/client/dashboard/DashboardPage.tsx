@@ -59,6 +59,14 @@ export function DashboardPage() {
     });
   }
   const actions = {
+    remove: (id: string) => {
+      if (synthetic) { setFixture(current => current ? { ...current, visits: current.visits.map(v => v.id === id ? { ...v, status: 'called', room: null } : v) } : current); return; }
+      void perform(async () => {
+        const response = await fetch(`/api/visits/${encodeURIComponent(id)}/remove`, { method: 'POST', signal: AbortSignal.timeout(4000) });
+        const result: CommandResult = await response.json(); confirm(result, false);
+        window.dispatchEvent(new Event('crisp-staff-change'));
+      });
+    },
     acknowledge: (id: string) => { if (synthetic) fixtureAction('acknowledged', id); else void perform(() => api.acknowledge(id)); },
     checked: (id: string) => { if (synthetic) fixtureAction('checked', id); else void perform(() => api.checked(id)); },
     call: (id: string, room: string) => {
@@ -71,10 +79,19 @@ export function DashboardPage() {
     {fixtureAllowed && <div className="fixture-controls"><button className="secondary" onClick={() => { setFixture(synthetic ? null : demoFixture()); setPreviewHidden([]); setSelected(null); }}>{synthetic ? 'Return to live room' : 'Load demo fixture'}</button>{synthetic && <><strong className="synthetic-label">SYNTHETIC · illustrative data · actions stay in this preview</strong><button className="secondary" onClick={() => setFixture(current => current ? { ...current, alerts: demoFixture(now).alerts, vitals: demoFixture(now).vitals, serverNow: now } : current)}>Trigger synthetic request</button></>}</div>}
     <SystemStrip state={state} connected={connected} synthetic={synthetic} now={now} voice={voice} onVoice={() => setVoice(v => !v)} busy={busy} onReset={() => {
       if (!window.confirm(synthetic ? 'Reset this synthetic preview?' : 'Reset all demo visits, alerts, and camera state?')) return;
-      if (synthetic) { setFixture(demoFixture()); setSelected(null); } else void perform(async () => { await api.reset(); setSelected(null); });
+      if (synthetic) { setFixture(demoFixture()); setSelected(null); confirm({ ok: true, message: 'Reset done · synthetic preview' }, false); }
+      else void perform(async () => {
+        const response = await fetch('/api/demo/reset', { method: 'POST', signal: AbortSignal.timeout(1000) });
+        if (!response.ok) throw new Error('Reset not confirmed. Please retry.');
+        await response.json(); setSelected(null); setSpokenSuggestionIds([]);
+        confirm({ ok: true, message: 'Reset done' }, false);
+        window.dispatchEvent(new Event('crisp-staff-change'));
+      });
     }} />
     {(error || audio.error) && <p className="error-message" role="alert">{error || audio.error}</p>}
     <StaffToast result={notice} />
+    <AlertBanner alert={openAlerts[0]} visit={state?.visits.find(v => v.id === openAlerts[0]?.visitId)} onAcknowledge={actions.acknowledge} busy={busy} />
+    <div className="command-room-camera"><VideoPanel cameras={state?.cameras ?? {}} now={now} /></div>
     <Suggestions snapshot={suggestionState} ready={synthetic || suggestions.ready} busy={busy} synthetic={synthetic}
       onAccept={id => {
         if (synthetic) { setPreviewHidden(ids => [...ids, id]); actions.call('synthetic-ama', '1'); confirm({ ok: true, message: 'SYNTHETIC · Calling Ama to Room 1.' }); return; }
@@ -85,8 +102,7 @@ export function DashboardPage() {
         void perform(async () => { const response = await fetch('/api/suggestions/dismiss', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }), signal: AbortSignal.timeout(6000) }); confirm(await response.json()); window.dispatchEvent(new Event('crisp-staff-change')); });
       }} />
     <button type="button" className="secondary" disabled={!connected || synthetic || busy} onClick={() => { void perform(async () => { const result = await staffRequest('shift_summary', {}); confirm(result, !result.ok); window.dispatchEvent(new Event('crisp-staff-change')); }); }}>Summarize this shift</button>
-    <AlertBanner alert={openAlerts[0]} visit={state?.visits.find(v => v.id === openAlerts[0]?.visitId)} onAcknowledge={actions.acknowledge} busy={busy} />
-    <div className="dashboard-columns"><div className="dashboard-left"><VideoPanel cameras={state?.cameras ?? {}} now={now} /><AskCrisp synthetic={synthetic} /></div>
+    <div className="dashboard-columns"><div className="dashboard-left"><AskCrisp synthetic={synthetic} snapshot={{ state: live, connected }} /></div>
       {state ? <Queue state={state} now={synthetic ? state.serverNow : now} onSelect={setSelected} actions={actions} busy={busy} talkingId={audio.talkingId} synthetic={synthetic} /> : <section className="panel"><h2>Waiting queue</h2><p>Connecting to the room…</p></section>}
     </div>
     {selectedVisit && state && <PatientDrawer key={selectedVisit.id} visit={selectedVisit} state={state} onClose={() => setSelected(null)} synthetic={synthetic} actions={actions} actionBusy={busy} />}

@@ -244,3 +244,7 @@
 .dashboard .drawer-actions .call-in > button { width: 100%; }
 .dashboard .drawer-actions .room-picker { right: 0; left: auto; }
 @media (max-height: 600px) { .dashboard .drawer-header { position: static; } }
+
+.command-room-camera { width: 100%; }
+.command-room-camera .stream { width: 100%; max-height: 58vh; object-fit: contain; background: #171a18; }
+.command-room-camera .empty-camera { min-height: 220px; }

@@ -61,17 +61,17 @@ export function StationShell({ path, children, navigate = navigatePage }: { path
   }
   if (picker) return <main className="station-picker">
     <div className="station-heading"><Crisp state="happy" size={120} /><div><p className="station-eyebrow">Crisp · station setup</p><h1>What is this screen?</h1><p>Choose a role for this laptop. Switch whenever you need.</p></div></div>
-    <label className="station-name">Laptop name<input value={name} maxLength={60} onChange={event => setName(event.target.value)} autoComplete="off" /></label>
+    <label className="station-name">Screen name (shown in Command Center)<input value={name} maxLength={60} onChange={event => setName(event.target.value)} autoComplete="off" /></label>
     <div className="station-choices">{stationChoices.map(({ selection, label, description }, index) => <button className="station-choice" key={label} onClick={() => choose(selection)}><span className="station-number" aria-hidden="true">0{index + 1}</span><strong>{label}</strong><span>{description}</span><span className="station-arrow" aria-hidden="true">↗</span></button>)}</div>
-    <p className="station-hint">{remembered ? 'This browser remembers your role.' : 'Browser storage is unavailable. Choose a role again when reopening.'} Hold the bottom-left corner for 2 seconds or press <kbd>Shift</kbd> + <kbd>S</kbd> to switch.</p>
+    <p className="station-hint">{remembered ? 'This tab remembers your role. Other tabs can use different roles.' : 'Browser storage is unavailable. Choose a role again when reopening.'} Hold the bottom-left corner for 2 seconds or press <kbd>Shift</kbd> + <kbd>S</kbd> to switch.</p>
   </main>;
 
   return <>{children}{path === '/dashboard' && <SystemStations />}
     <button className="station-corner" aria-label="Switch station role" title={`Hold for 2 seconds or press Shift+S to switch role${role ? ` · Station ${registration === 'online' ? 'registered' : registration === 'offline' ? 'registration unavailable' : 'connecting'}` : ''}`}
       onPointerDown={event => { if (event.button !== 0) return; clearTimeout(hold.current); hold.current = setTimeout(switchRole, 2000); }}
       onPointerUp={() => clearTimeout(hold.current)} onPointerLeave={() => clearTimeout(hold.current)} onPointerCancel={() => clearTimeout(hold.current)} onBlur={() => clearTimeout(hold.current)}
-      onClick={event => { if (event.detail === 0) switchRole(); }}>
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>
+      onClick={switchRole}>
+      <span>Stations</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>
     </button>
   </>;
 }

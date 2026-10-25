@@ -11,3 +11,7 @@
 .staff-suggestion-actions { display: flex; gap: 10px; }
 .staff-suggestion small { color: #666; }
 .staff-dispositions { margin: 12px 0; }
+
+.staff-mic-light { display: inline-block; width: 9px; height: 9px; margin-right: 8px; border-radius: 50%; background: #8b8c87; }
+.staff-mic-light[data-live="true"] { background: var(--c-leaf); box-shadow: 0 0 0 4px var(--c-leaf-tint); }
+.staff-last-heard { overflow-wrap: anywhere; font-size: 13px; color: var(--c-text-2); }

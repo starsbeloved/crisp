@@ -175,6 +175,14 @@ export function createAppServer(options: { dataDir?: string | null; apiPort?: nu
     if (method === 'GET' && path === '/api/waittime') { json(response, 200, estimateWaitTimes(store.state.visits)); return; }
     if (await (await import('./records.ts')).handleExamRequest(request, response, url, store)) return;
     if (await (await import('./commands.ts')).handleStaffRequest(request, response, url, store, orchestrator)) return;
+    // P15b appended route; the original reset route remains frozen.
+    if (method === 'POST' && path === '/api/demo/reset') {
+      const { resetStaffServices } = await import('./commands.ts');
+      const status = store.state.providers;
+      resetStaffServices(store); stations.reset(); mjpeg.reset(); orchestrator.reset();
+      store.reset(); store.state.providers = status; store.changed();
+      json(response, 200, { ok: true, message: 'Reset done' }); return;
+    }
     json(response, 404, { error: 'Route not found' });
   }
   server.on('close', () => store.flush());

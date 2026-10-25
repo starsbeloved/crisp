@@ -9,7 +9,7 @@ vi.mock('../dashboard/DashboardPage.tsx', () => ({ DashboardPage: () => <div cla
 vi.mock('../lobby/LobbyPage.tsx', () => ({ LobbyPage: () => <p>Lobby page</p> }));
 let container: HTMLDivElement, root: Root;
 beforeEach(() => {
-  Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }); localStorage.clear();
+  Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }); localStorage.clear(); sessionStorage.clear();
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ stations: [] }) }));
   container = document.createElement('div'); document.body.append(container); root = createRoot(container);
 });
@@ -33,4 +33,15 @@ it.each(['/room', '/exam?room=2'])('recognizes %s even before its parallel packe
   history.replaceState(null, '', url); await act(async () => root.render(<App />));
   expect(container.textContent).not.toContain('No one waits unseen.');
   expect(container.querySelector('[aria-label="Switch station role"]')).not.toBeNull();
+});
+
+it('renders a query role and keeps direct navigation links usable', async () => {
+  history.replaceState(null, '', '/?role=command');
+  await act(async () => root.render(<App />));
+  expect(container.textContent).toContain('Dashboard page');
+  const link = container.querySelector<HTMLAnchorElement>('nav a[href="/check-in"]');
+  expect(link).not.toBeNull();
+  history.replaceState(null, '', '/check-in');
+  await act(async () => root.render(<App />));
+  expect(container.textContent).toContain('Kiosk page');
 });

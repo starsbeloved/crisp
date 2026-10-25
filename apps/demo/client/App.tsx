@@ -3,6 +3,7 @@ import { CheckInPage } from './checkin/CheckInPage.tsx';
 import { CameraPage } from './camera/CameraPage.tsx';
 import { DashboardPage } from './dashboard/DashboardPage.tsx';
 import { LobbyPage } from './lobby/LobbyPage.tsx';
+import { selectionFromLocation, stationUrl } from './station/model.ts';
 import { StationShell } from './station/StationShell.tsx';
 
 // Parallel packets supply these pages. Glob keeps this packet runnable before merge.
@@ -22,8 +23,9 @@ function AppleMark() {
 }
 
 export function App() {
-  const path = location.pathname;
-  const lobby = path === '/lobby';
+  const explicitRole = new URLSearchParams(location.search).has('role') ? selectionFromLocation(location.pathname, location.search) : null;
+  const path = explicitRole ? stationUrl(explicitRole).split('?')[0] : location.pathname;
+  const lobby = path === '/lobby' || path === '/room';
   return <StationShell path={path}>
     {!lobby && <header><a href="/" className="wordmark"><AppleMark /><span>Crisp</span></a><nav aria-label="Demo pages">{links.map(([url, title]) => <a href={url} key={url} aria-current={path === url ? 'page' : undefined}>{title}</a>)}</nav></header>}
     <main className={lobby ? 'app-main-lobby' : undefined}>

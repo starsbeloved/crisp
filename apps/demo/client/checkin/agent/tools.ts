@@ -1,6 +1,6 @@
 import type { CheckInAnswers, Onset, Trend } from '../../../shared/types.ts';
 import type { CheckInController } from '../controller-types.ts';
-import { detailsError } from '../details.ts';
+import { detailsError, normalizeSpokenDate } from '../details.ts';
 import { loadFollowUp, type FollowUpPrompt } from '../followup.ts';
 
 function onsetChip(value: string): Onset | null {
@@ -27,28 +27,32 @@ export function createCheckInTools(getController: () => CheckInController, fetch
   let requested: { key: string; prompt: FollowUpPrompt } | null = null;
   const complaintKey = (c: CheckInController) => JSON.stringify([c.answers.reason, c.answers.reasonChips, c.answers.onset, c.answers.trend]);
   function controller() { const c = getController(); c.setVia('voice'); return c; }
-  return {
+  const tools = {
     async set_name(p: { name: string }) {
       const name = typeof p?.name === 'string' ? p.name.trim().slice(0, 120) : '';
       if (!name) return 'Please ask for a name.';
-      const c = controller(); c.setName(name); c.goTo('name'); return `name saved: ${name}. Ask: What's your date of birth? Then: And a phone number we can reach you on? Save with set_patient_details (YYYY-MM-DD; null if declined).`;
+      const c = controller(); c.setName(name); c.goTo('name'); return `name saved: ${name}. Ask: What's your date of birth? Then: And a phone number we can reach you on? Save with set_patient_details using the date as spoken; null if declined.`;
     },
     async set_patient_details(p: { dateOfBirth?: string | null; phone?: string | null }) {
       if (!p || (p.dateOfBirth !== undefined && p.dateOfBirth !== null && typeof p.dateOfBirth !== 'string') || (p.phone !== undefined && p.phone !== null && typeof p.phone !== 'string')) return 'Please confirm the date of birth and phone number.';
       const c = controller();
       const patch: Partial<CheckInAnswers> = {};
-      if (p.dateOfBirth !== undefined) patch.dateOfBirth = p.dateOfBirth?.trim() || null;
+      if (p.dateOfBirth !== undefined) {
+        const spoken = p.dateOfBirth?.trim();
+        patch.dateOfBirth = spoken ? normalizeSpokenDate(spoken) : null;
+        if (spoken && !patch.dateOfBirth) return 'Please say your date of birth with the month name, for example June fifteenth, 1994, or skip it. Next: confirm the date of birth or save null if declined.';
+      }
       if (p.phone !== undefined) patch.phone = p.phone?.trim() || null;
       const error = detailsError({ ...c.answers, ...patch });
-      if (error) return error;
+      if (error) return error.includes('phone') ? 'Please repeat your phone number one digit at a time, or skip it. Next: confirm the phone number or save null if declined.' : 'Please repeat your date of birth with the month name, or skip it. Next: confirm the date of birth or save null if declined.';
       c.setAnswers(patch);
-      return 'patient details saved. Next, ask permission for the face scan.';
+      return 'patient details saved. Next: ask permission for the face scan and call start_face_scan, or use Continue to skip.';
     },
     async start_face_scan() {
       const c = controller(); c.goTo('face');
       try {
         const result = await c.startFaceScan();
-        if (result.ok) { scanFailures = 0; return 'saved'; }
+        if (result.ok) { scanFailures = 0; c.goTo('questions'); return 'saved'; }
         scanFailures += 1;
         if (scanFailures >= 2) c.skipFace();
         return result.reason || 'Face scan unavailable. Please use the form to skip.';
@@ -63,8 +67,9 @@ export function createCheckInTools(getController: () => CheckInController, fetch
       return 'answers saved. Once all three answers are confirmed, call get_follow_up_question and ask its returned question.';
     },
     async get_follow_up_question() {
-      const c = controller(); c.goTo('followup');
+      const c = controller();
       if ((!c.answers.reason.trim() && !c.answers.reasonChips.length) || !c.answers.onset || !c.answers.trend) return 'Please ask all three questions and call save_answers before get_follow_up_question.';
+      c.goTo('followup');
       const key = complaintKey(c);
       if (requested?.key === key) { c.setFollowUpPrompt(requested.prompt); return requested.prompt.question; }
       const prompt = await loadFollowUp({ ...c.answers, via: 'voice' }, fetcher);
@@ -88,10 +93,23 @@ export function createCheckInTools(getController: () => CheckInController, fetch
       if (!c.name.trim()) return 'Please ask for a name before finishing.';
       if (!c.answers.reason.trim()) return 'Please ask what brings the patient in before finishing.';
       if (!requested || requested.key !== complaintKey(c)) return 'Call get_follow_up_question, ask its returned question, then save_follow_up (or skip if the patient declines) before finishing.';
-      finishing = c.finish().then(result => { completed = `queue number ${result.queueNo}`; return completed; })
+      finishing = c.finish().then(result => { completed = `Queue number ${result.queueNo}. Please take a seat — Crisp will call you.`; return completed; })
         .catch(() => 'Check-in could not be saved. Please try again or use the form.')
         .finally(() => { finishing = null; });
       return finishing;
     },
   };
+  const next = {
+    set_name: 'ask date of birth and phone, then call set_patient_details; use null for declined details.',
+    set_patient_details: 'confirm the date of birth and phone, or save null for declined details.',
+    start_face_scan: 'ask the three questions: reason, when it started, and whether it is worse, same or better; call save_answers. If scanning failed, use Continue to skip.',
+    save_answers: 'confirm all three answers, then call get_follow_up_question.',
+    get_follow_up_question: 'ask the returned question, then call save_follow_up; if declined, call finish_check_in.',
+    save_follow_up: 'call finish_check_in.',
+    finish_check_in: 'if a queue number was returned, take a seat; otherwise follow the instruction above and retry, or use Continue.',
+  };
+  return Object.fromEntries(Object.entries(tools).map(([name, tool]) => [name, async (...args: unknown[]) => {
+    const message = await (tool as (...args: unknown[]) => Promise<string>)(...args);
+    return message.includes('Next:') ? message : `${message} Next: ${next[name as keyof typeof next]}`;
+  }])) as typeof tools;
 }

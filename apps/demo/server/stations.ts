@@ -21,6 +21,8 @@ export class StationRegistry {
     return { ...station, online: true };
   }
 
+  reset() { this.stations.clear(); }
+
   list(now = Date.now()) {
     return [...this.stations.values()].map(station => ({ ...station, online: now - station.lastSeenAt < 30_000 }));
   }

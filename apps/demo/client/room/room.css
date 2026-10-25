@@ -60,3 +60,5 @@
   .room-hallway { overflow: visible; }
   .room-call-mascot { margin: 0; }
 }
+
+.room-toolbar-actions .room-stations-link { font-size: 12px; color: var(--c-text-2); }

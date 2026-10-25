@@ -9,7 +9,7 @@ import { saveProfile } from './model.ts';
 let container: HTMLDivElement, root: Root;
 beforeEach(() => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
-  localStorage.clear(); history.replaceState(null, '', '/station');
+  localStorage.clear(); sessionStorage.clear(); history.replaceState(null, '', '/station');
   container = document.createElement('div'); document.body.append(container); root = createRoot(container);
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ stations: [] }) }));
 });
@@ -19,19 +19,21 @@ afterEach(async () => {
 });
 function button(label: string) { return [...container.querySelectorAll('button')].find(button => button.textContent?.includes(label))!; }
 
-it('shows all seven choices and saves the laptop name and chosen exam room', async () => {
+it('shows five explained roles and saves the screen name and Exam room 1', async () => {
   const navigate = vi.fn();
   await act(async () => root.render(<StationShell path="/station" navigate={navigate}><p>Old page</p></StationShell>));
   expect(container.textContent).not.toContain('Old page');
-  for (const label of ['Kiosk', 'Room view', 'Command Center', 'Exam room 1', 'Exam room 2', 'Exam room 3', 'Lobby']) expect(button(label)).toBeDefined();
+  for (const label of ['Kiosk', 'Room view', 'Command Center', 'Exam room 1', 'Lobby']) expect(button(label)).toBeDefined();
+  expect(button('Exam room 2')).toBeUndefined();
+  expect(container.textContent).toContain('Screen name (shown in Command Center)');
   const input = container.querySelector('input')!;
   await act(async () => {
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, 'Laptop B');
     input.dispatchEvent(new Event('input', { bubbles: true }));
   });
-  await act(async () => button('Exam room 2').click());
-  expect(navigate).toHaveBeenCalledWith('/exam?room=2');
-  expect(JSON.parse(localStorage.getItem('crisp-station')!)).toMatchObject({ name: 'Laptop B', selection: { role: 'exam', room: '2' } });
+  await act(async () => button('Exam room 1').click());
+  expect(navigate).toHaveBeenCalledWith('/exam?room=1');
+  expect(JSON.parse(sessionStorage.getItem('crisp-station')!)).toMatchObject({ name: 'Laptop B', selection: { role: 'exam', room: '1' } });
 });
 
 it('reopens a remembered role and lets the explicit picker override it', async () => {
@@ -104,4 +106,12 @@ it('shows offline stations and reports unavailable status after a fetch failure'
   vi.mocked(fetch).mockRejectedValueOnce(new Error('Network down'));
   await act(async () => vi.advanceTimersByTime(10_000));
   expect(container.textContent).toContain('Station status unavailable'); expect(container.textContent).not.toContain('online');
+});
+
+it('opens Stations with an ordinary click on a full-screen view', async () => {
+  const navigate = vi.fn();
+  await act(async () => root.render(<StationShell path="/room" navigate={navigate}>Room</StationShell>));
+  expect(button('Stations')).toBeDefined();
+  await act(async () => button('Stations').click());
+  expect(navigate).toHaveBeenCalledWith('/station?choose=1');
 });

@@ -3,7 +3,7 @@ import type { CameraStatus } from '../../shared/types.ts';
 import { api } from '../lib/api.ts';
 
 export function VideoPanel({ cameras, now }: { cameras: Record<string, CameraStatus>; now: number }) {
-  const [direct, setDirect] = useState(false);
+  const [direct, setDirect] = useState(true);
   const [origin, setOrigin] = useState('');
   const [error, setError] = useState('');
   useEffect(() => { let alive = true; void api.config().then(c => {

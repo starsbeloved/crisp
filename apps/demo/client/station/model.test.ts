@@ -2,7 +2,7 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { loadProfile, saveProfile, selectionFromLocation, stationUrl } from './model.ts';
 
-afterEach(() => { localStorage.clear(); vi.restoreAllMocks(); });
+afterEach(() => { vi.restoreAllMocks(); localStorage.clear(); sessionStorage.clear(); });
 
 it.each([
   ['/check-in', '', { role: 'kiosk' }, '/check-in'],
@@ -43,4 +43,28 @@ it('continues with a usable identity when storage reads and writes are blocked',
   const profile = loadProfile();
   expect(profile.id).toBeTruthy();
   expect(saveProfile(profile)).toBe(false);
+});
+
+it('stores roles per tab without inheriting another tab identity or role', () => {
+  const first = loadProfile();
+  saveProfile({ ...first, selection: { role: 'command' } });
+  expect(localStorage.getItem('crisp-station')).toBeNull();
+  expect(loadProfile().selection).toEqual({ role: 'command' });
+  sessionStorage.clear();
+  const second = loadProfile();
+  expect(second.id).not.toBe(first.id);
+  expect(second.selection).toBeNull();
+});
+it('falls back to localStorage when sessionStorage is unavailable', () => {
+  vi.spyOn(window, 'sessionStorage', 'get').mockImplementation(() => { throw new DOMException('Blocked'); });
+  const profile = { id: 'fallback', name: 'Fallback screen', selection: { role: 'lobby' as const } };
+  expect(saveProfile(profile)).toBe(true);
+  expect(loadProfile()).toEqual(profile);
+});
+it.each([
+  ['?role=command', { role: 'command' }], ['?role=room', { role: 'room' }],
+  ['?role=kiosk', { role: 'kiosk' }], ['?role=lobby', { role: 'lobby' }],
+  ['?role=exam&room=1', { role: 'exam', room: '1' }],
+] as const)('accepts explicit query role %s', (search, expected) => {
+  expect(selectionFromLocation('/', search)).toEqual(expected);
 });
