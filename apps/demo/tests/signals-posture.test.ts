@@ -134,6 +134,10 @@ describe('P3 independent pose breathing', () => {
     expect(breathe(createSignalTracker(), 35_000, 15, true)).toMatchObject({ rrBpm: null, rrQuality: 'low' });
   });
 
+  it('rejects motion above the breathing frequency band', () => {
+    expect(breathe(createSignalTracker(), 35_000, 72)).toMatchObject({ rrBpm: null, rrQuality: 'low' });
+  });
+
   it('drops stale breathing readings and resets collection on missing pose', () => {
     const tracker = createSignalTracker();
     expect(breathe(tracker, 35_000, 15).rrBpm).not.toBeNull();

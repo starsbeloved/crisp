@@ -63,6 +63,14 @@ export function spectrum(values: number[], rate: number, low: number, high: numb
   const first = Math.ceil(low / bin), last = Math.floor(high / bin);
   let peak = first;
   for (let i = first + 1; i <= last; i++) if (power[i] > power[peak]) peak = i;
+  let dominant = Math.max(1, Math.ceil(0.05 / bin));
+  for (let i = dominant + 1; i <= Math.floor(re.length / 2); i++) {
+    if (power[i] > power[dominant]) dominant = i;
+  }
+  // An out-of-band oscillation's tiny leaked lobe is not evidence of a vital sign.
+  if ((dominant * bin < low - bin || dominant * bin > high + bin) && power[dominant] > 1.5 * power[peak]) {
+    return { hz: null, ratio: 0 };
+  }
   // Include the Hann main lobe. Zero padding adds resolution, not independent evidence.
   const radius = Math.max(1, Math.ceil(1.5 * rate / n / bin));
   let peakPower = 0, rest = 0;

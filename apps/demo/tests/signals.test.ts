@@ -106,4 +106,24 @@ describe('P3 camera heart rate', () => {
     tracker.pushFace({ ...face(34), faceWidthPx: 190 });
     expect(tracker.read(34).hint).toBe('hold still');
   });
+
+  it.each([12, 240])('rejects a dominant %i bpm color oscillation outside the heart-rate band', bpm => {
+    const result = collect(createSignalTracker(), 0, 15_000, bpm);
+    expect(result).toMatchObject({ hrBpm: null, hrQuality: 'low', pulseTrace: null });
+  });
+
+  it('does not reconstruct a heart rate from samples below Nyquist cadence', () => {
+    const tracker = createSignalTracker();
+    for (let t = 0; t <= 15_000; t += 250) tracker.pushFace(face(t, 110));
+    expect(tracker.read(15_000)).toMatchObject({ hrBpm: null, hrQuality: 'low', pulseTrace: null });
+  });
+
+  it('does not let an irregular sub-ten-second spectral update bypass median smoothing', () => {
+    const tracker = createSignalTracker();
+    collect(tracker, 0, 9800, 72);
+    collect(tracker, 9834, 10_200, 72);
+    // The first publishable reading must have a full ten seconds, not be a cached partial window.
+    expect(tracker.read(10_200).hrBpm).not.toBeNull();
+    expect(tracker.read(10_200).hrSecondsCollected).toBe(10);
+  });
 });
