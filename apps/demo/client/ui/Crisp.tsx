@@ -4,7 +4,7 @@ export type CrispState = 'idle' | 'listening' | 'thinking' | 'talking' | 'happy'
 export const CRISP_NAME = 'Crisp';
 
 type Point = readonly [number, number];
-type Arm = { shoulder: Point; bend: Point; wrist: Point; hand?: 'open' | 'rest' | 'chin'; front?: boolean };
+type Arm = { shoulder: Point; bend: Point; wrist: Point; hand?: 'open' | 'rest'; front?: boolean };
 type Pose = { left: Arm; right: Arm; pupil: string; lean?: string; open?: boolean };
 const downLeft: Arm = { shoulder: [61, 143], bend: [27, 165], wrist: [40, 192] };
 const downRight: Arm = { shoulder: [219, 143], bend: [253, 165], wrist: [240, 192] };
@@ -13,7 +13,7 @@ const poses: Record<CrispState, Pose> = {
   idle: { left: downLeft, right: downRight, pupil: 'translate(0 0)' },
   happy: { left: { shoulder: [62, 142], bend: [15, 150], wrist: [28, 104], hand: 'open' }, right: hip, pupil: 'translate(0 -2)', open: true },
   listening: { left: downLeft, right: { shoulder: [218, 145], bend: [270, 153], wrist: [258, 111], hand: 'open' }, pupil: 'translate(3 -1)', lean: 'rotate(4 140 267)' },
-  thinking: { left: downLeft, right: { shoulder: [218, 150], bend: [245, 235], wrist: [164, 209], hand: 'chin', front: true }, pupil: 'translate(3 -6)', lean: 'rotate(-3 140 267)' },
+  thinking: { left: downLeft, right: { shoulder: [218, 150], bend: [245, 235], wrist: [164, 209], front: true }, pupil: 'translate(3 -6)', lean: 'rotate(-3 140 267)' },
   talking: { left: { shoulder: [62, 145], bend: [14, 170], wrist: [20, 151], hand: 'open' }, right: downRight, pupil: 'translate(0 1)', open: true },
   pointing: { left: downLeft, right: { shoulder: [218, 143], bend: [236, 141], wrist: [258, 141], hand: 'open' }, pupil: 'translate(4 0)', open: true },
 };
@@ -86,22 +86,19 @@ function ArmStroke({ arm: { shoulder, bend, wrist } }: { arm: Arm }) {
 /** One wrist coordinate and the forearm's tangent place both the cuff and palm. */
 function Hand({ arm: { wrist, bend, hand = 'rest' } }: { arm: Arm }) {
   const angle = Math.atan2(wrist[1] - bend[1], wrist[0] - bend[0]) + Math.PI / 2;
-  // The thumb is on local -X. Face that side toward the apple's center in each pose,
-  // including when a hanging or hip hand turns past horizontal.
+  // Keep the palm orientation consistent as the hand turns around the body.
   const mirror = (140 - wrist[0]) * Math.cos(angle) + (150 - wrist[1]) * Math.sin(angle) > 0;
   return <g transform={`translate(${wrist.join(' ')}) rotate(${angle * 180 / Math.PI}) scale(${mirror ? -.8 : .8} .8)`}>
     <g fill="var(--c-crisp-cream)" stroke="var(--c-crisp-ink)" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+      {hand === 'rest' && <path d="M-9.32 -9.64 C-12.86 -8.98 -13.90 -5.67 -12.27 -2.85 C-10.47 2.87 -4.09 4.61 1.23 3.62 C6.95 3.84 10.81 0.92 9.50 -4.15 L4.41 -4.86 C2.25 -1.70 -2.02 -2.01 -4.29 -4.34 Z" />}
       {hand === 'open' ? <>
         <path d="M-10-10 C-16-14-20-20-23-25 C-26-31-21-35-17-30 L-12-25 L-17-38 C-19-45-12-48-9-41 L-5-30 L-6-45 C-6-52 2-52 3-45 L4-30 L8-42 C10-49 18-46 16-39 L13-27 L19-33 C24-38 30-32 25-27 L16-14 Q14-10 10-9Z" />
         <path d="M-10-23 Q-2-26 2-18 M-3-13 Q3-16 9-14" fill="none" strokeWidth="1.6" />
-      </> : hand === 'chin' ? <>
-        <path d="M-8-7 C-13-10-16-15-15-22 Q-15-29-9-30 L-10-33 Q-10-38-5-38 Q-2-38 0-35 Q4-39 8-35 Q14-37 16-31 Q21-29 19-22 L15-13 Q13-8 8-7Z" />
-        <path d="M-9-28 Q-2-24 1-17 M2-31 Q7-28 12-30" fill="none" strokeWidth="1.6" />
       </> : <>
-        <path d="M-9-8 C-14-12-16-18-12-22 Q-9-24-6-20 L-7-27 Q-6-32-1-29 Q3-33 6-29 Q11-30 13-25 Q18-24 15-16 L9-8Z" />
-        <path d="M-6-20 Q-1-17 0-13 M-1-27 0-22 M5-27 6-22 M11-24 11-20" fill="none" strokeWidth="1.6" />
+        <path d="M-10.12 -10.04 C-16.53 -17.83 -17.14 -27.99 -13.06 -36.64 C-10.59 -44.07 -6.25 -46.34 -0.92 -45.32 C0.77 -45.08 1.50 -44.12 1.91 -42.91 C4.80 -47.12 10.12 -46.09 12.81 -40.54 C16.27 -42.65 21.04 -39.69 22.59 -34.29 C24.15 -28.89 24.82 -23.33 20.39 -22.51 L18.21 -23.39 C17.92 -15.08 13.84 -6.43 4.90 -4.21 C-1.38 -2.49 -6.31 -4.33 -10.12 -10.04 Z" />
+        <path d="M-4.91 -35.22 C-1.96 -42.01 2.71 -44.53 5.29 -44.46 M4.94 -31.55 C7.41 -38.98 12.24 -40.62 16.12 -39.51 M18.02 -28.30 Q19.25 -24.68 18.69 -22.74" fill="none" strokeWidth="1.6" />
       </>}
-      <path d={hand === 'chin' ? 'M-8-7 Q0-5 8-7 L8 1 Q0 4-8 1Z' : 'M-11-10 Q0-7 11-10 L12 2 Q0 6-12 2Z'} />
+      {hand === 'open' && <path d="M-11-10 Q0-7 11-10 L12 2 Q0 6-12 2Z" />}
     </g>
   </g>;
 }
