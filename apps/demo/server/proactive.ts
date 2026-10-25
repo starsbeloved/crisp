@@ -10,7 +10,7 @@ export interface Suggestion {
 }
 export interface Disposition { status: 'done' | 'left'; at: number; name: string; queueNo: number; room: string | null }
 export interface SuggestionState { suggestions: Suggestion[]; dispositions: Record<string, Disposition> }
-type Entry = Suggestion & { key: string; status: 'pending' | 'accepted' | 'dismissed' | 'expired' };
+type Entry = Suggestion & { key: string; status: 'pending' | 'accepted' | 'dismissed' | 'expired'; acceptedAt?: number };
 const roomKey = (room: string) => room.trim().replace(/^room\s*/i, '').trim().toLowerCase();
 export class ProactiveAgent {
   private entries: Entry[] = [];
@@ -57,10 +57,10 @@ export class ProactiveAgent {
       const minutes = Math.max(0, Math.floor((now - visit.createdAt) / 60_000));
       if (now - visit.createdAt > 45 * 60_000 && visit.answers.trend === 'worse' && !this.wasChecked(visit.id)) this.propose(`wait:${visit.id}`, { kind: 'long_wait', text: `${visit.name} has waited ${minutes} min and reported getting worse. Want to check on them?`, visitId: visit.id, action: 'remind', createdAt: now });
       const seen = this.store.state.vitals[visit.id]?.lastSeenAt;
-      if (seen !== undefined && now - seen >= 10 * 60_000) this.propose(`left:${visit.id}:${seen}`, { kind: 'may_have_left', text: `${visit.name} hasn't been seen on camera for ${Math.floor((now - seen) / 60_000)} min. They may have left; camera coverage is not proof. Confirm they left before choosing Yes.`, visitId: visit.id, action: 'left', createdAt: now });
+      if (seen !== undefined && now - seen >= 10 * 60_000) this.propose(`left:${visit.id}:${seen}`, { kind: 'may_have_left', text: `${this.store.state.vitals[visit.id]?.source === 'replay' ? 'REPLAY · ' : ''}${visit.name} hasn't been seen on camera for ${Math.floor((now - seen) / 60_000)} min. They may have left; camera coverage is not proof. Confirm they left before choosing Yes.`, visitId: visit.id, action: 'left', createdAt: now });
       if (now - visit.createdAt >= 30 * 60_000) this.propose(`back:${visit.id}`, { kind: 'check_back', text: `${visit.name} has waited ${minutes} min. Send a hallway check-back: “Still doing okay? Tell the front desk if you feel worse.”`, visitId: visit.id, action: 'hallway', createdAt: now });
     }
-    return { suggestions: this.entries.filter(e => e.status === 'pending').map(({ key: _key, status: _status, ...suggestion }) => suggestion), dispositions: { ...this.dispositions } };
+    return { suggestions: this.entries.filter(e => e.status === 'pending').map(({ key: _key, status: _status, acceptedAt: _acceptedAt, ...suggestion }) => suggestion), dispositions: { ...this.dispositions } };
   }
   noteChecked(id: string, _now = Date.now()) { this.sync(); this.checked.add(id); }
   patientDone(room: string, visitId: string, now = Date.now()): CommandResult {
@@ -85,7 +85,7 @@ export class ProactiveAgent {
     let result: CommandResult = { ok: true, message: entry.kind === 'long_wait' ? `Reminder acknowledged for ${visit!.name}; a human check is still needed.` : entry.kind === 'check_back' ? `Hallway check-back posted for number ${visit!.queueNo}.` : 'Suggestion noted.' };
     if (entry.action === 'call') result = this.actions.call(visit!, entry.room!);
     if (!result.ok) return result;
-    entry.status = 'accepted';
+    entry.status = 'accepted'; entry.acceptedAt = now;
     if (entry.action === 'left') { this.finish(visit!, 'left', now); result = { ok: true, message: `${visit!.name} marked left after staff confirmation. Record retained.` }; }
     return result;
   }
@@ -96,14 +96,15 @@ export class ProactiveAgent {
   }
   hallway(now = Date.now()): { id: string; text: string }[] {
     this.sync();
-    return this.entries.filter(e => e.kind === 'check_back' && e.status === 'accepted' && now - e.createdAt < 10 * 60_000 && this.valid(e, now))
+    return this.entries.filter(e => e.kind === 'check_back' && e.status === 'accepted' && now - (e.acceptedAt ?? e.createdAt) < 10 * 60_000 && this.valid(e, now))
       .map(entry => { const visit = this.store.state.visits.find(v => v.id === entry.visitId)!; return { id: entry.id, text: `#${visit.queueNo} · ${visit.name.trim().charAt(0).toUpperCase()}. Still doing okay? Tell the front desk if you feel worse.` }; });
   }
   async shiftSummary(generate: () => Promise<{ answer: string; source: 'template' | 'gemini' }>, now = Date.now()): Promise<CommandResult> {
     this.sync(); const state = this.store.state;
     const summary = await generate();
     if (this.store.state !== state) return { ok: false, message: 'Room reset while preparing the summary. Please ask again.' };
-    this.propose(`shift:${randomUUID()}`, { kind: 'shift_summary', text: summary.answer, source: summary.source, createdAt: now });
-    return { ok: true, message: summary.answer, data: summary };
+    const key = `shift:${randomUUID()}`;
+    this.propose(key, { kind: 'shift_summary', text: summary.answer, source: summary.source, createdAt: now });
+    return { ok: true, message: summary.answer, data: { ...summary, suggestionId: this.entries.find(entry => entry.key === key)!.id } };
   }
 }

@@ -93,7 +93,9 @@ describe('proactive rules and human confirmation', () => {
     expect(agent.list(now).suggestions.some(s => s.kind === 'shift_summary')).toBe(false);
     const result = await agent.shiftSummary(async () => ({ answer: '2 waiting; recorded requests only.', source: 'template' }), now);
     expect(result.ok).toBe(true);
-    expect(agent.list(now).suggestions.find(s => s.kind === 'shift_summary')).toMatchObject({ source: 'template', text: '2 waiting; recorded requests only.' });
+    const card = agent.list(now).suggestions.find(s => s.kind === 'shift_summary')!;
+    expect(card).toMatchObject({ source: 'template', text: '2 waiting; recorded requests only.' });
+    expect(result.data).toMatchObject({ suggestionId: card.id });
   });
   it('Not now suppresses the same event and reset clears suggestion/disposition state', () => {
     const { store, agent } = setup(); store.state.visits[0].createdAt = now - 60 * 60_000;
@@ -102,4 +104,19 @@ describe('proactive rules and human confirmation', () => {
     expect(agent.list(now + 1000).suggestions.some(s => s.kind === 'long_wait')).toBe(false);
     store.reset(); expect(agent.list(now).suggestions).toHaveLength(0); expect(agent.list(now).dispositions).toEqual({});
   });
+});
+
+it('publishes a delayed check-back for ten minutes after human acceptance', async () => {
+  const { store, agent } = setup(); store.state.visits[0].createdAt = now - 30 * 60_000;
+  const card = agent.list(now).suggestions.find(s => s.kind === 'check_back')!;
+  await agent.accept(card.id, now + 15 * 60_000);
+  expect(agent.hallway(now + 15 * 60_000)).toHaveLength(1);
+  expect(agent.hallway(now + 25 * 60_000)).toHaveLength(0);
+});
+it('labels a missing-camera suggestion based on replay and accepts the latest card when id is omitted', async () => {
+  const { store, agent } = setup(); const visit = store.state.visits[0];
+  store.state.vitals[visit.id].lastSeenAt = now - 10 * 60_000;
+  expect(agent.list(now).suggestions.find(s => s.kind === 'may_have_left')!.text).toContain('REPLAY');
+  expect((await agent.accept(undefined, now)).ok).toBe(true);
+  expect(agent.list(now).dispositions[visit.id].status).toBe('left');
 });

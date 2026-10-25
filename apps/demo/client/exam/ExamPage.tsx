@@ -83,17 +83,18 @@ export function ExamPage() {
         {!candidates.length && <option value="">Waiting for patient</option>}{candidates.map(item => <option key={item.id} value={item.id}>#{item.queueNo} · {item.name}</option>)}
       </select></label>
       <PatientDone room={room} visitId={visit?.id} connected={connected} />
+      <button type="button" className="secondary" disabled={!connected || !voice.available} aria-pressed={voiceEnabled} onClick={() => { setVoiceEnabled(!voiceEnabled); if (voiceEnabled) window.speechSynthesis?.cancel(); }}>{voiceEnabled ? 'Stop browser chart voice · mic on' : 'Browser chart voice (fallback)'}</button>
       <button type="button" className="secondary" disabled={!visit || !connected} onClick={() => { void handleCommand({ kind: 'allergies' }); }}>Read recorded allergies</button>
       <div className="exam-camera"><video ref={video} autoPlay playsInline muted aria-label="Exam room recognition camera" /><div><p>{recognition.replay ? 'REPLAY · ' : ''}{recognition.status}</p><button className="secondary" type="button" aria-pressed={cameraEnabled} onClick={() => setCameraEnabled(!cameraEnabled)}>{cameraEnabled ? 'Turn camera off' : 'Turn camera on'}</button></div></div>
       <label className="exam-replay">REPLAY · local video<input type="file" accept="video/*" aria-label="Replay recognition video" onChange={event => { const file = event.target.files?.[0]; setReplay(file ? URL.createObjectURL(file) : null); setSelection(null); }} /></label>
       {replay && <button type="button" className="secondary" onClick={() => { setReplay(null); setSelection(null); }}>Use webcam</button>}
     </div>
     <p className="exam-voice-status" role="status">{reply?.key === key ? reply.text : voice.status}{voiceEnabled && ' · Browser voice · Try “Hey Crisp, any allergies?”'}</p>
-    <DoctorAgent state={connected ? state : null} room={room} visitId={visit?.id} onRecord={result => {
+    {!voiceEnabled && <DoctorAgent state={connected ? state : null} room={room} visitId={visit?.id} onRecord={result => {
       if (result && typeof result === 'object' && 'visitId' in result && typeof result.visitId === 'string' && candidates.some(item => item.id === result.visitId)) {
         setSelection({ id: result.visitId, kind: 'voice' }); setReply(null);
       }
-    }} />
+    }} />}
     {!visit || !state ? <section className="exam-idle"><Crisp size={120} /><h1>Room {room} · waiting for patient</h1><p>Call a patient to this room from the Command Center. Their chart will preload here.</p></section> : <>
       <div className="exam-arrival"><Crisp size={80} state={arrived ? 'happy' : 'idle'} /><p><strong>{arrived ? `${visit.name} · ${recognition.replay ? 'REPLAY face match' : 'face recognized'}` : `${visit.name} is on the way`}</strong>{arrived ? 'Their chart is on screen.' : 'Chart preloaded from call-in. Arrival has not been confirmed.'}</p></div>
       <ExamChart visit={visit} state={{ ...state, serverNow: now }} record={record} recordStatus={recordStatus} connected={connected} />

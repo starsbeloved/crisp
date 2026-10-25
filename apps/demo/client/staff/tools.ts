@@ -7,7 +7,7 @@ export async function staffRequest(tool: string, parameters: unknown): Promise<C
   return result;
 }
 export function createStaffTools(options: {
-  connected: () => boolean; digest: () => string; notify: (result: CommandResult) => void;
+  connected: () => boolean; digest: () => string; notify: (result: CommandResult, tool: string) => void;
   request?: typeof staffRequest; onRecord?: (result: unknown) => void;
 }) {
   const tools: Record<string, (parameters: unknown) => Promise<string>> = { get_room_digest: async () => options.digest() };
@@ -18,7 +18,7 @@ export function createStaffTools(options: {
       try { result = await (options.request ?? staffRequest)(name, parameters ?? {}); }
       catch { result = { ok: false, message: 'Command confirmation unavailable. Review the room on screen before retrying.' }; }
     }
-    options.notify(result);
+    options.notify(result, name);
     if (name === 'get_record' && result.ok) options.onRecord?.(result.data);
     return JSON.stringify(result);
   };

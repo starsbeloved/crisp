@@ -44,3 +44,27 @@ describe('voice queue', () => {
     expect(players).toHaveLength(1);
   });
 });
+
+it('drains multiple browser announcements even when speech callbacks finish before React paints', async () => {
+  setup();
+  const speak = vi.fn((u: SpeechSynthesisUtterance) => u.onend?.(new Event('end') as SpeechSynthesisEvent));
+  vi.stubGlobal('SpeechSynthesisUtterance', class { onend = null; onerror = null; constructor(public text: string) {} });
+  vi.stubGlobal('speechSynthesis', { speak, cancel: vi.fn() });
+  await act(() => root!.render(<Harness enabled={false} items={[{ ...a, url: null }, { ...b, url: null }]} />));
+  await act(() => root!.render(<Harness enabled items={[{ ...a, url: null }, { ...b, url: null }]} />));
+  expect(speak).toHaveBeenCalledTimes(2);
+});
+
+it('advances the queue under browser-style React batching after instant speech completion', async () => {
+  setup(); vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', false);
+  const speak = vi.fn((u: SpeechSynthesisUtterance) => queueMicrotask(() => u.onend?.(new Event('end') as SpeechSynthesisEvent)));
+  vi.stubGlobal('SpeechSynthesisUtterance', class { onend = null; onerror = null; constructor(public text: string) {} });
+  vi.stubGlobal('speechSynthesis', { speak, cancel: vi.fn() });
+  try {
+    root!.render(<Harness enabled={false} items={[{ ...a, url: null }, { ...b, url: null }]} />);
+    await new Promise(resolve => setTimeout(resolve, 30));
+    root!.render(<Harness enabled items={[{ ...a, url: null }, { ...b, url: null }]} />);
+    await new Promise(resolve => setTimeout(resolve, 100));
+    expect(speak).toHaveBeenCalledTimes(2);
+  } finally { vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true); }
+});

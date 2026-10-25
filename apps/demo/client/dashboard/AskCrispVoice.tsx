@@ -56,7 +56,11 @@ function NurseVoice({ holding, setHolding, handsFree, setHandsFree, room, visitI
     connected: () => current.current.connected,
     digest: () => JSON.stringify({ ...JSON.parse(roomDigest(current.current.connected ? current.current.state : null)),
       screenContext: { room: current.current.room ?? null, selectedVisitId: current.current.visitId ?? null } }),
-    notify: result => { setNotice(result); window.dispatchEvent(new Event('crisp-staff-change')); },
+    notify: (result, tool) => {
+      setNotice(result);
+      const data = result.data as { suggestionId?: string } | undefined;
+      window.dispatchEvent(new CustomEvent('crisp-staff-change', { detail: { spokenSuggestionId: tool === 'shift_summary' && result.ok ? data?.suggestionId : undefined } }));
+    },
     onRecord: result => current.current.onRecord?.(result),
   }), []);
   const context = JSON.stringify({ screen: room ? 'Exam room' : 'Crisp Command Center', room, selectedVisitId: visitId,
@@ -86,7 +90,7 @@ function NurseVoice({ holding, setHolding, handsFree, setHandsFree, room, visitI
   }, []);
   function hold() {
     if (!connected || starting.current) return;
-    pending.current = null; setHolding(true); void voice.start();
+    wake.pause(); pending.current = null; setHolding(true); void voice.start();
   }
   return <section aria-label="Ask Crisp by voice" className="staff-voice">
     <div className="staff-controls">

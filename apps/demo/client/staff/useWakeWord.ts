@@ -18,6 +18,7 @@ export function wakeCommand(text: string): string | null {
 /** Never persisted: a new surface always starts with its microphone off. */
 export function useWakeWord(enabled: boolean, onWake: (command: string) => void) {
   const [status, setStatus] = useState('Mic off');
+  const stop = useRef<() => void>(() => {});
   const callback = useRef(onWake); callback.current = onWake;
   const available = Boolean(recognitionConstructor());
   useEffect(() => {
@@ -26,6 +27,7 @@ export function useWakeWord(enabled: boolean, onWake: (command: string) => void)
     const listener = new Constructor();
     listener.lang = 'en-US'; listener.continuous = true; listener.interimResults = false;
     let stopped = false; let timer: ReturnType<typeof setTimeout> | undefined;
+    stop.current = () => { stopped = true; clearTimeout(timer); listener.abort(); };
     function start() {
       if (stopped || document.hidden) return;
       try { setStatus('Starting microphone…'); listener.start(); }
@@ -53,5 +55,5 @@ export function useWakeWord(enabled: boolean, onWake: (command: string) => void)
     start();
     return () => { stopped = true; clearTimeout(timer); listener.onresult = null; listener.onend = null; listener.onerror = null; listener.onstart = null; listener.abort(); document.removeEventListener('visibilitychange', visibility); };
   }, [enabled]);
-  return { available, status };
+  return { available, status, pause: () => stop.current() };
 }

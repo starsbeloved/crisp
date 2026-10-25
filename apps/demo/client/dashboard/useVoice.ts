@@ -6,6 +6,7 @@ export function useVoice(enabled: boolean, items: VoiceItem[]) {
   const seen = useRef(new Set<string>());
   const [talkingId, setTalkingId] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [, setCompletedKey] = useState<string | null>(null);
   const currentKey = useRef<string | null>(null);
   const item = items.find(i => i.key === currentKey.current) ?? items.find(i => !seen.current.has(i.key));
   useEffect(() => {
@@ -37,7 +38,7 @@ export function useVoice(enabled: boolean, items: VoiceItem[]) {
           });
           if (!played) await fallback(item);
         } else await fallback(item);
-        if (!cancelled) { currentKey.current = null; setTalkingId(null); }
+        if (!cancelled) { currentKey.current = null; setTalkingId(null); setCompletedKey(item.key); }
     }
     void run();
     return () => { cancelled = true; if (audio) { audio.pause(); audio.onended = null; audio.onerror = null; } if (utterance) speechSynthesis.cancel(); finishCurrent?.(); setTalkingId(null); };

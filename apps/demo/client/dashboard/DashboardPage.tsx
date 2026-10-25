@@ -26,18 +26,24 @@ export function DashboardPage() {
   const fixtureAllowed = import.meta.env.DEV && typeof location !== 'undefined' && new URLSearchParams(location.search).get('fixture') === '1';
   const state = fixture ?? live, synthetic = fixture !== null;
   const suggestions = useSuggestions(connected && !synthetic);
-  const [notice, setNotice] = useState<(CommandResult & { key: string }) | null>(null);
+  const [notice, setNotice] = useState<(CommandResult & { key: string; speak: boolean }) | null>(null);
+  const [spokenSuggestionIds, setSpokenSuggestionIds] = useState<string[]>([]);
+  useEffect(() => {
+    const notified = (event: Event) => { const id = (event as CustomEvent<{ spokenSuggestionId?: string }>).detail?.spokenSuggestionId; if (id) setSpokenSuggestionIds(ids => ids.includes(id) ? ids : [...ids, id]); };
+    window.addEventListener('crisp-staff-change', notified);
+    return () => window.removeEventListener('crisp-staff-change', notified);
+  }, []);
   const [previewHidden, setPreviewHidden] = useState<string[]>([]);
   const preview: SuggestionState = { dispositions: {}, suggestions: fixture?.visits.some(v => v.status === 'waiting') && !previewHidden.includes('preview-room') ? [{ id: 'preview-room', kind: 'room_free', text: 'SYNTHETIC · Room 1 is free. Next by arrival is Ama (#2). Call them?', action: 'call', room: '1', visitId: 'synthetic-ama', createdAt: now }] : [] };
   const suggestionState = synthetic ? preview : suggestions.snapshot;
-  function confirm(result: CommandResult) { setNotice({ ...result, key: `${Date.now()}:${Math.random()}` }); }
+  function confirm(result: CommandResult, speak = true) { setNotice({ ...result, speak, key: `${Date.now()}:${Math.random()}` }); }
 
   useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(timer); }, []);
   const openAlerts = state?.alerts.filter(a => a.status === 'open' && state.visits.some(v => v.id === a.visitId && v.status === 'waiting')).sort((a, b) => Number(b.level === 'red') - Number(a.level === 'red') || a.openedAt - b.openedAt) ?? [];
   const audio = useVoice(voice, [
     ...openAlerts.filter(a => a.explanation && (a.audio === 'ready' || a.audio === 'failed')).map(a => ({ key: `${a.id}:${a.updatedAt}`, id: a.id, url: a.audio === 'ready' ? api.alertAudioUrl(a.id) : null, speech: a.explanation!.speech })),
-    ...(notice && notice.message ? [{ key: notice.key, id: 'staff-confirmation', url: null, speech: notice.message }] : []),
-    ...((synthetic || suggestions.ready) ? suggestionState.suggestions : []).map(card => ({ key: `suggestion:${card.id}`, id: card.id, url: null, speech: `${synthetic ? 'Synthetic example. ' : ''}${card.text}` })),
+    ...(notice && notice.speak && notice.message ? [{ key: notice.key, id: 'staff-confirmation', url: null, speech: notice.message }] : []),
+    ...((synthetic || suggestions.ready) ? suggestionState.suggestions : []).filter(card => !spokenSuggestionIds.includes(card.id)).map(card => ({ key: `suggestion:${card.id}`, id: card.id, url: null, speech: `${synthetic ? 'Synthetic example. ' : ''}${card.text}` })),
   ]);
   async function perform(work: () => Promise<unknown>) {
     if (busy) return; setBusy(true); setError('');
@@ -78,7 +84,7 @@ export function DashboardPage() {
         if (synthetic) { setPreviewHidden(ids => [...ids, id]); confirm({ ok: true, message: 'SYNTHETIC · Not now.' }); return; }
         void perform(async () => { const response = await fetch('/api/suggestions/dismiss', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }), signal: AbortSignal.timeout(6000) }); confirm(await response.json()); window.dispatchEvent(new Event('crisp-staff-change')); });
       }} />
-    <button type="button" className="secondary" disabled={!connected || synthetic || busy} onClick={() => { void perform(async () => { confirm(await staffRequest('shift_summary', {})); window.dispatchEvent(new Event('crisp-staff-change')); }); }}>Summarize this shift</button>
+    <button type="button" className="secondary" disabled={!connected || synthetic || busy} onClick={() => { void perform(async () => { const result = await staffRequest('shift_summary', {}); confirm(result, !result.ok); window.dispatchEvent(new Event('crisp-staff-change')); }); }}>Summarize this shift</button>
     <AlertBanner alert={openAlerts[0]} visit={state?.visits.find(v => v.id === openAlerts[0]?.visitId)} onAcknowledge={actions.acknowledge} busy={busy} />
     <div className="dashboard-columns"><div className="dashboard-left"><VideoPanel cameras={state?.cameras ?? {}} now={now} /><AskCrisp synthetic={synthetic} /></div>
       {state ? <Queue state={state} now={synthetic ? state.serverNow : now} onSelect={setSelected} actions={actions} busy={busy} talkingId={audio.talkingId} synthetic={synthetic} /> : <section className="panel"><h2>Waiting queue</h2><p>Connecting to the room…</p></section>}
