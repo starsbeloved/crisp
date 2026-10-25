@@ -219,3 +219,14 @@
 .dashboard .queue-empty small { color: var(--c-text-2); font-size: 13px; }
 .dashboard .empty-action { display: inline-flex; align-items: center; justify-content: center; gap: 16px; min-height: 48px; margin: 8px 0; padding: 12px 20px; border-radius: var(--r-control); background: var(--c-leaf); color: var(--c-surface); font-weight: 600; }
 .dashboard .empty-action:hover { background: var(--c-leaf-hover); }
+
+.dashboard .camera-segments { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--c-hairline); border-radius: var(--r-control); background: var(--c-canvas); }
+.dashboard .camera-segments button { min-height: 38px; padding: 7px 14px; border: 0; border-radius: 9px; background: transparent; color: var(--c-text-2); font-size: 14px; font-weight: 600; white-space: nowrap; }
+.dashboard .camera-segments button[aria-pressed=true] { background: var(--c-surface); color: var(--c-text); box-shadow: var(--shadow-card); }
+.dashboard .camera-segments button:hover { color: var(--c-leaf-hover); }
+.dashboard .stream-options { margin-top: 12px; color: var(--c-text-2); font-size: 13px; }
+.dashboard .stream-options summary { display: flex; align-items: center; min-height: 44px; width: fit-content; cursor: pointer; }
+.dashboard .stream-options summary::before { content: '+'; margin-right: 8px; }
+.dashboard .stream-options[open] summary::before { content: '−'; }
+.dashboard .feeds-multiple { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 760px) { .dashboard .feeds-multiple { grid-template-columns: 1fr; } }
