@@ -30,3 +30,7 @@ coverage/
 *.key
 *.p12
 *.pfx
+
+# Film assets (stock footage, recordings) stay local
+/apps/film/broll/
+/apps/film/clips/
