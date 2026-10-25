@@ -35,6 +35,7 @@ async function render(node: React.ReactNode) { await act(async () => { root.rend
 function click(label: string) { const button = [...container.querySelectorAll('button')].find(button => button.textContent === label); expect(button).toBeDefined(); button!.click(); }
 function controller(): CheckInController {
   const c: CheckInController = {
+    followUpPrompt: null, setFollowUpPrompt: vi.fn(),
     step: 'welcome', name: '', answers: { reason: '', reasonChips: [], onset: null, trend: null, followUp: null, via: 'form' }, face: { status: 'idle', message: '' }, queueNo: null, via: 'form',
     setVia: vi.fn(v => { c.via = v; }), setName: vi.fn(n => { c.name = n; }), startFaceScan: vi.fn(async () => ({ ok: true, reason: null })),
     skipFace: vi.fn(), setAnswers: vi.fn(), setFollowUp: vi.fn(), finish: vi.fn(async () => ({ queueNo: 3 })), reset: vi.fn(), goTo: vi.fn(),

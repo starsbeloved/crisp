@@ -60,6 +60,7 @@ describe('agent signing', () => {
 
 function mockController(): CheckInController {
   const controller: CheckInController = {
+    followUpPrompt: null, setFollowUpPrompt: vi.fn(),
     step: 'welcome', name: '', answers: { reason: '', reasonChips: [], onset: null, trend: null, followUp: null, via: 'form' },
     face: { status: 'idle', message: '' }, queueNo: null, via: 'form',
     setVia: vi.fn(v => { controller.via = v; controller.answers.via = v; }),
