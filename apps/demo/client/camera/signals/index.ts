@@ -2,13 +2,17 @@ import type { Quality, PostureState } from '../../../shared/types.ts';
 import { median } from './dsp.ts';
 import { estimatePulse, validFace } from './pulse.ts';
 import { createPoseSignals } from './posture.ts';
+import { createHeartRateDisplay, type HeartRateDisplay } from './display.ts';
+export { signalDisplayLabel } from './display.ts';
 export interface FaceSample { t: number; rgb: [number, number, number]; brightness: number; faceWidthPx: number }
 export interface PoseSample { t: number; landmarks: { x: number; y: number; z: number; visibility: number }[] }
 export interface SignalReading { hrBpm: number | null; hrQuality: Quality; rrBpm: number | null; rrQuality: Quality;
-  posture: PostureState | null; hint: string | null; hrSecondsCollected: number; pulseTrace: number[] | null }
+  posture: PostureState | null; hint: string | null; hrSecondsCollected: number; pulseTrace: number[] | null;
+  hrDisplay?: HeartRateDisplay }
 export interface SignalTracker { pushFace(s: FaceSample): void; pushPose(s: PoseSample): void; read(now: number): SignalReading; reset(): void }
 export function createSignalTracker(): SignalTracker {
   const pose = createPoseSignals();
+  const display = createHeartRateDisplay();
   let faces: FaceSample[] = [], estimates: number[] = [];
   let pulse: ReturnType<typeof estimatePulse> = { bpm: null, quality: 'none', trace: null };
   let lastEstimate = -Infinity, pendingJump: { bpm: number; t: number } | null = null;
@@ -56,11 +60,12 @@ export function createSignalTracker(): SignalTracker {
         }
       }
       const usable = fresh && validFace(latest) && hint !== 'hold still';
-      return { hrBpm: usable && seconds >= 10 ? pulse.bpm : null,
-        hrQuality: !latest ? 'none' : !usable ? 'low' : seconds < 10 ? 'none' : pulse.quality,
+      const hrBpm = usable && seconds >= 10 ? pulse.bpm : null;
+      const hrQuality = !latest ? 'none' : !usable ? 'low' : seconds < 10 ? 'none' : pulse.quality;
+      return { hrBpm, hrQuality, hrDisplay: display.update(hrBpm, hrQuality, lastEstimate, now),
         hrSecondsCollected: seconds, pulseTrace: usable && seconds >= 5 ? pulse.trace : null,
         ...pose.read(now), hint };
     },
-    reset() { clearFace(); pose.reset(); },
+    reset() { clearFace(); pose.reset(); display.reset(); },
   };
 }

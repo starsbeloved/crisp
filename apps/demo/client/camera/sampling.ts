@@ -1,20 +1,32 @@
 import type { DetectedFace } from '../lib/face.ts';
 import type { FaceSample } from './signals/index.ts';
 
-/** Inner cheek patches copied from the historical landmark geometry, in detection pixels. */
+/** Two inner cheeks plus exposed forehead above the brows, in detection pixels.
+ * Keep the existing export name for camera callers. No patch extends beyond the detected face.
+ */
 export function cheekPatches(face: DetectedFace): { x: number; y: number; w: number; h: number }[] {
   const lm = face.landmarks;
   if (lm.length !== 68) return [];
   const eyeY = (lm[36].y + lm[45].y) / 2, noseY = lm[33].y, mouthY = (lm[48].y + lm[54].y) / 2;
   const top = Math.max(eyeY + (noseY - eyeY) * 0.45, face.box.y);
   const bottom = Math.min(mouthY, face.box.y + face.box.h);
-  return [[lm[36].x, lm[31].x], [lm[35].x, lm[45].x]].map(([left, right]) =>
-    ({ x: left + (right - left) * 0.2, y: top, w: (right - left) * 0.6, h: (bottom - top) * 0.65 }))
+  const cheeks = [[lm[36].x, lm[31].x], [lm[35].x, lm[45].x]].map(([left, right]) =>
+    ({ x: left + (right - left) * 0.2, y: top, w: (right - left) * 0.6, h: (bottom - top) * 0.65 }));
+  const browY = Math.min(lm[19].y, lm[24].y);
+  const forehead = { x: lm[36].x + (lm[45].x - lm[36].x) * 0.2,
+    y: browY - face.box.h * 0.18, w: (lm[45].x - lm[36].x) * 0.6, h: face.box.h * 0.12 };
+  return [...cheeks, forehead].map(patch => {
+    const x = Math.max(face.box.x, patch.x), y = Math.max(face.box.y, patch.y);
+    return { x, y, w: Math.min(face.box.x + face.box.w, patch.x + patch.w) - x,
+      h: Math.min(face.box.y + face.box.h, patch.y + patch.h) - y };
+  })
     .filter(patch => patch.w >= 3 && patch.h >= 3 && Object.values(patch).every(Number.isFinite));
 }
 
 export function meanCheekSample(pixels: Pick<ImageData, 'data' | 'width' | 'height'>, face: DetectedFace,
   detectionWidth: number, detectionHeight: number, now: number, sourceWidth: number): FaceSample | null {
+  if (![pixels.width, pixels.height, detectionWidth, detectionHeight, sourceWidth].every(v => Number.isFinite(v) && v > 0) ||
+    !Number.isFinite(now)) return null;
   const sx = pixels.width / detectionWidth, sy = pixels.height / detectionHeight;
   let r = 0, g = 0, b = 0, count = 0;
   for (const patch of cheekPatches(face)) {
