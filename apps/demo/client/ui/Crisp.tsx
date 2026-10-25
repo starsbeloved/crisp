@@ -3,7 +3,7 @@ import { useId, type CSSProperties, type JSX } from 'react';
 export type CrispState = 'idle' | 'listening' | 'thinking' | 'talking' | 'happy' | 'pointing';
 export const CRISP_NAME = 'Crisp';
 
-type Arm = { arm: string; glove: string };
+type Arm = { arm: string; end: readonly [number, number]; rotation: number };
 type Pose = {
   left: Arm;
   right: Arm;
@@ -19,19 +19,19 @@ type Pose = {
   bounce?: boolean;
 };
 
-const hangLeft: Arm = { arm: 'M62 142 C44 152 40 168 44 182', glove: 'translate(44 182) rotate(172)' };
-const hangRight: Arm = { arm: 'M218 142 C236 152 240 168 236 182', glove: 'translate(236 182) rotate(-172)' };
-const hipLeft: Arm = { arm: 'M62 150 C42 160 44 186 70 188', glove: 'translate(70 188) rotate(80)' };
+const hangLeft: Arm = { arm: 'M62 142 C44 152 40 168 44 182', end: [44, 182], rotation: 172 };
+const hangRight: Arm = { arm: 'M218 142 C236 152 240 168 236 182', end: [236, 182], rotation: -172 };
+const hipLeft: Arm = { arm: 'M62 150 C42 160 44 186 70 188', end: [70, 188], rotation: 80 };
 const idleBrows: [string, string] = ['M104 94 Q118 86 130 92', 'M150 92 Q162 86 176 94'];
 const raisedBrows: [string, string] = ['M104 89 Q118 81 130 87', 'M150 87 Q162 81 176 89'];
 
 const poses: Record<CrispState, Pose> = {
   idle: { left: hangLeft, right: hangRight, brow: idleBrows, pupil: 'translate(0 0)', mouth: 'M126 160 Q140 172 154 160' },
-  listening: { left: hangLeft, right: { arm: 'M218 134 C242 126 248 104 238 90', glove: 'translate(238 90) rotate(-10)' }, brow: [idleBrows[0], 'M150 88 Q162 81 176 89'], pupil: 'translate(4 -1)', mouth: 'M128 162 Q140 170 152 162', lean: 'rotate(5 140 270)', ear: true },
-  thinking: { left: hipLeft, right: { arm: 'M218 150 C238 176 214 204 180 200', glove: 'translate(180 200) rotate(-70)' }, brow: ['M104 92 Q118 89 130 92', 'M150 86 Q164 80 176 88'], pupil: 'translate(3 -7)', mouth: 'M130 166 Q140 163 152 167', lean: 'rotate(-3 140 270)', dots: true },
-  talking: { left: { arm: 'M62 138 C40 128 30 110 34 94', glove: 'translate(34 94) rotate(-24)' }, right: hangRight, brow: idleBrows, pupil: 'translate(0 1)', mouth: 'M126 160 Q140 172 154 160', open: true, talk: true },
-  happy: { left: { arm: 'M62 136 C38 124 28 102 32 82', glove: 'translate(32 82) rotate(-22)' }, right: { arm: 'M218 136 C242 124 252 102 248 82', glove: 'translate(248 82) rotate(22)' }, brow: raisedBrows, pupil: 'translate(0 -2)', mouth: 'M126 160 Q140 172 154 160', open: true, wave: true, bounce: true },
-  pointing: { left: hipLeft, right: { arm: 'M218 140 C228 137 238 134 246 132', glove: 'translate(246 132) rotate(84)' }, brow: raisedBrows, pupil: 'translate(5 0)', mouth: 'M126 160 Q140 172 154 160', open: true },
+  listening: { left: hangLeft, right: { arm: 'M218 134 C242 126 248 104 238 90', end: [238, 90], rotation: -10 }, brow: [idleBrows[0], 'M150 88 Q162 81 176 89'], pupil: 'translate(4 -1)', mouth: 'M128 162 Q140 170 152 162', lean: 'rotate(5 140 270)', ear: true },
+  thinking: { left: hipLeft, right: { arm: 'M218 150 C238 176 214 204 180 200', end: [180, 200], rotation: -70 }, brow: ['M104 92 Q118 89 130 92', 'M150 86 Q164 80 176 88'], pupil: 'translate(3 -7)', mouth: 'M130 166 Q140 163 152 167', lean: 'rotate(-3 140 270)', dots: true },
+  talking: { left: { arm: 'M62 138 C40 128 30 110 34 94', end: [34, 94], rotation: -24 }, right: hangRight, brow: idleBrows, pupil: 'translate(0 1)', mouth: 'M126 160 Q140 172 154 160', open: true, talk: true },
+  happy: { left: { arm: 'M62 136 C38 124 28 102 32 82', end: [32, 82], rotation: -22 }, right: { arm: 'M218 136 C242 124 252 102 248 82', end: [248, 82], rotation: 22 }, brow: raisedBrows, pupil: 'translate(0 -2)', mouth: 'M126 160 Q140 172 154 160', open: true, wave: true, bounce: true },
+  pointing: { left: hipLeft, right: { arm: 'M218 140 C228 137 238 134 246 132', end: [246, 132], rotation: 84 }, brow: raisedBrows, pupil: 'translate(5 0)', mouth: 'M126 160 Q140 172 154 160', open: true },
 };
 
 export function Crisp({ state = 'idle', size = 96, level = 0 }: { state?: CrispState; size?: number; level?: number }): JSX.Element {
@@ -86,8 +86,8 @@ export function Crisp({ state = 'idle', size = 96, level = 0 }: { state?: CrispS
         {!pose.open && <path d={pose.mouth} fill="none" stroke="var(--c-text)" strokeWidth="3.5" strokeLinecap="round" />}
         {pose.open && <g transform="translate(140 158)"><g className={pose.talk ? `crisp-mouth-open crisp-talk${openness > 0 ? ' crisp-talk-level' : ''}` : 'crisp-mouth-open'}><path d="M-18 0 Q0 30 18 0 Q0 6 -18 0 Z" fill="var(--c-red-text)" stroke="var(--c-text)" strokeWidth="3" strokeLinejoin="round" /><ellipse cx="0" cy="10.5" rx="7" ry="3.5" fill="var(--c-red)" /></g></g>}
         <path d={pose.left.arm} fill="none" stroke="var(--c-text)" strokeWidth="6" strokeLinecap="round" /><path d={pose.right.arm} fill="none" stroke="var(--c-text)" strokeWidth="6" strokeLinecap="round" />
-        <Glove transform={pose.left.glove} pointed={false} />
-        <g transform={pose.right.glove} className={pose.wave ? 'crisp-wave' : undefined}>
+        <Glove transform={gloveTransform(pose.left)} pointed={false} />
+        <g transform={gloveTransform(pose.right)} className={pose.wave ? 'crisp-wave' : undefined}>
           {state === 'pointing' ? <PointingGlove /> : <GloveShape />}
         </g>
         {pose.dots && <g className="crisp-thought"><circle cx="216" cy="74" r="4" fill="var(--c-border)" /><circle cx="232" cy="57" r="6.5" fill="var(--c-border)" /><circle cx="253" cy="35" r="9" fill="var(--c-border)" /></g>}
@@ -95,6 +95,10 @@ export function Crisp({ state = 'idle', size = 96, level = 0 }: { state?: CrispS
       </g>
     </g>
   </svg>;
+}
+
+function gloveTransform(arm: Arm) {
+  return `translate(${arm.end[0]} ${arm.end[1]}) rotate(${arm.rotation})`;
 }
 
 function Glove({ transform, pointed }: { transform: string; pointed: boolean }) {

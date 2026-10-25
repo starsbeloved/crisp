@@ -12,8 +12,11 @@ it('starts with an empty preferred name and keeps help and Back available', asyn
   try {
     await act(async () => root.render(<CheckInPage />));
     function button(text: string) { return [...container.querySelectorAll('button')].find(button => button.textContent === text); }
-    expect(button('Start')).toBeDefined(); expect(button('Back')).toBeDefined(); expect(button('I need help')).toBeDefined();
-    await act(async () => button('Start')!.click());
+    expect(button('Start')).toBeUndefined();
+    expect(button('Talk to Crisp')).toBeDefined(); expect(button('I’d rather tap')).toBeDefined();
+    expect(button('Back')).toBeDefined(); expect(button('I need help')).toBeDefined();
+    expect(container.querySelectorAll('svg.crisp-character')).toHaveLength(1);
+    await act(async () => button('I’d rather tap')!.click());
     expect(container.querySelector('input')?.value).toBe('');
     expect(container.querySelectorAll('h1')).toHaveLength(1);
     await act(async () => button('I need help')!.click());

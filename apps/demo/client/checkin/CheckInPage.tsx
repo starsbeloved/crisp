@@ -41,7 +41,7 @@ export function CheckInPage() {
   return <CheckInContext.Provider value={c}><section className="checkin" data-step={c.step} aria-label="Check in with Crisp">
     <div className="checkin-top"><div className="checkin-brand"><KioskIcon name="apple" /><span>{c.step === 'welcome' ? 'Crisp check-in' : c.step === 'done' ? 'All done' : c.step === 'face' ? 'Face scan' : c.step === 'questions' ? 'Three quick questions' : c.step === 'followup' ? 'One more thing' : 'Your name'}</span></div><div className="checkin-navigation"><Button className="checkin-secondary" type="button" disabled={c.busy || c.step === 'welcome' || c.step === 'done'} onClick={() => c.goTo(steps[Math.max(0, stepIndex - 1)])}>Back</Button><Button className="checkin-secondary" type="button" onClick={() => setHelp(value => !value)} aria-expanded={help}>I need help</Button></div><KioskProgress step={c.step} /></div>
     <div className="checkin-card">
-      <div className="checkin-intro-group"><div className="checkin-companion"><Crisp state={c.step === 'welcome' || c.step === 'done' ? 'happy' : c.face.status === 'scanning' && c.step === 'face' ? 'thinking' : 'idle'} size={c.step === 'welcome' ? 480 : c.step === 'done' ? 440 : c.step === 'face' ? 170 : 110} /></div>
+      {(c.via !== 'voice' || c.step === 'done') && <div className="checkin-intro-group"><div className="checkin-companion"><Crisp state={c.step === 'welcome' || c.step === 'done' ? 'happy' : c.face.status === 'scanning' && c.step === 'face' ? 'thinking' : 'idle'} size={c.step === 'welcome' ? 480 : c.step === 'done' ? 440 : c.step === 'face' ? 170 : 110} /></div>
       <div className="checkin-intro">
         {c.step === 'done' && <p className="checkin-done-greeting">You’re checked in, {c.name.trim()}.</p>}
         <h1 ref={heading} tabIndex={-1}>{c.step === 'done' ? 'You’re number' : titles[c.step]}</h1>
@@ -49,10 +49,9 @@ export function CheckInPage() {
         {c.step === 'name' && <p>Your preferred name or an alias is fine.</p>}
         {c.step === 'face' && <p>Look at me for a second! Keep your face inside the oval.</p>}
         {c.step === 'questions' && <p>Tap or type — whatever is easier.</p>}
-      </div>
-      </div>
+      </div></div>}
       {c.step !== 'done' && <div className="checkin-agent"><CrispAgentSlot /></div>}
-      {c.step === 'welcome' && <div className="checkin-welcome-actions"><Button className="checkin-primary checkin-start" onClick={() => c.goTo('name')}>Start</Button><ol className="checkin-how"><li>Tell Crisp your name</li><li>Look at the camera for two seconds</li><li>Say what brings you in, in your own words</li></ol></div>}
+      {c.step === 'welcome' && <div className="checkin-welcome-actions"><ol className="checkin-how"><li>Tell Crisp your name</li><li>Look at the camera for two seconds</li><li>Say what brings you in, in your own words</li></ol></div>}
       <form className="checkin-form" onSubmit={submit} aria-busy={c.busy}>
         {c.step === 'name' && <div className="checkin-name-panel"><label htmlFor="checkin-name">Your name</label><input id="checkin-name" name="name" autoComplete="given-name" maxLength={120} value={c.name} onChange={event => c.setName(event.target.value)} aria-describedby={validation ? 'checkin-error' : undefined} /><Button className="checkin-primary" type="submit">Continue</Button></div>}
         <div className="checkin-face-layout" hidden={c.step !== 'face'}>

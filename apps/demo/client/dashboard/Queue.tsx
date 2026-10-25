@@ -16,8 +16,8 @@ export function Queue({ state, now, onSelect, actions, busy, talkingId, syntheti
     });
   }, [order]);
   const called = state.visits.filter(v => v.status === 'called');
-  return <section className="panel queue-panel"><div className="section-heading"><h2>Waiting queue</h2><span className="tag">{visits.length} waiting</span></div>
-    <p className="queue-help">Requests first · then arrival order</p>
+  return <section className="panel queue-panel"><div className="section-heading"><h2>Waiting room · {visits.length} waiting</h2></div>
+    <p className="queue-help">People who may need a check appear first; everyone else in check-in order.</p>
     <div ref={root} className="patient-list">{visits.map(visit => { const alert = activeAlert(state, visit.id); return <QueueRow key={visit.id} visit={visit} vitals={state.vitals[visit.id]} alert={alert} now={now} onSelect={() => onSelect(visit.id)} actions={actions} busy={busy} talking={talkingId === alert?.id} synthetic={synthetic} />; })}</div>
     {!visits.length && <p>No one is waiting yet.</p>}
     {called.length > 0 && <details className="called-list"><summary>With clinician · {called.length}</summary>{called.map(v => <button className="patient-select" key={v.id} onClick={() => onSelect(v.id)}>#{v.queueNo} · {v.name} — {v.room}</button>)}</details>}

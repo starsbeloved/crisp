@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useConversation, type ClientToolsConfig } from '@elevenlabs/react';
 import type { CrispState } from '../../ui/Crisp.tsx';
+import { stripCaptionTags } from './captions.ts';
 
 export function useVoiceAgent(mode: 'checkin' | 'nurse', enabled: boolean, tools: ClientToolsConfig['clientTools']) {
   const [available, setAvailable] = useState(false);
@@ -11,7 +12,7 @@ export function useVoiceAgent(mode: 'checkin' | 'nurse', enabled: boolean, tools
   const currentTools = useRef(tools); currentTools.current = tools;
   const conversation = useConversation({
     onError: () => { setAvailable(false); signed.current = null; endSession(); },
-    onMessage: message => setCaptions(items => [...items.slice(-11), { speaker: message.role === 'user' || message.source === 'user' ? 'You' : 'Crisp', text: message.message }]),
+    onMessage: message => setCaptions(items => [...items.slice(-11), { speaker: message.role === 'user' || message.source === 'user' ? 'You' : 'Crisp', text: stripCaptionTags(message.message) }]),
   });
   const { endSession, getOutputVolume, status, isSpeaking } = conversation;
   useEffect(() => {

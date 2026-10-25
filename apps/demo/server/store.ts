@@ -34,6 +34,10 @@ export class RoomStore {
   }
 
   snapshot(): RoomState {
+    const cutoff = Date.now() - 5 * 60_000;
+    for (const [cameraId, camera] of Object.entries(this.state.cameras)) {
+      if (camera.lastFrameAt <= cutoff) delete this.state.cameras[cameraId];
+    }
     return { ...this.state, serverNow: Date.now() };
   }
 
