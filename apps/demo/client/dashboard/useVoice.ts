@@ -31,7 +31,10 @@ export function alertVoiceItems(alerts: Alert[], replayVisitIds: string[] = []):
     const cue = alert.facts.postureEvents.some(event => event.kind === 'fall') ? 'Fall-like movement detected. ' :
       alert.facts.postureEvents.some(event => event.kind === 'headDrop') ? 'Head below shoulders. ' : '';
     const speech = `${replayVisitIds.includes(alert.visitId) ? 'Replay. ' : ''}${cue}${alert.facts.name}, number ${alert.facts.queueNo}, may need a check.`;
-    const browser = { key: `alert:${alert.id}:${alert.level}:browser`, id: alert.id, url: null, priority: true, interrupt: alert.level === 'red', speech: alert.explanation?.speech ?? speech };
+    const text = alert.explanation?.speech ?? speech, crispUrl = api.speakUrl(text);
+    // In the app every alert is spoken once in Crisp's ElevenLabs voice (browser voice only as fallback).
+    const browser = { key: `alert:${alert.id}:${alert.level}:browser`, id: alert.id, url: crispUrl, priority: true, interrupt: alert.level === 'red', speech: text };
+    if (crispUrl) return [browser];
     const provider = alert.level === 'red' && alert.audio === 'ready' ? [{ key: `alert:${alert.id}:${alert.level}:provider`, id: alert.id,
       url: api.alertAudioUrl(alert.id), speech: alert.explanation?.speech ?? speech, priority: true, fallback: false, expiresAt: alert.openedAt + 5000 }] : [];
     return [browser, ...provider];
@@ -73,12 +76,13 @@ export function useVoice(enabled: boolean, items: VoiceItem[]) {
         if (item.expiresAt !== undefined && item.expiresAt <= Date.now()) { seen.current.add(item.key); currentKey.current = null; setTalkingId(null); return; }
         currentKey.current = item.key;
         seen.current.add(item.key); setTalkingId(item.id); setError('');
-        if (item.url) {
+        const itemUrl = item.url ?? api.speakUrl(item.speech);
+        if (itemUrl) {
           const played = await new Promise<boolean>(resolve => {
             let timeout: ReturnType<typeof setTimeout> | undefined;
             const finish = (result: boolean) => { clearTimeout(timeout); resolve(result); };
             finishCurrent = () => resolve(false);
-            audio = new Audio(item.url!);
+            audio = new Audio(itemUrl);
             audio.preload = 'auto';
             if (typeof audio.setAttribute === 'function') { audio.setAttribute('aria-hidden', 'true'); audio.style.display = 'none'; document.body?.appendChild(audio); }
             audio.onended = () => finish(true);

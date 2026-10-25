@@ -141,6 +141,12 @@ export function createAppServer(options: { dataDir?: string | null; apiPort?: nu
       const call = { id: randomUUID(), visitId: visit.id, name: visit.name, queueNo: visit.queueNo, room, at: now, audio: 'pending' as const };
       store.state.nowCalling = call; store.changed(); json(response, 200, call); void orchestrator.onCall(call, visit); return;
     }
+    if (method === 'GET' && path === '/api/speak') {
+      const text = (url.searchParams.get('text') ?? '').trim().slice(0, 300);
+      const bytes = text ? await (await import('./providers/elevenlabs.ts')).speak(text, 'crisp') : null;
+      if (!bytes) { json(response, 404, { error: 'Audio unavailable' }); return; }
+      response.writeHead(200, { 'Content-Type': 'audio/mpeg', 'Cache-Control': 'private, max-age=3600' }); response.end(bytes); return;
+    }
     const audio = path.match(/^\/api\/(alerts|calls)\/([^/]+)\/audio$/);
     if (method === 'GET' && audio) {
       const bytes = audio[1] === 'alerts' ? orchestrator.getAlertAudio(audio[2]) : orchestrator.getCallAudio(audio[2]);

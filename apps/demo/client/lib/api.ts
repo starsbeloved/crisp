@@ -24,6 +24,8 @@ export const api = {
   callIn: (id: string, room: string) => request<NowCalling>(`/visits/${encodeURIComponent(id)}/call-in`, { room }),
   alertAudioUrl: (id: string) => `/api/alerts/${encodeURIComponent(id)}/audio`,
   callAudioUrl: (id: string) => `/api/calls/${encodeURIComponent(id)}/audio`,
+  /** Crisp's ElevenLabs voice for any short announcement (server caches each sentence). */
+  speakUrl: (text: string): string | null => import.meta.env.MODE === 'test' ? null : `/api/speak?text=${encodeURIComponent(text.slice(0, 300))}`,
   followUp: (answers: CheckInAnswers) => request<{ question: string; source: ProviderSource }>('/checkin/follow-up', { answers }),
   ask: (question: string) => request<{ answer: string; source: ProviderSource }>('/ask', { question }),
   signedUrl: (mode: 'checkin' | 'nurse') => request<{ signedUrl: string }>(`/agent/signed-url?mode=${mode}`),

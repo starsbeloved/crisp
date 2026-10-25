@@ -1,3 +1,4 @@
+import { api } from '../lib/api.ts';
 import { useEffect, useRef, useState } from 'react';
 import { parseExamCommand, type ExamCommand } from './model.ts';
 
@@ -45,6 +46,28 @@ export function useDoctorVoice(enabled: boolean, onCommand: (command: ExamComman
   }, [enabled]);
   useEffect(() => () => { if (speaking.current) window.speechSynthesis?.cancel(); }, []);
   function speak(text: string) {
+    const crispUrl = enabled ? api.speakUrl(text) : null;
+    if (crispUrl) {
+      // Crisp's ElevenLabs voice first; the browser voice only if it is unavailable.
+      window.speechSynthesis?.cancel();
+      speaking.current = true; recognition.current?.abort();
+      const finish = () => { speaking.current = false; try { recognition.current?.start(); } catch { /* onend also restarts the listener */ } };
+      const audio = new Audio(crispUrl);
+      let done = false;
+      const browser = () => {
+        if (done) return; done = true; clearTimeout(timer);
+        if (!window.speechSynthesis || !window.SpeechSynthesisUtterance) { finish(); return; }
+        const utterance = new SpeechSynthesisUtterance(text); utterance.lang = 'en-US';
+        utterance.onend = finish; utterance.onerror = finish;
+        window.speechSynthesis.speak(utterance);
+      };
+      const timer = setTimeout(() => { audio.pause(); browser(); }, 3000);
+      audio.onplaying = () => clearTimeout(timer);
+      audio.onended = () => { if (!done) { done = true; clearTimeout(timer); finish(); } };
+      audio.onerror = browser;
+      void audio.play().catch(browser);
+      return;
+    }
     if (!enabled || !window.speechSynthesis || !window.SpeechSynthesisUtterance) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text); utterance.lang = 'en-US';
