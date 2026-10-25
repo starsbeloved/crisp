@@ -14,11 +14,29 @@ export function CameraPage() {
   const [replay, setReplay] = useState<string | null>(replaySource);
   const [filename, setFilename] = useState(() => replaySource()?.split('/').pop() ?? null);
   const cam = (new URLSearchParams(location.search).get('cam') || 'A').slice(0, 80);
-  const privacy = new URLSearchParams(location.search).get('privacy') === '1';
+  const privacy = new URLSearchParams(location.search).get('privacy') !== '0';
   const [deviceId, setDeviceId] = useState(() => { try { return localStorage.getItem(`crisp-camera-${cam}`) || ''; } catch { return ''; } });
   const [selectedTrack, setSelectedTrack] = useState<string | null>(null);
   const [correctionError, setCorrectionError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [demoView, setDemoView] = useState(() => new URLSearchParams(location.search).get('demo') === '1');
+  const [settings, setSettings] = useState(false);
+  const demoButton = useRef<HTMLButtonElement>(null);
+  const settingsButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!demoView) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const header = document.querySelector<HTMLElement>('#root > header');
+    if (header) header.inert = true;
+    function escape(event: KeyboardEvent) {
+      if (event.key !== 'Escape') return;
+      if (settings) { setSettings(false); settingsButton.current?.focus(); }
+      else { setDemoView(false); demoButton.current?.focus(); }
+    }
+    window.addEventListener('keydown', escape);
+    return () => { document.body.style.overflow = previous; if (header) header.inert = false; window.removeEventListener('keydown', escape); };
+  }, [demoView, settings]);
   const { ready, message, devices } = useCameraSource(video, cam, replay, deviceId);
   const vision = useVision(video, canvas, { ready, cam, replayName: replay ? filename || 'local video' : null, state, privacy });
   useEffect(() => () => { if (replay?.startsWith('blob:')) URL.revokeObjectURL(replay); }, [replay]);
@@ -35,7 +53,9 @@ export function CameraPage() {
     } catch { setCorrectionError('Could not save correction. Try again.'); }
     finally { setSaving(false); }
   }
-  return <div className="camera-page"><div className="camera-page-heading"><div><p className="camera-eyebrow">Crisp · room processing</p><h1>Room camera</h1><p>Camera {cam} · {connected ? 'Connected' : 'Connecting…'}</p></div><Chip className={replay ? 'camera-replay-chip' : 'camera-live-chip'}>{replay ? 'REPLAY' : 'LIVE'}</Chip></div><Card className="camera-card">
+  return <div className={`camera-page${demoView ? ' camera-demo-view' : ''}`}><div className="camera-page-heading"><div><p className="camera-eyebrow">Crisp · room camera</p><h1>Room camera <span className="camera-id">{cam}</span></h1><p>{connected ? 'Connected to the waiting room' : 'Connecting to the waiting room…'}</p></div><div className="camera-view-actions"><Chip className={replay ? 'camera-replay-chip' : 'camera-live-chip'}>{replay ? 'REPLAY' : 'LIVE'}</Chip><button ref={demoButton} className="secondary" aria-pressed={demoView} onClick={() => { setDemoView(value => !value); setSettings(false); }}>{demoView ? 'Exit demo view' : 'Demo view'}</button><button ref={settingsButton} className="secondary camera-settings-toggle" aria-label="Camera settings" aria-expanded={settings} aria-controls="camera-settings" onClick={() => setSettings(value => !value)}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="m9 3-1 3-3 1-2 3 2 2-1 3 3 3 3-1 2 2 3-1 1-3 3-1 1-3-2-2 1-3-3-2-3 1-2-2Z" /><circle cx="12" cy="11" r="3" /></svg></button></div></div><Card className="camera-card">
+    <div id="camera-settings" className="camera-settings" hidden={!settings}>
+      <h2>Camera settings</h2>
     <div className="camera-controls">
       <label>Camera source<select aria-label="Camera source" value={deviceId} onChange={event => { setDeviceId(event.target.value); setReplay(null); setFilename(null); }} style={{ display: 'block', minHeight: 44, maxWidth: 320 }}>
         <option value="">Default camera</option>{devices.map((device, i) => <option key={device.deviceId || i} value={device.deviceId}>{device.label || `Camera ${i + 1}`}</option>)}
@@ -46,23 +66,28 @@ export function CameraPage() {
       }} /></label>
       {replay && <button onClick={() => { setReplay(null); setFilename(null); setSelectedTrack(null); }}>Use live camera</button>}
     </div>
-    <div className="camera-status"><Chip>{replay ? `REPLAY: ${filename}` : 'LIVE'}</Chip><Chip>{vision.stats.fps.toFixed(1)} fps</Chip><Chip>{vision.stats.count} faces</Chip>{privacy && <Chip>Unknown faces blurred</Chip>}</div>
-    <p role="status">{message} · {vision.models} · {vision.poseStatus}</p>
-    <video ref={video} muted playsInline autoPlay className="source-video" aria-label="Camera source video" />
-    <canvas ref={canvas} className="camera-canvas" aria-label="Face detection overlay" onClick={event => {
-      const element = canvas.current; if (!element) return;
-      const bounds = element.getBoundingClientRect();
-      const x = (event.clientX - bounds.left) * element.width / bounds.width, y = (event.clientY - bounds.top) * element.height / bounds.height;
-      const track = vision.tracker.current.current(performance.now()).find(item => x >= item.face.box.x && x <= item.face.box.x + item.face.box.w && y >= item.face.box.y && y <= item.face.box.y + item.face.box.h);
-      setSelectedTrack(track?.id ?? null); setCorrectionError('');
-    }} />
     <details className="camera-correction"><summary>Staff identity correction</summary><p>Click a face box, then choose the waiting patient.</p>
       {selectedTrack && <p>Selected {selectedTrack}</p>}
       <div className="actions" style={{ flexWrap: 'wrap' }}>{state?.visits.filter(visit => visit.status === 'waiting').map(visit => <button key={visit.id} disabled={!selectedTrack || saving} onClick={() => void correct(visit.id)}>{visit.name} · #{visit.queueNo}</button>)}</div>
       {!state?.visits.some(visit => visit.status === 'waiting') && <p>No waiting visits.</p>}
       {correctionError && <p role="alert">{correctionError}</p>}
     </details>
+      <p className="camera-technical">{vision.models} · {vision.poseStatus}</p>
+    </div>
+    <div className="camera-status"><Chip>{replay ? `REPLAY · ${filename}` : 'LIVE'}</Chip><Chip>{vision.stats.count} {vision.stats.count === 1 ? 'face' : 'faces'}</Chip>{privacy && <Chip>Unknown faces blurred</Chip>}</div>
+    <p className="camera-source-message" role="status">{message}</p>
+    <video ref={video} muted playsInline autoPlay className="source-video" aria-label="Camera source video" />
+    <div className="camera-stage"><canvas ref={canvas} className="camera-canvas" aria-label="Face detection overlay" onClick={event => {
+      const element = canvas.current; if (!element) return;
+      const bounds = element.getBoundingClientRect();
+      // The demo view letterboxes the canvas; keep face clicks aligned with the displayed image.
+      const scale = Math.min(bounds.width / element.width, bounds.height / element.height);
+      const insetX = (bounds.width - element.width * scale) / 2, insetY = (bounds.height - element.height * scale) / 2;
+      const x = (event.clientX - bounds.left - insetX) / scale, y = (event.clientY - bounds.top - insetY) / scale;
+      const track = vision.tracker.current.current(performance.now()).find(item => x >= item.face.box.x && x <= item.face.box.x + item.face.box.w && y >= item.face.box.y && y <= item.face.box.y + item.face.box.h);
+      setSelectedTrack(track?.id ?? null); setCorrectionError('');
+    }} /></div>
     {vision.error && <p role="alert">{vision.error}</p>}
-    <p>{state?.cameras[cam] ? `Streaming · ${state.cameras[cam].fps.toFixed(1)} fps` : 'Waiting for frames'} · Camera estimates; not a diagnosis.</p>
+    <p className="camera-footnote">{state?.cameras[cam] ? `Streaming · ${state.cameras[cam].fps.toFixed(1)} fps` : 'Waiting for frames'} · Heart and breathing readings are camera estimates.</p>
   </Card></div>;
 }

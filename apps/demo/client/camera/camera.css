@@ -25,3 +25,27 @@
   .camera-controls { align-items: stretch; flex-direction: column; }
   .camera-controls select, .camera-controls input { width: 100%; }
 }
+
+.camera-view-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.camera-id { color: var(--c-text-2); font-weight: 400; }
+.camera-settings-toggle { padding: 10px; width: 44px; flex: none; }
+.camera-settings { position: absolute; z-index: 8; top: 100px; right: 24px; width: min(520px, calc(100vw - 48px)); max-height: calc(100dvh - 140px); overflow: auto; padding: 24px; border: 1px solid var(--c-border); border-radius: var(--r-panel); background: var(--c-surface); box-shadow: var(--shadow-bubble); }
+.camera-settings[hidden] { display: none; }
+.camera-settings h2 { margin: 0 0 20px; font-size: 20px; }
+.camera-settings .camera-controls { align-items: stretch; flex-direction: column; }
+.camera-settings .camera-controls input, .camera-settings .camera-controls select { width: 100%; max-width: 100%; }
+.camera-technical { font-size: 13px; }
+.camera-page .camera-source-message { margin: 12px 0; font-size: 16px; }
+.camera-stage { display: grid; place-items: center; min-width: 0; border-radius: var(--r-control); background: var(--c-text); }
+.camera-demo-view { position: fixed; z-index: 30; inset: 0; display: flex; flex-direction: column; padding: 24px 32px; background: var(--c-canvas); overflow: auto; }
+.camera-demo-view .camera-page-heading { margin-bottom: 16px; }
+.camera-demo-view .camera-page-heading h1 { font-size: 40px; }
+.camera-demo-view .camera-eyebrow { display: none; }
+.camera-demo-view .camera-card { display: flex; flex: 1; min-height: 0; flex-direction: column; padding: 16px 20px; }
+.camera-demo-view .camera-status { margin: 0; }
+.camera-demo-view .camera-status .chip { font-size: 17px; min-height: 38px; }
+.camera-demo-view .camera-stage { flex: 1; min-height: 160px; }
+.camera-demo-view .camera-canvas { width: 100%; height: calc(100dvh - 270px); object-fit: contain; }
+.camera-demo-view .camera-footnote { margin-bottom: 0; }
+@media (max-width: 760px) { .camera-demo-view { padding: 16px; } .camera-demo-view .camera-page-heading { flex-direction: row; flex-wrap: wrap; } .camera-demo-view .camera-page-heading h1 { font-size: 28px; } }
+@media (prefers-reduced-motion: reduce) { .camera-page * { transition: none !important; animation: none !important; } }
