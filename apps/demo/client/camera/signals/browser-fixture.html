@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>P13d sensing verification — SYNTHETIC</title>
+<style>
+  body { max-width: 960px; margin: 32px auto; padding: 0 20px; font: 16px/1.6 system-ui; color: #202520; }
+  h1 { font-size: 26px; } strong { background: #fff0b3; padding: 4px 8px; }
+  pre { white-space: pre-wrap; padding: 16px; background: #f1f4f0; border-radius: 8px; }
+</style>
+<h1>P13d sensing verification</h1>
+<p><strong>SYNTHETIC — fictional signal inputs, no webcam or patient data</strong></p>
+<p>This developer fixture runs the production signal and sampling modules in your browser.
+  It does not establish camera accuracy. Camera banner wiring and engine thresholds require integration.</p>
+<h2 id="summary">Running…</h2>
+<pre id="results"></pre>
+<h2>Retained camera estimate example (SYNTHETIC)</h2>
+<p id="retained"></p>
+<script type="module">
+  import { createSignalTracker, signalDisplayLabel } from './index.ts';
+  import { cheekPatches, meanCheekSample } from '../sampling.ts';
+  const output = document.querySelector('#results');
+  const checks = [];
+  function check(name, pass, evidence) { checks.push({ name, pass, evidence }); }
+  function face(t) {
+    const p = Math.sin(2 * Math.PI * 1.2 * t / 1000);
+    return { t, rgb: [120 + .35 * p, 100 + 1.2 * p, 80 + .1 * p], brightness: 100, faceWidthPx: 150 };
+  }
+  function pose(t, head = 0, shift = 0, lateral = 0) {
+    const landmarks = Array.from({ length: 33 }, () => ({ x: .5, y: .5, z: 0, visibility: 1 }));
+    landmarks[0] = { x: .5, y: .2 + head + shift, z: 0, visibility: 1 };
+    landmarks[11] = { x: .4 + lateral, y: .4 + shift, z: 0, visibility: 1 };
+    landmarks[12] = { x: .6 + lateral, y: .4 + shift, z: 0, visibility: 1 };
+    landmarks[23] = { x: .43, y: .7 + shift, z: 0, visibility: 1 };
+    landmarks[24] = { x: .57, y: .7 + shift, z: 0, visibility: 1 };
+    return { t, landmarks };
+  }
+  try {
+    const tracker = createSignalTracker();
+    for (let t = 0; t <= 15_000; t += 40) { tracker.pushFace(face(t)); if (t % 1000 === 0) tracker.read(t); }
+    const live = tracker.read(15_000);
+    check('Current HR estimates a 72 bpm color fixture', Math.abs(live.hrBpm - 72) < 1, live.hrBpm);
+    tracker.pushFace({ ...face(15_040), brightness: 30 });
+    const dark = tracker.read(15_040);
+    check('Dark input never publishes cached HR as current', dark.hrBpm === null && dark.hrQuality === 'low', dark.hrQuality);
+    check('Brief drop preserves display quality only', dark.hrDisplay.quality === 'good' && dark.hrDisplay.retained, dark.hrDisplay.label);
+    check('Display drops after 3 s', tracker.read(18_040).hrDisplay.quality === 'low', tracker.read(18_040).hrDisplay.quality);
+    const retained = tracker.read(27_000);
+    document.querySelector('#retained').textContent = signalDisplayLabel(retained);
+    check('Retained HR reports actual 12 s age', retained.hrDisplay.ageSeconds === 12, retained.hrDisplay.label);
+    check('HR expires after 30 s', tracker.read(45_001).hrDisplay.bpm === null, tracker.read(45_001).hrDisplay.label);
+    tracker.reset();
+    check('Reset clears display cache', tracker.read(46_000).hrDisplay.bpm === null, signalDisplayLabel(tracker.read(46_000)));
+
+    const recovery = createSignalTracker();
+    for (let t = 0; t <= 15_000; t += 40) { recovery.pushFace(face(t)); if (t % 1000 === 0) recovery.read(t); }
+    recovery.read(17_000); recovery.read(20_000);
+    let before;
+    for (let t = 20_040; t <= 33_040; t += 40) { recovery.pushFace(face(t)); const r = recovery.read(t); if (t === 33_000) before = r.hrDisplay.quality; }
+    check('Display requires 3 s recovery evidence', before === 'low' && recovery.read(33_040).hrDisplay.quality === 'good', recovery.read(33_040).hrDisplay.label);
+
+    const landmarks = Array.from({ length: 68 }, () => ({ x: 50, y: 50 }));
+    Object.assign(landmarks, { 19: { x: 30, y: 32 }, 24: { x: 70, y: 32 }, 36: { x: 25, y: 40 },
+      45: { x: 75, y: 40 }, 31: { x: 44, y: 60 }, 35: { x: 56, y: 60 }, 33: { x: 50, y: 65 },
+      48: { x: 38, y: 80 }, 54: { x: 62, y: 80 } });
+    const detected = { box: { x: 10, y: 10, w: 80, h: 80 }, landmarks, score: 1, descriptor: [] };
+    const patches = cheekPatches(detected), canvas = document.createElement('canvas'); canvas.width = canvas.height = 100;
+    const context = canvas.getContext('2d'); context.fillStyle = 'rgb(100,100,80)'; context.fillRect(0, 0, 100, 100);
+    context.fillStyle = 'rgb(200,100,80)'; context.fillRect(0, 0, 100, 32);
+    const sampled = meanCheekSample(context.getImageData(0, 0, 100, 100), detected, 100, 100, 0, 100);
+    check('Real canvas sampling includes forehead pixels', patches.length === 3 && sampled.rgb[0] > 100 && sampled.rgb[0] < 200, sampled.rgb);
+
+    const breathing = createSignalTracker(), sway = createSignalTracker();
+    for (let t = 0; t <= 35_000; t += 40) {
+      const shift = .002 * Math.sin(2 * Math.PI * .25 * t / 1000);
+      breathing.pushPose(pose(t, 0, shift));
+      sway.pushPose(pose(t, 0, shift, .02 * Math.sin(2 * Math.PI * 1.5 * t / 1000)));
+      if (t % 1000 === 0) { breathing.read(t); sway.read(t); }
+    }
+    check('Still shoulders estimate 15 breaths/min', Math.abs(breathing.read(35_000).rrBpm - 15) < 1, breathing.read(35_000).rrBpm);
+    check('Shoulder sway withholds breathing', sway.read(35_000).rrBpm === null, signalDisplayLabel(sway.read(35_000)));
+    const hidden = pose(35_040); hidden.landmarks[11].visibility = .1; breathing.pushPose(hidden);
+    check('Hidden shoulder clears breathing immediately', breathing.read(35_040).rrBpm === null, signalDisplayLabel(breathing.read(35_040)));
+
+    const posture = createSignalTracker();
+    for (let t = 0; t <= 11_000; t += 40) posture.pushPose(pose(t));
+    for (let t = 11_040; t <= 14_040; t += 40) posture.pushPose(pose(t, .05));
+    const bend = posture.read(14_040).posture.slumpSec;
+    posture.pushPose(pose(14_080));
+    check('A 3 s bend recovers without reaching 8 s slump', bend === 3 && posture.read(14_080).posture.slumpSec === 0, bend);
+    const fall = createSignalTracker(); fall.pushPose(pose(0)); fall.pushPose(pose(500, 0, .28));
+    check('Rapid fall cue arrives within 1 s', fall.read(500).posture.fallSuspected === true, fall.read(500).posture);
+  } catch (error) { check('Browser execution', false, String(error)); }
+  output.textContent = checks.map(c => `${c.pass ? 'PASS' : 'FAIL'} ${c.name}\n  ${JSON.stringify(c.evidence)}`).join('\n\n');
+  document.querySelector('#summary').textContent = `${checks.filter(c => c.pass).length}/${checks.length} browser checks passed`;
+</script>
+</html>

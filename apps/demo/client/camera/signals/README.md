@@ -42,6 +42,40 @@ existing camera banner therefore still uses its old wording and head-drop/slump 
 the two wiring changes above land. Synthetic tests/browser fixtures validate software behavior, not
 camera accuracy; real camera/reference rehearsal is still required.
 
+### P13d verification and handoff
+
+- Baseline: 138 tests passed; TypeScript passed. After P13d: **149 tests passed**, including 11 new
+  regressions in `robustness.test.ts`; TypeScript and `git diff --check` passed.
+- Test-first reproduction: 7 new checks failed on the original implementation (missing display retention,
+  missing forehead pixels, and a false breathing estimate during shoulder sway); implementation passed them.
+  The observation-boundary test confirms cached HR metadata never enters `makeObservation` output.
+- Actual Chrome on `http://localhost:5203/client/camera/signals/browser-fixture.html`: **14/14 passed**.
+  The reproducible fixture visibly labels **SYNTHETIC**. It measures 72.003 bpm from generated RGB and
+  15.000 breaths/min from generated shoulders, samples a real canvas, checks the 3 s display drop/recovery,
+  the 12 s aged label, 30 s expiry, reset, sway/occlusion rejection, bend recovery and a fall cue at 0.5 s.
+- `npm run build` passed. Existing large-bundle warning remains (main chunk exceeds 500 kB).
+- `npm install` completed, audit reported zero vulnerabilities. npm warned that install scripts for
+  `@google/genai`, `fsevents`, and `protobufjs` were not approved; no approval setting was changed.
+- `API_PORT=8803 WEB_PORT=5203 PROVIDERS_ENV=/dev/null npm run dev` hit `EMFILE` in watch mode.
+  Verification used separate processes, both with `API_PORT=8803 WEB_PORT=5203 PROVIDERS_ENV=/dev/null`:
+  `node server/main.ts` and `CHOKIDAR_USEPOLLING=1 npm run dev:client`. No provider credentials were read
+  from the private file and no provider requests were made by the browser fixture.
+- Review: local diff/ownership self-review; no callable subagent tool was available in this session.
+  No routes or shared types changed. P13d's two integration requests above remain outstanding.
+
+### Human checks
+
+- After the integrator wires the label, test a still face against the reference device in filming light.
+  Cover the face: the display must show the aged last estimate, expire at 30 s, and never create HR alerts
+  from that cached value. Check 3 s quality drop/recovery and reset on identity/source changes.
+- Hide a shoulder or move: breathing must be `not measured`. Still visible pose must recollect a fresh
+  20 s window; do not assume an accurate breathing rate from the synthetic tests.
+- After the integrator wires config and boundary tests, rehearse a safe staged fall (red within 1–2 s),
+  head below shoulders (red after 3 s), sustained slump (8 s), and a brief bend that fully recovers.
+  Do not treat these motion cues or camera estimates as a diagnosis or interpretation.
+- Rehearse actual REPLAY video and recognition on the filming laptops; this session used synthetic signal
+  fixtures, not a webcam, reference device, face-recognition video, or a full three-laptop rehearsal.
+
 ## Input contract for P2 / integrator
 
 - One tracker per recognized track/visit. **All `t` values and `read(now)` use the same millisecond clock.**
