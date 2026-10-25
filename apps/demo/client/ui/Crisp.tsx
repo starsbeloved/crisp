@@ -3,18 +3,19 @@ import { useId, type CSSProperties, type JSX } from 'react';
 export type CrispState = 'idle' | 'listening' | 'thinking' | 'talking' | 'happy' | 'pointing';
 export const CRISP_NAME = 'Crisp';
 
-type Arm = { path: string; wrist: string };
+type Point = readonly [number, number];
+type Arm = { shoulder: Point; bend: Point; wrist: Point; hand?: 'open' | 'rest'; front?: boolean };
 type Pose = { left: Arm; right: Arm; pupil: string; lean?: string; open?: boolean };
-const downLeft: Arm = { path: 'M62 144 C42 154 37 169 43 184', wrist: 'translate(43 184) rotate(170)' };
-const downRight: Arm = { path: 'M218 144 C238 154 243 169 237 184', wrist: 'translate(237 184) rotate(-170)' };
-const hip: Arm = { path: 'M218 149 C248 158 247 187 217 188', wrist: 'translate(217 188) rotate(80)' };
+const downLeft: Arm = { shoulder: [61, 143], bend: [27, 165], wrist: [40, 192] };
+const downRight: Arm = { shoulder: [219, 143], bend: [253, 165], wrist: [240, 192] };
+const hip: Arm = { shoulder: [218, 143], bend: [269, 151], wrist: [232, 179] };
 const poses: Record<CrispState, Pose> = {
   idle: { left: downLeft, right: downRight, pupil: 'translate(0 0)' },
-  happy: { left: { path: 'M62 143 C32 141 23 119 29 99', wrist: 'translate(29 99) rotate(-8)' }, right: hip, pupil: 'translate(0 -2)', open: true },
-  listening: { left: downLeft, right: { path: 'M218 134 C241 124 246 104 238 92', wrist: 'translate(238 92) rotate(8)' }, pupil: 'translate(3 -1)', lean: 'rotate(4 140 267)' },
-  thinking: { left: { path: 'M62 150 C38 166 45 188 70 190', wrist: 'translate(70 190) rotate(-80)' }, right: { path: 'M218 150 C238 178 210 204 181 196', wrist: 'translate(181 196) rotate(-66)' }, pupil: 'translate(3 -6)', lean: 'rotate(-3 140 267)' },
-  talking: { left: { path: 'M62 140 C38 132 26 113 32 97', wrist: 'translate(32 97) rotate(-20)' }, right: downRight, pupil: 'translate(0 1)', open: true },
-  pointing: { left: { path: 'M62 150 C39 164 45 188 70 190', wrist: 'translate(70 190) rotate(-80)' }, right: { path: 'M218 140 C230 137 241 133 249 132', wrist: 'translate(249 132) rotate(84)' }, pupil: 'translate(4 0)', open: true },
+  happy: { left: { shoulder: [62, 142], bend: [15, 150], wrist: [28, 104], hand: 'open' }, right: hip, pupil: 'translate(0 -2)', open: true },
+  listening: { left: downLeft, right: { shoulder: [218, 145], bend: [270, 153], wrist: [258, 111], hand: 'open' }, pupil: 'translate(3 -1)', lean: 'rotate(4 140 267)' },
+  thinking: { left: downLeft, right: { shoulder: [218, 150], bend: [260, 226], wrist: [178, 194], front: true }, pupil: 'translate(3 -6)', lean: 'rotate(-3 140 267)' },
+  talking: { left: { shoulder: [62, 145], bend: [14, 170], wrist: [20, 151], hand: 'open' }, right: downRight, pupil: 'translate(0 1)', open: true },
+  pointing: { left: downLeft, right: { shoulder: [218, 143], bend: [236, 141], wrist: [258, 141], hand: 'open' }, pupil: 'translate(4 0)', open: true },
 };
 
 /** Crisp's existing six states, drawn as a warm, vintage cartoon apple. */
@@ -41,7 +42,7 @@ export function Crisp({ state = 'idle', size = 96, level = 0 }: { state?: CrispS
     <g key={state} className="crisp-arrive"><g transform={pose.lean}>
       <g fill="none" stroke="var(--c-crisp-ink)" strokeWidth="4" strokeLinecap="round"><path d="M124 207 L117 253" /><path d="M156 207 L163 253" /></g>
       <Shoe /><g transform="translate(280 0) scale(-1 1)"><Shoe /></g>
-      {[pose.left, pose.right].map((arm, i) => <g key={i} fill="none" strokeLinecap="round"><path d={arm.path} stroke="var(--c-crisp-ink)" strokeWidth="7" /><path d={arm.path} stroke="var(--c-crisp-body)" strokeWidth="3.5" /></g>)}
+      {[pose.left, pose.right].map((arm, i) => !arm.front && <ArmStroke key={i} arm={arm} />)}
       <path d="M140 62 C116 46 89 54 72 76 C49 103 49 153 69 183 C85 208 113 222 140 214 C167 222 195 208 211 183 C231 153 231 103 208 76 C191 54 164 46 140 62 Z" fill="var(--c-crisp-body)" stroke="var(--c-crisp-ink)" strokeWidth="3" strokeLinejoin="round" />
       <path d="M211 96 C224 142 206 193 164 209 C196 182 209 142 211 96Z" fill="var(--c-crisp-shade)" />
       <path d="M78 91 Q86 72 104 68" fill="none" stroke="var(--c-crisp-cream)" strokeWidth="4" strokeLinecap="round" opacity=".55" />
@@ -63,8 +64,10 @@ export function Crisp({ state = 'idle', size = 96, level = 0 }: { state?: CrispS
         <path d="M-20-1 Q0 6 20-1 Q0 12-20-1Z" fill="var(--c-crisp-cream)" />
         {pose.open && <path d="M-10 18 Q0 10 10 18 Q0 25-10 18Z" fill="var(--c-crisp-shade)" />}
       </g></g>}
-      <g transform={pose.left.wrist}><Glove /></g>
-      <g transform={pose.right.wrist}><Glove /></g>
+      {[pose.left, pose.right].map((arm, i) => <g key={i}>
+        {arm.front && <ArmStroke arm={arm} />}
+        <Hand arm={arm} mirror={i === 0} />
+      </g>)}
       {state === 'thinking' && <g className="crisp-thought" fill="var(--c-text-2)"><circle cx="225" cy="71" r="3" /><circle cx="240" cy="54" r="4.5" /><circle cx="259" cy="36" r="6" /></g>}
       {state === 'listening' && <g fill="none" stroke="var(--c-leaf)" strokeWidth="2.5" strokeLinecap="round"><path d="M259 73 Q268 86 259 99M271 64 Q285 86 271 108" /></g>}
     </g></g>
@@ -75,11 +78,24 @@ function Shoe() {
   return <g fill="var(--c-crisp-shade)" stroke="var(--c-crisp-ink)" strokeWidth="2.5" strokeLinejoin="round"><path d="M108 251 Q117 246 122 253 L123 267 Q111 271 86 269 Q82 259 103 257Z" /><path d="M85 266 Q103 267 123 265 L123 272 L85 272Z" fill="var(--c-crisp-body)" /><path d="M105 255 Q110 252 115 254" fill="none" stroke="var(--c-crisp-cream)" strokeWidth="2" strokeLinecap="round" /></g>;
 }
 
-/** The cuff overlaps the arm endpoint at (0, 0); no independent hand transforms. */
-function Glove() {
-  return <g fill="var(--c-crisp-cream)" stroke="var(--c-crisp-ink)" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M-10-10 C-16-14-20-20-23-25 C-26-31-21-35-17-30 L-12-25 L-17-38 C-19-45-12-48-9-41 L-5-30 L-6-45 C-6-52 2-52 3-45 L4-30 L8-42 C10-49 18-46 16-39 L13-27 L19-33 C24-38 30-32 25-27 L16-14 Q14-10 10-9Z" />
-    <path d="M-10-23 Q-2-26 2-18 M-3-13 Q3-16 9-14" fill="none" strokeWidth="1.6" />
-    <path d="M-11-10 Q0-7 11-10 L12 2 Q0 6-12 2Z" />
+function ArmStroke({ arm: { shoulder, bend, wrist } }: { arm: Arm }) {
+  const path = `M${shoulder.join(' ')} Q${bend.join(' ')} ${wrist.join(' ')}`;
+  return <g fill="none" strokeLinecap="round"><path d={path} stroke="var(--c-crisp-ink)" strokeWidth="7" /><path d={path} stroke="var(--c-crisp-body)" strokeWidth="3.5" /></g>;
+}
+
+/** One wrist coordinate and the forearm's tangent place both the cuff and palm. */
+function Hand({ arm: { wrist, bend, hand = 'rest' }, mirror }: { arm: Arm; mirror: boolean }) {
+  const angle = Math.atan2(wrist[1] - bend[1], wrist[0] - bend[0]) * 180 / Math.PI + 90;
+  return <g transform={`translate(${wrist.join(' ')}) rotate(${angle}) scale(${mirror ? -.8 : .8} .8)`}>
+    <g fill="var(--c-crisp-cream)" stroke="var(--c-crisp-ink)" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+      {hand === 'open' ? <>
+        <path d="M-10-10 C-16-14-20-20-23-25 C-26-31-21-35-17-30 L-12-25 L-17-38 C-19-45-12-48-9-41 L-5-30 L-6-45 C-6-52 2-52 3-45 L4-30 L8-42 C10-49 18-46 16-39 L13-27 L19-33 C24-38 30-32 25-27 L16-14 Q14-10 10-9Z" />
+        <path d="M-10-23 Q-2-26 2-18 M-3-13 Q3-16 9-14" fill="none" strokeWidth="1.6" />
+      </> : <>
+        <path d="M-9-8 C-14-12-16-18-12-22 Q-9-24-6-20 L-7-27 Q-6-32-1-29 Q3-33 6-29 Q11-30 13-25 Q18-24 15-16 L9-8Z" />
+        <path d="M-6-20 Q-1-17 0-13 M-1-27 0-22 M5-27 6-22 M11-24 11-20" fill="none" strokeWidth="1.6" />
+      </>}
+      <path d="M-11-10 Q0-7 11-10 L12 2 Q0 6-12 2Z" />
+    </g>
   </g>;
 }
