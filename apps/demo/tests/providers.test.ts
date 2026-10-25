@@ -27,6 +27,68 @@ beforeEach(() => {
   transport.config = { GEMINI_API_KEY: 'fake-test-key', GEMINI_MODEL: 'gemini-test-flash' };
   vi.spyOn(console, 'info').mockImplementation(() => {});
 });
+
+describe('P6 ElevenLabs audio', () => {
+  it('requests MP3 with the configured model and caches identical speech', async () => {
+    transport.config = { ELEVENLABS_API_KEY: 'fake-tts-key', ELEVENLABS_VOICE_ID: 'default-voice', ELEVENLABS_MODEL_ID: 'test-model', ELEVENLABS_CRISP_VOICE_ID: 'apple-voice' };
+    const request = vi.fn().mockResolvedValue(new Response(new Uint8Array([0x49, 0x44, 0x33, 1]), { headers: { 'content-type': 'audio/mpeg' } }));
+    vi.stubGlobal('fetch', request);
+    const p = await providers();
+    expect(await p.speak('Ama, number 3, may need a check.', 'alert')).toEqual(new Uint8Array([0x49, 0x44, 0x33, 1]));
+    await p.speak('Ama, number 3, may need a check.', 'alert');
+    expect(request).toHaveBeenCalledTimes(1);
+    const [url, init] = request.mock.calls[0];
+    expect(url).toBe('https://api.elevenlabs.io/v1/text-to-speech/default-voice?output_format=mp3_44100_128');
+    expect(JSON.parse(init.body)).toMatchObject({ text: 'Ama, number 3, may need a check.', model_id: 'test-model' });
+    expect(init.headers['xi-api-key']).toBe('fake-tts-key');
+    // A fresh response body for the second voice request.
+    request.mockResolvedValue(new Response(new Uint8Array([0x49, 0x44, 0x33, 2]), { headers: { 'content-type': 'audio/mpeg' } }));
+    await p.speak('Ama, number 3, please come to room 2.', 'crisp');
+    expect(request.mock.calls[1][0]).toContain('/apple-voice?');
+  });
+
+  it('uses the default voice when no Crisp override exists', async () => {
+    transport.config = { ELEVENLABS_API_KEY: 'fake-tts-key', ELEVENLABS_VOICE_ID: 'default-voice' };
+    const request = vi.fn().mockResolvedValue(new Response(new Uint8Array([0x49, 0x44, 0x33, 1]), { headers: { 'content-type': 'audio/mpeg' } }));
+    vi.stubGlobal('fetch', request);
+    expect(await (await providers()).speak('Ama, please come to room 2.', 'crisp')).not.toBeNull();
+    expect(request.mock.calls[0][0]).toContain('/default-voice?');
+  });
+
+  it('returns null without keys, for blank speech or for an HTTP 429 with no retry', async () => {
+    transport.config = {};
+    const request = vi.fn().mockResolvedValue(new Response('{}', { status: 429 }));
+    vi.stubGlobal('fetch', request);
+    const p = await providers();
+    expect(await p.speak('Hello', 'alert')).toBeNull();
+    expect(request).not.toHaveBeenCalled();
+    transport.config = { ELEVENLABS_API_KEY: 'fake-tts-key', ELEVENLABS_VOICE_ID: 'default-voice' };
+    expect(await p.speak('   ', 'alert')).toBeNull();
+    expect(request).not.toHaveBeenCalled();
+    expect(await p.speak('Ama may need a check.', 'alert')).toBeNull();
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+
+  it('retries 5xx once and rejects non-audio responses', async () => {
+    transport.config = { ELEVENLABS_API_KEY: 'fake-tts-key', ELEVENLABS_VOICE_ID: 'default-voice' };
+    const request = vi.fn().mockResolvedValueOnce(new Response('{}', { status: 503 })).mockResolvedValueOnce(new Response('{}', { headers: { 'content-type': 'application/json' } }));
+    vi.stubGlobal('fetch', request);
+    expect(await (await providers()).speak('Ama may need a check.', 'alert')).toBeNull();
+    expect(request).toHaveBeenCalledTimes(2);
+  });
+
+  it('times out during a hung response body and returns null', async () => {
+    vi.useFakeTimers();
+    transport.config = { ELEVENLABS_API_KEY: 'fake-tts-key', ELEVENLABS_VOICE_ID: 'default-voice' };
+    const request = vi.fn().mockImplementation(() => Promise.resolve(new Response(new ReadableStream({ start() {} }), { headers: { 'content-type': 'audio/mpeg' } })));
+    vi.stubGlobal('fetch', request);
+    const work = (await providers()).speak('Ama may need a check.', 'alert');
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(await work).toBeNull();
+    expect(request).toHaveBeenCalledTimes(2);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+});
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe('P6 grounded Gemini jobs', () => {
