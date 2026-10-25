@@ -5,7 +5,7 @@ export interface KioskPulseSample {
   at: number; bpm: number; quality: 'good' | 'fair'; trace: number[] | null; box: Observation['box'];
 }
 export interface KioskPulseView {
-  reading: SignalReading; secondsLeft: number; elapsed: number; expired: boolean; fps: number;
+  reading: SignalReading; secondsLeft: number; elapsed: number; expired: boolean; fps: number; samples: KioskPulseSample[];
 }
 /** One short acquisition. All timer and RGB timestamps use performance.now(). */
 export function createKioskPulse(start: number, wallStart: number) {
@@ -28,7 +28,7 @@ export function createKioskPulse(start: number, wallStart: number) {
       }
       const elapsed = Math.max(0, (now - start) / 1000);
       const recent = frames.filter(t => t >= now - 2000);
-      return { reading, elapsed, secondsLeft: Math.max(0, Math.ceil(15 - elapsed)), expired: elapsed >= 25,
+      return { reading, elapsed, samples: accepted.slice(), secondsLeft: Math.max(0, Math.ceil(15 - elapsed)), expired: elapsed >= 25,
         fps: recent.length > 1 ? (recent.length - 1) * 1000 / (recent.at(-1)! - recent[0]) : 0 };
     },
     samples: () => accepted.slice(),

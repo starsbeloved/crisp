@@ -8,20 +8,25 @@ import type { CheckInController, Step } from './controller-types.ts';
 import { assessFace, averageDescriptors } from './enrollment.ts';
 import { detailsError } from './details.ts';
 import { loadFollowUp } from './followup.ts';
+import { useKioskPulse } from './useKioskPulse.ts';
+import { pulseObservations, type KioskPulseSample, type KioskPulseView } from './pulse.ts';
 
 type ScanResult = { ok: boolean; reason: string | null };
 type FormState = Pick<CheckInController, 'step' | 'name' | 'answers' | 'face' | 'queueNo' | 'via' | 'followUpPrompt'> & {
   descriptor: number[] | null; busy: boolean; error: string;
   followUpQuestion: string; followUpLoading: boolean;
+  pulseNotice: string;
 };
-export type CheckInState = CheckInController & Pick<FormState, 'busy' | 'error' | 'followUpQuestion' | 'followUpLoading'> & {
+export type CheckInState = CheckInController & Pick<FormState, 'busy' | 'error' | 'followUpQuestion' | 'followUpLoading' | 'pulseNotice'> & {
   videoRef: RefObject<HTMLVideoElement | null>; replay: string | null; cameraMessage: string;
   prepareFollowUp(): Promise<void>;
+  pulse: KioskPulseView | null;
+  completePulse(samples: KioskPulseSample[], outcome: 'complete' | 'timeout' | 'skipped'): void;
 };
 function initialState(): FormState {
   return { step: 'welcome', name: '', answers: { reason: '', reasonChips: [], onset: null, trend: null, followUp: null, via: 'form' },
     face: { status: 'idle', message: 'Face scan optional' }, queueNo: null, via: 'form', descriptor: null,
-    busy: false, error: '', followUpQuestion: '', followUpPrompt: null, followUpLoading: false };
+    busy: false, error: '', followUpQuestion: '', followUpPrompt: null, followUpLoading: false, pulseNotice: '' };
 }
 let warmup: Promise<void> | null = null;
 function warmFaceModels(): Promise<void> {
@@ -39,6 +44,8 @@ export function useCheckIn(): CheckInState {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [replay] = useState(replaySource);
   const pendingScan = useRef<{ promise: Promise<ScanResult>; resolve(result: ScanResult): void } | null>(null);
+  const pendingPulse = useRef<{ promise: Promise<boolean>; resolve(ok: boolean): void } | null>(null);
+  const pulseSamples = useRef<KioskPulseSample[]>([]);
   const submission = useRef<Promise<{ queueNo: number }> | null>(null);
   const followUpRequest = useRef<Promise<void> | null>(null);
   const update = useCallback((patch: Partial<FormState>) => {
@@ -49,10 +56,14 @@ export function useCheckIn(): CheckInState {
   }, []);
   const reset = useCallback(() => {
     settleScan({ ok: false, reason: 'Check-in reset' });
+    pendingPulse.current?.resolve(false); pendingPulse.current = null; pulseSamples.current = [];
     submission.current = null; followUpRequest.current = null;
     latest.current = initialState(); setState(latest.current);
   }, [settleScan]);
   const goTo = useCallback((step: Step) => {
+    if (pendingPulse.current && ['questions', 'followup', 'done', 'pulse'].includes(step)) return;
+    if (step === 'pulse') return;
+    if (pendingPulse.current) { pendingPulse.current.resolve(false); pendingPulse.current = null; pulseSamples.current = []; }
     const patch: Partial<FormState> = { step, error: '' };
     if (step !== 'face' && latest.current.face.status === 'scanning') {
       settleScan({ ok: false, reason: 'Face scan cancelled' });
@@ -65,18 +76,27 @@ export function useCheckIn(): CheckInState {
     let resolve!: (value: ScanResult) => void;
     const promise = new Promise<ScanResult>(done => { resolve = done; });
     pendingScan.current = { promise, resolve };
+    pendingPulse.current?.resolve(false); pendingPulse.current = null; pulseSamples.current = [];
     update({ step: 'face', descriptor: null, face: { status: 'scanning', message: 'Preparing face scan…' }, error: '' });
     return promise;
   }, [update]);
   const skipFace = useCallback(() => {
+    pendingPulse.current?.resolve(false); pendingPulse.current = null; pulseSamples.current = [];
     settleScan({ ok: false, reason: 'Skipped — staff will help' });
     update({ step: 'questions', descriptor: null, face: { status: 'skipped', message: 'Skipped — staff will help' }, error: '' });
   }, [settleScan, update]);
   const { ready, message: cameraMessage } = useVideoSource(videoRef,
-    state.step === 'face' && (state.face.status === 'scanning' || state.face.status === 'saved'), replay);
+    state.step === 'pulse' || (state.step === 'face' && (state.face.status === 'scanning' || state.face.status === 'saved')), replay);
+  const completePulse = useCallback((samples: KioskPulseSample[], outcome: 'complete' | 'timeout' | 'skipped') => {
+    pulseSamples.current = outcome === 'skipped' ? [] : samples;
+    update({ step: 'questions', pulseNotice: outcome === 'skipped' ? 'Pulse check skipped — that’s okay.' :
+      outcome === 'timeout' ? 'Couldn’t get a clear reading — that’s okay.' : 'Pulse check saved · camera estimate' });
+    pendingPulse.current?.resolve(true); pendingPulse.current = null;
+  }, [update]);
+  const pulse = useKioskPulse(videoRef, state.step === 'pulse', ready, state.descriptor, completePulse);
 
   useEffect(() => { void warmFaceModels().catch(() => { /* The form and Skip remain usable without models. */ }); }, []);
-  useEffect(() => () => { settleScan({ ok: false, reason: 'Check-in closed' }); submission.current = null; followUpRequest.current = null; }, [settleScan]);
+  useEffect(() => () => { settleScan({ ok: false, reason: 'Check-in closed' }); pendingPulse.current?.resolve(false); pendingPulse.current = null; submission.current = null; followUpRequest.current = null; }, [settleScan]);
   useEffect(() => {
     if (state.face.status !== 'scanning') return;
     const timer = setTimeout(() => {
@@ -107,7 +127,10 @@ export function useCheckIn(): CheckInState {
             samples.push(result.descriptor);
           }
           if (samples.length >= 5) {
-            update({ descriptor: averageDescriptors(samples), face: { status: 'saved', message: '✓ Face saved' } });
+            let resolve!: (ok: boolean) => void;
+            const promise = new Promise<boolean>(done => { resolve = done; });
+            pendingPulse.current = { promise, resolve };
+            update({ step: 'pulse', descriptor: averageDescriptors(samples), face: { status: 'saved', message: '✓ Face saved' }, pulseNotice: '' });
             settleScan({ ok: true, reason: null }); return;
           }
           update({ face: { status: 'scanning', message: result.descriptor ? `Hold still… ${samples.length}/5` : result.message } });
@@ -130,6 +153,10 @@ export function useCheckIn(): CheckInState {
 
   const finish = useCallback((): Promise<{ queueNo: number }> => {
     if (submission.current) return submission.current;
+    if (pendingPulse.current) return pendingPulse.current.promise.then(ok => {
+      if (!ok) throw new Error('Pulse check cancelled');
+      return finish();
+    });
     const value = latest.current;
     const reason = value.answers.reason.trim() || value.answers.reasonChips.join(', ');
     const error = !value.name.trim() ? 'Please enter your preferred name or alias.' : !reason ? 'Please tell Crisp what brings you in today.' : detailsError(value.answers);
@@ -138,7 +165,16 @@ export function useCheckIn(): CheckInState {
     update({ busy: true, error: '', step: value.step === 'face' ? 'questions' : value.step,
       ...(value.face.status === 'scanning' ? { face: { status: 'skipped', message: 'Skipped — staff will help' } } : {}) });
     const promise = api.createVisit({ name: value.name.trim(), descriptor: value.descriptor,
-      answers: { ...value.answers, reason, via: value.via } }).then(visit => {
+      answers: { ...value.answers, reason, via: value.via } }).then(async visit => {
+      if (submission.current === promise && pulseSamples.current.length) {
+        // Separate normal requests preserve chronological sample order through the existing route.
+        const observations = pulseObservations(pulseSamples.current, visit.id, Boolean(replay));
+        try {
+          for (const observation of observations) await api.observations([observation]);
+        } catch {
+          if (submission.current === promise) update({ pulseNotice: 'You’re checked in. The pulse reading could not be shared with staff.' });
+        }
+      }
       if (submission.current === promise) update({ queueNo: visit.queueNo, step: 'done', busy: false });
       return { queueNo: visit.queueNo };
     }).catch(error => {
@@ -149,7 +185,7 @@ export function useCheckIn(): CheckInState {
     });
     submission.current = promise;
     return promise;
-  }, [settleScan, update]);
+  }, [settleScan, update, replay]);
   const prepareFollowUp = useCallback((): Promise<void> => {
     goTo('followup');
     if (latest.current.followUpQuestion) return Promise.resolve();
@@ -161,7 +197,7 @@ export function useCheckIn(): CheckInState {
     followUpRequest.current = request;
     return request;
   }, [goTo, update]);
-  return { ...state, videoRef, replay, cameraMessage, reset, goTo, startFaceScan, skipFace, finish, prepareFollowUp,
+  return { ...state, pulse, completePulse, videoRef, replay, cameraMessage, reset, goTo, startFaceScan, skipFace, finish, prepareFollowUp,
     // Tool calls can arrive back to back, before React commits the next render.
     get name() { return latest.current.name; },
     get answers() { return latest.current.answers; },

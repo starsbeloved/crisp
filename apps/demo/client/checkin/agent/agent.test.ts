@@ -104,7 +104,7 @@ describe('check-in client tools', () => {
     const tools = createCheckInTools(() => controller, fetcher);
     expect(await tools.set_name({ name: ' Ama ' })).toContain('Ama');
     expect(controller.setName).toHaveBeenCalledWith('Ama');
-    expect(await tools.start_face_scan()).toMatch(/^saved Next:/);
+    expect(await tools.start_face_scan()).toMatch(/^saved.*short pulse check/);
     expect(controller.startFaceScan).toHaveBeenCalledOnce();
     expect(await tools.save_answers({ reason: 'My chest feels tight', onset: 'since this morning', trend: 'getting worse' })).toContain('saved');
     expect(controller.answers).toMatchObject({ reason: 'My chest feels tight', onset: 'today', trend: 'worse', via: 'voice' });
