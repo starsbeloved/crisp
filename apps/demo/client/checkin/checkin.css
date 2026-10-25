@@ -3,36 +3,36 @@ main:has(> .checkin){max-width:none;margin:0;padding:0}
 .checkin{width:100%;min-height:calc(100svh - 77px);display:flex;flex-direction:column;background:var(--c-canvas);color:var(--c-text);font-family:var(--font);-webkit-font-smoothing:antialiased}
 .checkin [hidden]{display:none!important}
 .checkin-top{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:16px 40px;min-height:76px}
-.checkin-brand{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:700;flex:1}
+.checkin-brand{display:flex;align-items:center;gap:10px;font-size:1.25rem;font-weight:700;flex:1}
 .checkin-progress{display:flex;gap:6px;flex-shrink:0}
 .checkin-progress span{width:40px;height:6px;border-radius:3px;background:var(--c-border)}
 .checkin-progress .is-complete{background:var(--c-leaf)}
 .checkin-card{flex:1;width:100%;max-width:980px;margin:0 auto;display:grid;grid-template-columns:110px minmax(0,1fr);align-content:center;align-items:center;gap:18px 12px;padding:8px 40px 24px}
-.checkin h1{font-size:36px;line-height:1.1;font-weight:700;letter-spacing:-.8px;margin:0;outline:none;color:var(--c-text)}
-.checkin h2{font-size:24px;line-height:1.2;letter-spacing:-.3px;margin:0}
+.checkin h1{font-size:2.25rem;line-height:1.1;font-weight:700;letter-spacing:-.8px;margin:0;outline:none;color:var(--c-text)}
+.checkin h2{font-size:1.5rem;line-height:1.2;letter-spacing:-.3px;margin:0}
 .checkin p{margin:0;color:var(--c-text-2);line-height:1.4}
 .checkin-intro-group{display:contents}
-.checkin-intro p{font-size:22px;margin-top:12px}
+.checkin-intro p{font-size:1.375rem;margin-top:12px}
 .checkin-companion{position:relative;display:flex;align-items:center;justify-content:center;min-width:0}
 .checkin-companion svg{position:relative;max-width:100%;height:auto}
 .checkin-agent,.checkin-form,.checkin-navigation,.checkin-error,.checkin-help{grid-column:1/-1;min-width:0}
 .checkin-agent:not(:has(section)){display:none}
 .checkin-form{display:flex;flex-direction:column;gap:18px}
-.checkin button{display:inline-flex;align-items:center;justify-content:center;gap:12px;min-height:60px;margin:0;padding:12px 26px;border:1.5px solid var(--c-border);border-radius:16px;background:var(--c-surface);color:var(--c-text);font:600 19px/1.25 var(--font);transition:background-color .16s,color .16s,box-shadow .16s;overflow-wrap:anywhere}
+.checkin button{display:inline-flex;align-items:center;justify-content:center;gap:12px;min-height:60px;margin:0;padding:12px 26px;border:1.5px solid var(--c-border);border-radius:16px;background:var(--c-surface);color:var(--c-text);font:600 1.1875rem/1.25 var(--font);transition:background-color .16s,color .16s,box-shadow .16s;overflow-wrap:anywhere}
 .checkin button:hover:not(:disabled){background:var(--c-canvas)}
 .checkin button:active:not(:disabled){box-shadow:inset 0 0 0 2px var(--c-leaf)}
 .checkin button:disabled{opacity:.5;cursor:default}
 .checkin :is(button,input,textarea,select):focus-visible{outline:3px solid var(--c-leaf);outline-offset:3px}
-.checkin button.checkin-primary{background:var(--c-leaf);color:var(--c-surface);border-color:var(--c-leaf);width:100%;min-height:68px;font-size:22px;border-radius:var(--r-panel);box-shadow:var(--shadow-card)}
+.checkin button.checkin-primary{background:var(--c-leaf);color:var(--c-surface);border-color:var(--c-leaf);width:100%;min-height:68px;font-size:1.375rem;border-radius:var(--r-panel);box-shadow:var(--shadow-card)}
 .checkin button.checkin-primary:hover:not(:disabled){background:var(--c-leaf-hover)}
-.checkin input,.checkin textarea{display:block;width:100%;max-width:100%;min-height:60px;margin:10px 0 0;padding:14px 18px;border:1.5px solid var(--c-border);border-radius:var(--r-row);background:var(--c-surface);color:var(--c-text);font:400 22px/1.35 var(--font)}
+.checkin input,.checkin textarea{display:block;width:100%;max-width:100%;min-height:60px;margin:10px 0 0;padding:14px 18px;border:1.5px solid var(--c-border);border-radius:var(--r-row);background:var(--c-surface);color:var(--c-text);font:400 1.375rem/1.35 var(--font)}
 .checkin textarea{resize:vertical;min-height:76px}
 .checkin input:focus,.checkin textarea:focus{border-color:var(--c-leaf)}
-.checkin label,.checkin-question-title{font-size:24px;line-height:1.3;font-weight:700;letter-spacing:-.3px}
-.checkin-navigation{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.checkin-navigation button{min-height:44px;font-size:16px;padding:8px 18px;background:transparent;border-color:transparent;color:var(--c-text-2)}
-.checkin-footer{display:flex;flex-wrap:wrap;gap:8px 28px;justify-content:center;padding:18px 40px 28px;font-size:15px;color:var(--c-text-2);text-align:center;line-height:1.4}
-.checkin-error,.checkin-help{padding:16px 20px;border-radius:var(--r-row);font-size:18px}
+.checkin label,.checkin-question-title{font-size:1.5rem;line-height:1.3;font-weight:700;letter-spacing:-.3px}
+.checkin-navigation{display:flex;flex-shrink:0;align-items:center;justify-content:space-between;gap:.5rem}
+.checkin-navigation button{min-height:44px;font-size:1rem;padding:8px 18px;background:transparent;border-color:transparent;color:var(--c-text-2)}
+.checkin-footer{display:flex;flex-wrap:wrap;gap:8px 28px;justify-content:center;padding:18px 40px 28px;font-size:0.9375rem;color:var(--c-text-2);text-align:center;line-height:1.4}
+.checkin-error,.checkin-help{padding:16px 20px;border-radius:var(--r-row);font-size:1.125rem}
 .checkin p.checkin-error{color:var(--c-red-text);background:var(--c-red-tint);border:1px solid var(--c-red)}
 .checkin p.checkin-help{background:var(--c-surface);box-shadow:var(--shadow-card)}
 .checkin-sr-only,.checkin fieldset legend{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
@@ -41,35 +41,35 @@ main:has(> .checkin){max-width:none;margin:0;padding:0}
 .checkin:is([data-step=welcome],[data-step=done]) .checkin-companion{grid-column:1;grid-row:1/5;align-self:center}
 .checkin:is([data-step=welcome],[data-step=done]) .checkin-companion::before{content:"";position:absolute;width:460px;max-width:95%;aspect-ratio:1;border-radius:50%;background:var(--c-leaf-tint)}
 .checkin:is([data-step=welcome],[data-step=done]) .checkin-intro{grid-column:2;align-self:end}
-.checkin[data-step=welcome] h1{font-size:64px;letter-spacing:-1.4px;line-height:1.05}
-.checkin[data-step=welcome] .checkin-welcome-copy{font-size:30px;line-height:1.25;letter-spacing:-.3px;margin-top:14px;color:var(--c-text-2)}
+.checkin[data-step=welcome] h1{font-size:4rem;letter-spacing:-1.4px;line-height:1.05}
+.checkin[data-step=welcome] .checkin-welcome-copy{font-size:1.875rem;line-height:1.25;letter-spacing:-.3px;margin-top:14px;color:var(--c-text-2)}
 .checkin[data-step=welcome] .checkin-agent{grid-column:2}
 .checkin[data-step=welcome] .checkin-form,.checkin[data-step=done] .checkin-form{display:none}
 .checkin-welcome-actions{grid-column:2;display:flex;flex-direction:column;gap:28px;align-self:start}
-.checkin-how{list-style:none;counter-reset:how;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;font-size:17px;line-height:1.35;color:var(--c-text-2)}
+.checkin-how{list-style:none;counter-reset:how;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;font-size:1.0625rem;line-height:1.35;color:var(--c-text-2)}
 .checkin-how li{counter-increment:how;display:flex;align-items:center;gap:10px}
-.checkin-how li::before{content:counter(how);display:inline-flex;align-items:center;justify-content:center;flex:0 0 28px;height:28px;border-radius:50%;background:var(--c-surface);color:var(--c-text);font-size:14px;font-weight:700}
+.checkin-how li::before{content:counter(how);display:inline-flex;align-items:center;justify-content:center;flex:0 0 28px;height:28px;border-radius:50%;background:var(--c-surface);color:var(--c-text);font-size:0.875rem;font-weight:700}
 .checkin-name-panel,.checkin-followup-panel{padding:24px;background:var(--c-surface);border-radius:var(--r-kiosk);box-shadow:var(--shadow-card);display:flex;flex-direction:column;gap:20px}
 .checkin-name-panel input{margin:0}
 /* Questions preserve the original choices, including all ten complaint chips. */
-.checkin[data-step=questions] .checkin-intro h1{font-size:26px}
+.checkin[data-step=questions] .checkin-intro h1{font-size:1.625rem}
 .checkin[data-step=questions] .checkin-card{gap:14px 12px;padding-top:0;padding-bottom:20px;grid-template-columns:80px minmax(0,1fr)}
 .checkin[data-step=questions] .checkin-companion svg{width:80px}
 .checkin[data-step=questions] .checkin-form{gap:14px}
-.checkin[data-step=questions] .checkin-intro p{font-size:22px;margin-top:4px}
+.checkin[data-step=questions] .checkin-intro p{font-size:1.375rem;margin-top:4px}
 .checkin-question-panel{padding:14px 24px;min-width:0;border:0;border-radius:var(--r-kiosk);background:var(--c-surface);box-shadow:var(--shadow-card);margin:0}
 .checkin-question-panel textarea{height:60px;min-height:60px}
 .checkin-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
-.checkin button.checkin-choice{min-height:48px;padding:10px 18px;border-radius:var(--r-pill);font-size:18px;font-weight:400}
+.checkin button.checkin-choice{min-height:48px;padding:10px 18px;border-radius:var(--r-pill);font-size:1.125rem;font-weight:400}
 .checkin button.checkin-choice[aria-pressed=true]{background:var(--c-leaf);border-color:var(--c-leaf);color:var(--c-surface);font-weight:600}
 .checkin-onsets,.checkin-trends{display:grid;gap:10px;grid-template-columns:repeat(4,minmax(0,1fr))}
 .checkin-trends{grid-template-columns:repeat(3,minmax(0,1fr))}
-.checkin :is(.checkin-onsets,.checkin-trends) .checkin-choice{min-height:64px;border-radius:16px;font-size:19px;padding:10px 12px}
+.checkin :is(.checkin-onsets,.checkin-trends) .checkin-choice{min-height:64px;border-radius:16px;font-size:1.1875rem;padding:10px 12px}
 .checkin-form-submit{display:flex;align-items:center;justify-content:space-between;gap:24px}
-.checkin-form-submit p{font-size:16px}
+.checkin-form-submit p{font-size:1rem}
 .checkin-form-submit button.checkin-primary{width:auto;min-width:200px;padding-inline:44px}
-.checkin-review{padding:16px 20px;border-radius:var(--r-row);background:var(--c-canvas);display:flex;flex-direction:column;gap:8px;font-size:19px}
-.checkin-review .checkin-secondary{align-self:start;min-height:44px;font-size:16px}
+.checkin-review{padding:16px 20px;border-radius:var(--r-row);background:var(--c-canvas);display:flex;flex-direction:column;gap:8px;font-size:1.1875rem}
+.checkin-review .checkin-secondary{align-self:start;min-height:44px;font-size:1rem}
 .checkin button.checkin-skip{background:transparent;border-color:transparent;color:var(--c-text-2);font-weight:400}
 /* The preview stays mounted throughout the flow so the controller keeps its video ref. */
 .checkin[data-step=face] .checkin-card{max-width:1440px;grid-template-columns:minmax(0,820px) minmax(300px,440px);gap:22px 32px;align-content:center}
@@ -77,7 +77,7 @@ main:has(> .checkin){max-width:none;margin:0;padding:0}
 .checkin[data-step=face] .checkin-companion{justify-content:flex-start;flex:0 0 170px}
 .checkin[data-step=face] .checkin-intro{flex:1;min-width:0;padding:14px 18px;background:var(--c-surface);border-radius:20px 20px 20px 6px;box-shadow:var(--shadow-card)}
 .checkin[data-step=face] .checkin-intro h1{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
-.checkin[data-step=face] .checkin-intro p{font-size:22px;margin:0}
+.checkin[data-step=face] .checkin-intro p{font-size:1.375rem;margin:0}
 .checkin[data-step=face] .checkin-form,.checkin-face-layout:not([hidden]){display:contents}
 .checkin-preview{grid-column:1;grid-row:1/3;position:relative;overflow:hidden;aspect-ratio:4/3;border-radius:28px;background:var(--c-text);box-shadow:var(--shadow-bubble);min-width:0;width:100%;align-self:center}
 .checkin-preview video{width:100%;height:100%;max-width:none;aspect-ratio:4/3;object-fit:cover;border-radius:0;background:var(--c-text)}
@@ -86,68 +86,68 @@ main:has(> .checkin){max-width:none;margin:0;padding:0}
 .checkin-oval{fill:none;stroke:var(--c-surface);stroke-width:4;stroke-dasharray:10 10;opacity:.65}
 .checkin-face-progress{fill:none;stroke:var(--c-leaf);stroke-width:8;stroke-linecap:round;transition:stroke-dasharray .2s ease}
 .checkin-face-status{position:absolute;top:24px;left:24px;right:24px;display:flex;justify-content:center}
-.checkin-status-chip{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:48px;padding:10px 20px;border-radius:var(--r-pill);background:var(--c-surface);color:var(--c-text);font-size:20px;font-weight:600;line-height:1.3;text-align:center;box-shadow:var(--shadow-bubble)}
+.checkin-status-chip{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:48px;padding:10px 20px;border-radius:var(--r-pill);background:var(--c-surface);color:var(--c-text);font-size:1.25rem;font-weight:600;line-height:1.3;text-align:center;box-shadow:var(--shadow-bubble)}
 .checkin-status-chip::before{content:"";flex:0 0 10px;height:10px;border-radius:50%;background:var(--c-leaf)}
 .checkin-status-chip[data-saved=true]{background:var(--c-leaf-tint);color:var(--c-leaf-hover)}
-.checkin-replay{position:absolute;bottom:68px;left:20px;max-width:calc(100% - 40px);padding:6px 10px;border-radius:8px;background:var(--c-text);color:var(--c-surface);font-size:13px;font-weight:700;overflow-wrap:anywhere}
-.checkin-photo-note{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);max-width:calc(100% - 32px);width:max-content;padding:8px 14px;border-radius:var(--r-control);background:color-mix(in srgb,var(--c-text) 75%,transparent);color:var(--c-surface);font-size:15px;text-align:center}
+.checkin-replay{position:absolute;bottom:68px;left:20px;max-width:calc(100% - 40px);padding:6px 10px;border-radius:8px;background:var(--c-text);color:var(--c-surface);font-size:0.8125rem;font-weight:700;overflow-wrap:anywhere}
+.checkin-photo-note{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);max-width:calc(100% - 32px);width:max-content;padding:8px 14px;border-radius:var(--r-control);background:color-mix(in srgb,var(--c-text) 75%,transparent);color:var(--c-surface);font-size:0.9375rem;text-align:center}
 .checkin-face-aside{grid-column:2;grid-row:2;display:flex;flex-direction:column;gap:14px;min-width:0}
-.checkin-face-instruction,.checkin-camera-message{font-size:16px}
+.checkin-face-instruction,.checkin-camera-message{font-size:1rem}
 .checkin-camera-message:empty{display:none}
-.checkin-scan-hints p{font-size:15px;margin-bottom:10px}
+.checkin-scan-hints p{font-size:0.9375rem;margin-bottom:10px}
 .checkin-scan-hints>div{display:flex;flex-wrap:wrap;gap:8px}
-.checkin-scan-hints span{display:inline-flex;align-items:center;min-height:36px;padding:6px 14px;border-radius:var(--r-pill);background:var(--c-surface);box-shadow:inset 0 0 0 1px var(--c-hairline);font-size:16px}
+.checkin-scan-hints span{display:inline-flex;align-items:center;min-height:36px;padding:6px 14px;border-radius:var(--r-pill);background:var(--c-surface);box-shadow:inset 0 0 0 1px var(--c-hairline);font-size:1rem}
 .checkin-scan-hints .is-saved{background:var(--c-leaf-tint);color:var(--c-leaf-hover)}
 .checkin-scan-actions{display:flex;flex-direction:column;gap:12px}
 .checkin[data-step=face] .checkin-agent{grid-row:3}
 /* Completion: the ticket is the actual queue number returned by the server. */
 .checkin[data-step=done] .checkin-card{gap:26px 64px;grid-template-columns:minmax(300px,460px) minmax(0,600px)}
 .checkin[data-step=done] .checkin-companion::before{width:420px}
-.checkin[data-step=done] h1{font-size:60px;line-height:1.05;letter-spacing:-1.2px;margin-top:6px}
-.checkin[data-step=done] .checkin-done-greeting{font-size:26px;margin:0}
+.checkin[data-step=done] h1{font-size:3.75rem;line-height:1.05;letter-spacing:-1.2px;margin-top:6px}
+.checkin[data-step=done] .checkin-done-greeting{font-size:1.625rem;margin:0}
 .checkin-done-content{grid-column:2;display:flex;flex-direction:column;gap:26px}
 .checkin-ticket-row{display:flex;align-items:center;gap:24px}
-.checkin-queue{flex:0 0 168px;min-width:168px;height:168px;border-radius:44px;background:var(--c-surface);box-shadow:var(--shadow-bubble),inset 0 0 0 3px var(--c-leaf);display:flex;align-items:center;justify-content:center;font-size:112px;font-weight:700;letter-spacing:-3px;font-variant-numeric:tabular-nums}
-.checkin-ticket-row p{font-size:24px;line-height:1.35}
-.checkin p.checkin-done-note{display:flex;align-items:center;gap:14px;padding:16px 20px;border-radius:var(--r-panel);background:var(--c-surface);color:var(--c-text);font-size:20px;line-height:1.35}
+.checkin-queue{flex:0 0 168px;min-width:168px;height:168px;border-radius:44px;background:var(--c-surface);box-shadow:var(--shadow-bubble),inset 0 0 0 3px var(--c-leaf);display:flex;align-items:center;justify-content:center;font-size:7rem;font-weight:700;letter-spacing:-3px;font-variant-numeric:tabular-nums}
+.checkin-ticket-row p{font-size:1.5rem;line-height:1.35}
+.checkin p.checkin-done-note{display:flex;align-items:center;gap:14px;padding:16px 20px;border-radius:var(--r-panel);background:var(--c-surface);color:var(--c-text);font-size:1.25rem;line-height:1.35}
 .checkin-done-note svg{flex-shrink:0}
 .checkin-done-actions{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
-.checkin-countdown{font-size:16px;color:var(--c-text-2);font-variant-numeric:tabular-nums}
+.checkin-countdown{font-size:1rem;color:var(--c-text-2);font-variant-numeric:tabular-nums}
 /* Voice panels are laid out by the agent; no session logic lives in this stylesheet. */
 .checkin-voice-launch{display:flex;flex-direction:column;gap:14px}
 .checkin-voice-launch .checkin-voice-character,.checkin-voice-launch .checkin-captions{display:none}
-.checkin-voice-launch .checkin-voice-status{font-size:17px;text-align:center}
+.checkin-voice-launch .checkin-voice-status{font-size:1.0625rem;text-align:center}
 .checkin[data-step=welcome] .checkin-voice-launch .checkin-voice-status{display:none}
 .checkin-voice-launch .checkin-voice-actions{display:flex;flex-direction:column;gap:14px}
-.checkin[data-step=welcome] .checkin-voice-launch .checkin-voice-start{min-height:80px;font-size:26px;border-radius:20px}
-.checkin[data-step=welcome] .checkin-voice-launch .checkin-voice-tap{min-height:72px;font-size:22px;border-radius:20px}
+.checkin[data-step=welcome] .checkin-voice-launch .checkin-voice-start{min-height:80px;font-size:1.625rem;border-radius:20px}
+.checkin[data-step=welcome] .checkin-voice-launch .checkin-voice-tap{min-height:72px;font-size:1.375rem;border-radius:20px}
 .checkin-voice-active{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:28px;align-items:stretch}
 .checkin-conversation{display:flex;flex-direction:column;gap:20px;min-width:0}
 .checkin-voice-character{display:flex;align-items:flex-end;gap:16px}
 .checkin-voice-character>svg{width:300px;max-width:45%;height:auto}
 .checkin-voice-status{display:flex;align-items:center;gap:8px;min-width:0;line-height:1.35}
-.checkin-voice-active .checkin-voice-status{margin-bottom:28px;padding:8px 14px;border-radius:var(--r-pill);background:var(--c-leaf-tint);color:var(--c-leaf-hover);font-size:16px;font-weight:600}
+.checkin-voice-active .checkin-voice-status{margin-bottom:28px;padding:8px 14px;border-radius:var(--r-pill);background:var(--c-leaf-tint);color:var(--c-leaf-hover);font-size:1rem;font-weight:600}
 .checkin-levels{display:inline-flex;align-items:center;gap:3px;flex-shrink:0;height:18px}
 .checkin-levels span{width:3px;height:18px;border-radius:2px;background:var(--c-leaf);transform-origin:center;transition:transform .08s linear}
 .checkin-captions{flex:1;min-height:210px;max-height:360px;overflow-y:auto;padding:22px 24px;display:flex;flex-direction:column;gap:16px;background:var(--c-surface);border-radius:var(--r-kiosk);box-shadow:var(--shadow-card)}
 .checkin-caption{display:flex;flex-direction:column;gap:4px;align-self:flex-start;max-width:85%;min-width:0}
-.checkin-caption strong{font-size:14px;font-weight:600;color:var(--c-text-2)}
-.checkin .checkin-caption p{padding:12px 16px;border-radius:18px 18px 18px 6px;background:var(--c-bubble-gray);color:var(--c-text);font-size:22px;line-height:1.35;overflow-wrap:anywhere}
+.checkin-caption strong{font-size:0.875rem;font-weight:600;color:var(--c-text-2)}
+.checkin .checkin-caption p{padding:12px 16px;border-radius:18px 18px 18px 6px;background:var(--c-bubble-gray);color:var(--c-text);font-size:1.375rem;line-height:1.35;overflow-wrap:anywhere}
 .checkin-caption[data-speaker=You]{align-self:flex-end;align-items:flex-end}
 .checkin .checkin-caption[data-speaker=You] p{background:var(--c-leaf);color:var(--c-surface);border-radius:18px 18px 6px 18px}
 .checkin-caption-caret{display:inline-block;width:2px;height:1em;margin-left:3px;vertical-align:-2px;background:currentColor;animation:checkin-caret 1s steps(1) infinite}
 .checkin-voice-actions{display:flex;gap:12px;flex-wrap:wrap}
 .checkin-understood{padding:24px;display:flex;flex-direction:column;gap:14px;min-width:0;background:var(--c-surface);border-radius:var(--r-kiosk);box-shadow:var(--shadow-card)}
-.checkin-understood>p{font-size:16px}
+.checkin-understood>p{font-size:1rem}
 .checkin-understood-field{padding:12px 14px;border-radius:var(--r-row);background:var(--c-canvas);min-width:0}
-.checkin-understood-field>span{display:block;font-size:14px;color:var(--c-text-2);margin-bottom:4px}
-.checkin-understood-field>strong{font-size:21px;line-height:1.35;font-weight:600;overflow-wrap:anywhere}
+.checkin-understood-field>span{display:block;font-size:0.875rem;color:var(--c-text-2);margin-bottom:4px}
+.checkin-understood-field>strong{font-size:1.3125rem;line-height:1.35;font-weight:600;overflow-wrap:anywhere}
 .checkin-understood-field[data-filled=true]{background:var(--c-surface);box-shadow:inset 0 0 0 2px var(--c-leaf);animation:checkin-filled .28s ease-out}
 .checkin-understood-field[data-filled=true]>span{color:var(--c-leaf-hover)}
 .checkin-understood-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-.checkin-understood-chips span{display:inline-flex;align-items:center;min-height:44px;padding:8px 14px;border:1.5px solid var(--c-border);border-radius:var(--r-pill);font-size:16px}
+.checkin-understood-chips span{display:inline-flex;align-items:center;min-height:44px;padding:8px 14px;border:1.5px solid var(--c-border);border-radius:var(--r-pill);font-size:1rem}
 .checkin-understood-chips .is-selected{background:var(--c-leaf);border-color:var(--c-leaf);color:var(--c-surface)}
-.checkin-understood-next{padding:12px 14px;border:1.5px dashed var(--c-border);border-radius:var(--r-row);font-size:16px;color:var(--c-text-2)}
+.checkin-understood-next{padding:12px 14px;border:1.5px dashed var(--c-border);border-radius:var(--r-row);font-size:1rem;color:var(--c-text-2)}
 .checkin .checkin-card:has(.checkin-voice-active){max-width:1440px}
 .checkin[data-step=welcome] .checkin-card:has(.checkin-voice-active){max-width:1440px;grid-template-columns:minmax(0,1fr);padding-top:8px}
 .checkin:has(.checkin-voice-active) .checkin-footer{display:none}
@@ -157,29 +157,29 @@ main:has(> .checkin){max-width:none;margin:0;padding:0}
 .checkin-card:has(.checkin-voice-active) .checkin-welcome-actions{grid-column:1/-1;max-width:600px}
 .checkin-demo{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:16px;padding:20px;border:1px solid var(--c-border);border-radius:var(--r-kiosk);background:var(--c-surface)}
 .checkin-demo>svg{width:180px;height:auto}
-.checkin-demo label{font-size:16px;min-width:0}
+.checkin-demo label{font-size:1rem;min-width:0}
 .checkin-demo select{display:block;min-height:44px;margin-top:8px;padding:8px;border:1px solid var(--c-border);border-radius:var(--r-control);font:inherit;background:var(--c-surface);color:var(--c-text)}
 .checkin-demo input{padding:0;min-height:44px;width:160px;accent-color:var(--c-leaf)}
 @keyframes checkin-caret{0%,100%{opacity:1}50%{opacity:0}}
 @keyframes checkin-filled{0%,35%{box-shadow:inset 0 0 0 2px var(--c-leaf),0 0 0 5px var(--c-leaf-tint)}100%{box-shadow:inset 0 0 0 2px var(--c-leaf)}}
 @media(max-width:1280px){
   .checkin:is([data-step=welcome],[data-step=done]) .checkin-card{gap:24px 40px;grid-template-columns:minmax(280px,440px) minmax(0,560px)}
-  .checkin[data-step=welcome] h1{font-size:58px}
+  .checkin[data-step=welcome] h1{font-size:3.625rem}
   .checkin[data-step=done] .checkin-card{grid-template-columns:minmax(260px,400px) minmax(0,600px);gap:24px 40px}
   .checkin[data-step=done] .checkin-done-content{gap:22px}
   .checkin[data-step=done] .checkin-done-actions{gap:12px}
-  .checkin[data-step=done] .checkin-done-actions button{font-size:17px;padding-inline:20px}
+  .checkin[data-step=done] .checkin-done-actions button{font-size:1.0625rem;padding-inline:20px}
   .checkin[data-step=face] .checkin-card{grid-template-columns:minmax(0,3fr) minmax(280px,2fr)}
   .checkin[data-step=face] .checkin-companion{flex-basis:130px}
   .checkin[data-step=face] .checkin-companion svg{width:130px}
-  .checkin[data-step=face] .checkin-intro p{font-size:18px}
+  .checkin[data-step=face] .checkin-intro p{font-size:1.125rem}
   .checkin-face-aside{gap:14px}
   .checkin-voice-character>svg{width:260px}
   .checkin-voice-active{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}
   .checkin-understood{padding:20px;gap:10px}
   .checkin-understood-field{padding:10px 12px}
-  .checkin-understood-field>strong{font-size:19px}
-  .checkin-understood>p{font-size:15px}
+  .checkin-understood-field>strong{font-size:1.1875rem}
+  .checkin-understood>p{font-size:0.9375rem}
   .checkin-scan-actions{gap:10px}
   .checkin .checkin-scan-actions button.checkin-primary{min-height:60px}
   .checkin .checkin-scan-actions button.checkin-skip{min-height:56px}
@@ -187,10 +187,10 @@ main:has(> .checkin){max-width:none;margin:0;padding:0}
 @media(max-width:760px){
   .checkin{min-height:calc(100svh - 77px)}
   .checkin-top{padding:18px 20px;gap:12px;flex-wrap:wrap}
-  .checkin-brand{font-size:18px;flex-basis:100%}
-  .checkin-navigation{order:2;flex:1}
-  .checkin .checkin-navigation button{white-space:nowrap;overflow-wrap:normal;padding:8px 10px;font-size:15px;min-width:60px}
-  .checkin-progress{order:3}
+  .checkin-brand{font-size:1.125rem;flex-basis:100%}
+  .checkin-navigation{order:2;flex:1 0 100%;justify-content:space-between}
+  .checkin .checkin-navigation button{white-space:nowrap;overflow-wrap:normal;padding:8px 10px;font-size:0.9375rem;min-width:60px}
+  .checkin-progress{order:3;flex:1 0 100%}
   .checkin-progress{gap:4px}
   .checkin-progress span{width:24px}
   .checkin-card,.checkin:is([data-step=welcome],[data-step=done]) .checkin-card,.checkin[data-step=face] .checkin-card{display:flex;flex-direction:column;align-items:stretch;gap:20px;padding:12px 20px 24px}
@@ -200,21 +200,21 @@ main:has(> .checkin){max-width:none;margin:0;padding:0}
   .checkin:is([data-step=welcome],[data-step=done]) .checkin-companion::before{width:260px}
   .checkin[data-step=done] .checkin-companion::before{width:210px}
   .checkin:is([data-step=welcome],[data-step=done]) .checkin-intro{align-self:stretch}
-  .checkin[data-step=welcome] h1{font-size:44px;letter-spacing:-1px}
-  .checkin[data-step=welcome] .checkin-welcome-copy{font-size:24px}
+  .checkin[data-step=welcome] h1{font-size:2.75rem;letter-spacing:-1px}
+  .checkin[data-step=welcome] .checkin-welcome-copy{font-size:1.5rem}
   .checkin[data-step=welcome] .checkin-welcome-actions{align-self:stretch;gap:24px}
-  .checkin[data-step=welcome] .checkin-voice-launch .checkin-voice-start{min-height:72px;font-size:24px}
-  .checkin[data-step=welcome] .checkin-voice-launch .checkin-voice-tap{min-height:64px;font-size:21px}
-  .checkin-footer{padding:16px 20px 24px;font-size:14px}
+  .checkin[data-step=welcome] .checkin-voice-launch .checkin-voice-start{min-height:72px;font-size:1.5rem}
+  .checkin[data-step=welcome] .checkin-voice-launch .checkin-voice-tap{min-height:64px;font-size:1.3125rem}
+  .checkin-footer{padding:16px 20px 24px;font-size:0.875rem}
   .checkin-navigation{margin-top:0}
   .checkin:not([data-step=welcome]):not([data-step=done]) .checkin-companion{justify-content:flex-start}
   .checkin:not([data-step=welcome]):not([data-step=done]):not([data-step=face]) .checkin-companion svg{width:90px}
-  .checkin h1{font-size:32px}
-  .checkin label,.checkin-question-title{font-size:22px}
+  .checkin h1{font-size:2rem}
+  .checkin label,.checkin-question-title{font-size:1.375rem}
   .checkin-question-panel,.checkin-name-panel,.checkin-followup-panel{padding:20px 18px}
   .checkin-onsets,.checkin-trends{grid-template-columns:repeat(2,minmax(0,1fr))}
   .checkin-trends .checkin-choice:last-child{grid-column:1/-1}
-  .checkin button.checkin-choice{font-size:16px;padding:10px 14px}
+  .checkin button.checkin-choice{font-size:1rem;padding:10px 14px}
   .checkin-form-submit{align-items:stretch;flex-direction:column;gap:16px}
   .checkin-form-submit button.checkin-primary{width:100%}
   .checkin[data-step=face] .checkin-intro-group{display:block}
@@ -223,47 +223,62 @@ main:has(> .checkin){max-width:none;margin:0;padding:0}
   .checkin-face-layout:not([hidden]){display:flex;flex-direction:column;gap:20px}
   .checkin-preview{border-radius:var(--r-kiosk)}
   .checkin-face-status{top:12px;left:12px;right:12px}
-  .checkin-status-chip{font-size:16px;min-height:44px;padding:8px 12px}
-  .checkin-photo-note{bottom:12px;font-size:12px;padding:6px 10px}
-  .checkin-replay{bottom:54px;font-size:11px;left:12px}
-  .checkin[data-step=done] h1{font-size:44px}
-  .checkin[data-step=done] .checkin-done-greeting{font-size:22px}
+  .checkin-status-chip{font-size:1rem;min-height:44px;padding:8px 12px}
+  .checkin-photo-note{bottom:12px;font-size:0.75rem;padding:6px 10px}
+  .checkin-replay{bottom:54px;font-size:0.6875rem;left:12px}
+  .checkin[data-step=done] h1{font-size:2.75rem}
+  .checkin[data-step=done] .checkin-done-greeting{font-size:1.375rem}
   .checkin-ticket-row{align-items:flex-start;gap:18px}
-  .checkin-queue{flex-basis:136px;min-width:136px;height:136px;border-radius:36px;font-size:88px}
-  .checkin-ticket-row p{font-size:20px}
-  .checkin p.checkin-done-note{font-size:18px;padding:16px}
+  .checkin-queue{flex-basis:136px;min-width:136px;height:136px;border-radius:36px;font-size:5.5rem}
+  .checkin-ticket-row p{font-size:1.25rem}
+  .checkin p.checkin-done-note{font-size:1.125rem;padding:16px}
   .checkin-done-actions{align-items:stretch;flex-direction:column}
   .checkin-countdown{text-align:center}
   .checkin-voice-active{grid-template-columns:minmax(0,1fr);gap:20px}
   .checkin-voice-character>svg{width:170px;max-width:45%}
-  .checkin-voice-active .checkin-voice-status{font-size:14px;padding:8px 10px;margin-bottom:16px}
+  .checkin-voice-active .checkin-voice-status{font-size:0.875rem;padding:8px 10px;margin-bottom:16px}
   .checkin-captions,.checkin-understood{padding:20px 18px}
-  .checkin .checkin-caption p{font-size:20px}
+  .checkin .checkin-caption p{font-size:1.25rem}
   .checkin-demo{padding:16px;gap:12px}
   .checkin-demo>svg{width:140px}
 }
 @media(prefers-reduced-motion:reduce){.checkin *,.checkin *::before{animation:none!important;transition:none!important}}
 
 .checkin .understood-edit-trigger { display: block; width: 100%; min-height: 60px; padding: 0; border: 0; border-radius: var(--r-control); background: transparent; text-align: left; }
-.checkin .understood-edit-trigger > span { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; color: var(--c-text-2); font-size: 14px; font-weight: 500; }
-.checkin .understood-edit-trigger strong { font-size: 21px; line-height: 1.35; font-weight: 600; overflow-wrap: anywhere; }
-.checkin .understood-editor label { font-size: 15px; }
-.checkin .understood-editor :is(input,textarea) { margin-top: 8px; min-height: 48px; padding: 10px 12px; font-size: 19px; }
+.checkin .understood-edit-trigger > span { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; color: var(--c-text-2); font-size: 0.875rem; font-weight: 500; }
+.checkin .understood-edit-trigger strong { font-size: 1.3125rem; line-height: 1.35; font-weight: 600; overflow-wrap: anywhere; }
+.checkin .understood-editor label { font-size: 0.9375rem; }
+.checkin .understood-editor :is(input,textarea) { margin-top: 8px; min-height: 48px; padding: 10px 12px; font-size: 1.1875rem; }
 .checkin .understood-edit-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-.checkin .understood-edit-actions button, .checkin .understood-face-edit { min-height: 44px; padding: 8px 14px; border-radius: var(--r-control); font-size: 15px; }
+.checkin .understood-edit-actions button, .checkin .understood-face-edit { min-height: 44px; padding: 8px 14px; border-radius: var(--r-control); font-size: 0.9375rem; }
 .checkin .understood-edit-actions button[type=submit] { background: var(--c-leaf); border-color: var(--c-leaf); color: var(--c-surface); }
 .checkin .understood-face-edit { display: flex; margin-top: 10px; }
-.checkin .checkin-understood-chips button { min-height: 44px; padding: 8px 14px; border-radius: var(--r-pill); font-size: 16px; }
+.checkin .checkin-understood-chips button { min-height: 44px; padding: 8px 14px; border-radius: var(--r-pill); font-size: 1rem; }
 .checkin .checkin-understood-chips button[aria-pressed=true] { background: var(--c-leaf); border-color: var(--c-leaf); color: var(--c-surface); }
 
 .checkin-details-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
 .checkin-name-panel .checkin-details-grid input,.checkin-name-panel>div>input{margin-top:10px}
-.checkin-optional{font-size:16px;font-weight:400;color:var(--c-text-2)}
+.checkin-optional{font-size:1rem;font-weight:400;color:var(--c-text-2)}
 .checkin-followup-context{display:flex;flex-direction:column;align-items:flex-start;gap:10px;overflow-wrap:anywhere}
-.checkin-followup-source{font-size:14px;font-weight:600;padding:6px 12px;border:1px solid var(--c-border);border-radius:var(--r-pill);background:var(--c-canvas)}
+.checkin-followup-source{font-size:0.875rem;font-weight:600;padding:6px 12px;border:1px solid var(--c-border);border-radius:var(--r-pill);background:var(--c-canvas)}
 @media(max-width:760px){.checkin-details-grid{grid-template-columns:minmax(0,1fr)}}
 
 .checkin-progress { flex-wrap: wrap; }
-.checkin-progress small { flex-basis: 100%; white-space: nowrap; color: var(--c-text-2); font-size: 12px; }
+.checkin-progress small { flex-basis: 100%; color: var(--c-text-2); font-size: .8125rem; line-height: 1.4; }
 .checkin-manual-continue { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 12px 0; }
-.checkin-manual-continue p { font-size: 14px; }
+.checkin-manual-continue p { font-size: 0.875rem; }
+
+.checkin { padding-bottom: 3.5rem; }
+.checkin-top { flex-wrap: wrap; }
+.checkin-progress { min-width: 0; flex-shrink: 1; }
+.checkin-intro p { max-width: 36em; }
+.checkin-question-panel textarea { height: auto; min-height: 5rem; }
+.checkin .checkin-navigation button { padding-inline: .75rem; }
+@media (max-width: 760px) {
+  .checkin-top { padding-block: 1rem .5rem; row-gap: .5rem; }
+  .checkin-progress { flex: 1 0 100%; }
+  .checkin-brand { min-width: 0; }
+  .checkin-navigation { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); }
+  .checkin .checkin-navigation button { white-space: normal; min-width: 0; width: 100%; padding: .5rem; }
+  .checkin-manual-continue { flex-direction: column; align-items: stretch; }
+}

@@ -1,28 +1,28 @@
 .camera-page { color: var(--c-text); font-family: var(--font); }
 .camera-page-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--s-4); margin-bottom: var(--s-4); }
-.camera-page-heading h1 { margin: 0; font-size: 32px; line-height: 1.1; letter-spacing: -.04em; }
-.camera-page-heading p { margin: 6px 0 0; color: var(--c-text-2); font-size: 14px; }
-.camera-page-heading .camera-eyebrow { margin: 0 0 6px; color: var(--c-leaf); font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
-.camera-page-heading .chip { min-height: 30px; padding-inline: 12px; border-radius: var(--r-pill); background: var(--c-text); color: var(--c-surface); font-size: 12px; font-weight: 700; }
+.camera-page-heading h1 { margin: 0; font-size: 2rem; line-height: 1.1; letter-spacing: -.04em; }
+.camera-page-heading p { margin: 6px 0 0; color: var(--c-text-2); font-size: 0.875rem; }
+.camera-page-heading .camera-eyebrow { margin: 0 0 6px; color: var(--c-leaf); font-size: 0.75rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.camera-page-heading .chip { min-height: 30px; padding-inline: 12px; border-radius: var(--r-pill); background: var(--c-text); color: var(--c-surface); font-size: 0.75rem; font-weight: 700; }
 .camera-page-heading .camera-live-chip { background: var(--c-leaf-tint); color: var(--c-leaf); }
 .camera-page-heading .camera-replay-chip { background: var(--c-text); color: var(--c-surface); }
 .camera-card { padding: var(--s-3); border-color: var(--c-hairline); border-radius: var(--r-panel); box-shadow: var(--shadow-card); }
 .camera-controls { display: flex; align-items: flex-end; flex-wrap: wrap; gap: var(--s-3); padding-bottom: var(--s-3); border-bottom: 1px solid var(--c-hairline); }
-.camera-controls label { color: var(--c-text-2); font-size: 13px; }
+.camera-controls label { color: var(--c-text-2); font-size: 0.8125rem; }
 .camera-controls select, .camera-controls input { display: block; min-height: 44px; margin-top: 6px; padding: 0 12px; border: 1px solid var(--c-border); border-radius: var(--r-control); background: var(--c-surface); color: var(--c-text); font: inherit; }
 .camera-controls select { min-width: 220px; }
 .camera-controls input { width: 260px; padding-block: 9px; }
 .camera-status { display: flex; flex-wrap: wrap; gap: 8px; margin: var(--s-3) 0; }
-.camera-debug { flex: none; max-height: 180px; overflow: auto; padding: 8px; margin-top: 8px; background: #17191c; color: #fff; font: 12px/1.4 monospace; }
+.camera-debug { flex: none; max-height: 180px; overflow: auto; padding: 8px; margin-top: 8px; background: #17191c; color: #fff; font: 0.75rem/1.4 monospace; }
 .camera-debug pre { white-space: pre-wrap; overflow-wrap: anywhere; margin: 8px 0 0; font: inherit; }
-.camera-status .chip { min-height: 30px; padding-inline: 10px; border-radius: var(--r-pill); background: var(--c-canvas); color: var(--c-text-2); font-size: 12px; font-weight: 600; }
-.camera-check-request { margin: 0 0 12px; padding: 14px 18px; border-radius: var(--r-control); background: var(--c-red, #b42318); color: #fff; font-size: 16px; line-height: 1.4; }
+.camera-status .chip { min-height: 30px; padding-inline: 10px; border-radius: var(--r-pill); background: var(--c-canvas); color: var(--c-text-2); font-size: 0.75rem; font-weight: 600; }
+.camera-check-request { margin: 0 0 12px; padding: 14px 18px; border-radius: var(--r-control); background: var(--c-red, #b42318); color: #fff; font-size: 1rem; line-height: 1.4; }
 .camera-page .camera-canvas { display: block; width: 100%; max-width: none; border-radius: var(--r-control); background: var(--c-text); box-shadow: inset 0 0 0 1px rgba(255,255,255,.12); }
 .camera-page .camera-correction { margin-top: var(--s-3); padding: var(--s-3); border: 1px solid var(--c-hairline); border-radius: var(--r-control); background: var(--c-canvas); }
-.camera-page .camera-correction summary { color: var(--c-text); font-size: 14px; font-weight: 700; cursor: pointer; }
-.camera-page .camera-correction p { color: var(--c-text-2); font-size: 13px; }
+.camera-page .camera-correction summary { color: var(--c-text); font-size: 0.875rem; font-weight: 700; cursor: pointer; }
+.camera-page .camera-correction p { color: var(--c-text-2); font-size: 0.8125rem; }
 .camera-page .camera-correction .actions { margin: var(--s-3) 0 0; }
-.camera-page .camera-card > p { color: var(--c-text-2); font-size: 13px; }
+.camera-page .camera-card > p { color: var(--c-text-2); font-size: 0.8125rem; }
 @media (max-width: 760px) {
   .camera-page-heading { align-items: flex-start; flex-direction: column; gap: 8px; }
   .camera-controls { align-items: stretch; flex-direction: column; }
@@ -34,21 +34,26 @@
 .camera-settings-toggle { padding: 10px; width: 44px; flex: none; }
 .camera-settings { position: absolute; z-index: 8; top: 100px; right: 24px; width: min(520px, calc(100vw - 48px)); max-height: calc(100dvh - 140px); overflow: auto; padding: 24px; border: 1px solid var(--c-border); border-radius: var(--r-panel); background: var(--c-surface); box-shadow: var(--shadow-bubble); }
 .camera-settings[hidden] { display: none; }
-.camera-settings h2 { margin: 0 0 20px; font-size: 20px; }
+.camera-settings h2 { margin: 0 0 20px; font-size: 1.25rem; }
 .camera-settings .camera-controls { align-items: stretch; flex-direction: column; }
 .camera-settings .camera-controls input, .camera-settings .camera-controls select { width: 100%; max-width: 100%; }
-.camera-technical { font-size: 13px; }
-.camera-page .camera-source-message { margin: 12px 0; font-size: 16px; }
+.camera-technical { font-size: 0.8125rem; }
+.camera-page .camera-source-message { margin: 12px 0; font-size: 1rem; }
 .camera-stage { display: grid; place-items: center; min-width: 0; border-radius: var(--r-control); background: var(--c-text); }
 .camera-demo-view { position: fixed; z-index: 30; inset: 0; display: flex; flex-direction: column; padding: 24px 32px; background: var(--c-canvas); overflow: auto; }
 .camera-demo-view .camera-page-heading { margin-bottom: 16px; }
-.camera-demo-view .camera-page-heading h1 { font-size: 40px; }
+.camera-demo-view .camera-page-heading h1 { font-size: 2.5rem; }
 .camera-demo-view .camera-eyebrow { display: none; }
 .camera-demo-view .camera-card { display: flex; flex: 1; min-height: 0; flex-direction: column; padding: 16px 20px; }
 .camera-demo-view .camera-status { margin: 0; }
-.camera-demo-view .camera-status .chip { font-size: 17px; min-height: 38px; }
+.camera-demo-view .camera-status .chip { font-size: 1.0625rem; min-height: 38px; }
 .camera-demo-view .camera-stage { flex: 1; min-height: 160px; }
 .camera-demo-view .camera-canvas { width: 100%; height: calc(100dvh - 270px); object-fit: contain; }
 .camera-demo-view .camera-footnote { margin-bottom: 0; }
-@media (max-width: 760px) { .camera-demo-view { padding: 16px; } .camera-demo-view .camera-page-heading { flex-direction: row; flex-wrap: wrap; } .camera-demo-view .camera-page-heading h1 { font-size: 28px; } }
+@media (max-width: 760px) { .camera-demo-view { padding: 16px; } .camera-demo-view .camera-page-heading { flex-direction: row; flex-wrap: wrap; } .camera-demo-view .camera-page-heading h1 { font-size: 1.75rem; } }
 @media (prefers-reduced-motion: reduce) { .camera-page * { transition: none !important; animation: none !important; } }
+.camera-view-actions > a { display: inline-flex; align-items: center; min-height: 44px; padding: .625rem .75rem; border-radius: var(--r-control); }
+.camera-page-heading .camera-waiting-chip { background: var(--c-amber-tint); color: var(--c-amber-text); }
+.camera-page-heading h1 { font-size: 2rem; letter-spacing: -.035em; }
+.camera-page .camera-correction summary { display: flex; align-items: center; min-height: 44px; }
+.camera-demo-view { padding-bottom: 4.5rem; }

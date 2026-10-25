@@ -44,3 +44,18 @@ it('keeps every debug field visible when no face or body is detected and setting
     }
   } finally { await act(() => root.unmount()); history.replaceState(null, '', '/'); vi.unstubAllGlobals(); }
 });
+
+it('never labels an unavailable camera LIVE and dismisses standalone settings with Escape', async () => {
+  vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+  const container = document.createElement('div'); document.body.append(container);
+  const root = createRoot(container);
+  try {
+    await act(() => root.render(<CameraPage />));
+    expect(container.querySelector('.camera-view-actions .chip')?.textContent).not.toBe('LIVE');
+    const settings = container.querySelector<HTMLButtonElement>('[aria-label="Camera settings"]')!;
+    await act(() => settings.click());
+    await act(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })));
+    expect(settings.getAttribute('aria-expanded')).toBe('false');
+    expect(document.activeElement).toBe(settings);
+  } finally { await act(() => root.unmount()); container.remove(); vi.unstubAllGlobals(); }
+});
