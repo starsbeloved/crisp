@@ -1,3 +1,4 @@
+import { lazy, Suspense, type ComponentType } from 'react';
 import { CheckInPage } from './checkin/CheckInPage.tsx';
 import { CameraPage } from './camera/CameraPage.tsx';
 import { DashboardPage } from './dashboard/DashboardPage.tsx';
@@ -36,4 +37,3 @@ export function App() {
     </main>
   </StationShell>;
 }
-import { lazy, Suspense, type ComponentType } from 'react';
