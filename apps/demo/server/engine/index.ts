@@ -88,7 +88,7 @@ function evidence(visit: Visit, vitals: EngineVitals, hr: AlertFacts['hrReason']
   const data = memory(vitals, now), pose = vitals.posture;
   if (hr) reasons.push(`Heart rate ${vitals.hrBpm} bpm${vitals.baselineHr === null ? '' : ` (baseline ${vitals.baselineHr})`} for ${Math.floor((now - data.hrRun!.since) / 1000)} s`);
   if (rr) reasons.push(`Breathing rate ${vitals.rrBpm}/min${vitals.baselineRr === null ? '' : ` (baseline ${vitals.baselineRr})`} for ${Math.floor((now - data.rrRun!.since) / 1000)} s`);
-  const resting = !hrReason(vitals) && !rrReason(vitals) && usable(vitals.hrBpm, vitals.hrQuality) && usable(vitals.rrBpm, vitals.rrQuality);
+  const resting = !hrReason(vitals) && !rrReason(vitals) && usable(vitals.hrBpm, vitals.hrQuality);
   const restHint = resting ? '; heart rate normal — may be resting' : '';
   if (pose?.fallSuspected) { postureEvents.push({ kind: 'fall', seconds: 0 }); reasons.push('Fall-like movement detected'); }
   if ((pose?.headDropSec ?? 0) >= 5) {

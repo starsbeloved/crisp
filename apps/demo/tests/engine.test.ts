@@ -189,6 +189,15 @@ describe('P4 fusion alerts', () => {
     expect(alert?.reasons.join(' ')).not.toContain('heart rate normal');
   });
 
+  it('explains a resting slump with normal HR even while breathing is still measuring', () => {
+    const state = room();
+    const alert = tick(state, 0, { hrBpm: 76, rrBpm: null, rrQuality: 'none',
+      posture: posture({ slumpSec: 12 }) }).opened[0];
+    expect(alert?.level).toBe('amber');
+    expect(alert?.reasons.join(' ')).toContain('heart rate normal — may be resting');
+    expect(alert?.reasons.join(' ')).toContain('Breathing rate unavailable (measuring…)');
+  });
+
   it.each([
     [{ hrBpm: 50, hrQuality: 'fair' }, 'hrReason', 'news2-low'],
     [{ rrBpm: 25, rrQuality: 'fair' }, 'rrReason', 'news2-high'],
