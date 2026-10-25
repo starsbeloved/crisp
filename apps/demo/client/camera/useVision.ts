@@ -1,22 +1,25 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
-import { FilesetResolver, PoseLandmarker } from '@mediapipe/tasks-vision';
+import type { PoseLandmarker } from '@mediapipe/tasks-vision';
 import type { GalleryEntry, RoomState } from '../../shared/types.ts';
 import { api } from '../lib/api.ts';
 import { scheduleVideoFrame } from '../lib/camera.ts';
 import { detectFaces, loadFaceModels } from '../lib/face.ts';
 import { createSignalTracker, type SignalTracker, type PoseSample } from './signals/index.ts';
-import { BodyTracker, FaceTracker, poseForFace } from './tracking.ts';
+import { BodyTracker, FaceTracker, poseForFace, type BodyTrack } from './tracking.ts';
 import { meanCheekSample } from './sampling.ts';
 import { drawOverlay, type RenderTrack } from './overlay.ts';
 import { makeObservation } from './output.ts';
+import { loadPoseModel } from './pose.ts';
 
 export function useVision(videoRef: RefObject<HTMLVideoElement | null>, canvasRef: RefObject<HTMLCanvasElement | null>,
   options: { ready: boolean; cam: string; replayName: string | null; state: RoomState | null; privacy: boolean; debug?: boolean }) {
   const [models, setModels] = useState('Loading face models…');
-  const [poseStatus, setPoseStatus] = useState('Loading pose model…');
+  const [poseStatus, setPoseStatus] = useState('Pose model: loading');
   const [error, setError] = useState('');
   const [stats, setStats] = useState({ fps: 0, count: 0 });
   const pose = useRef<PoseLandmarker | null>(null);
+  const poseStatusRef = useRef(poseStatus);
+  poseStatusRef.current = poseStatus;
   const faceReady = useRef(false);
   const tracker = useRef(new FaceTracker());
   const gallery = useRef<GalleryEntry[]>([]);
@@ -44,11 +47,11 @@ export function useVision(videoRef: RefObject<HTMLVideoElement | null>, canvasRe
     })();
     void (async () => {
       try {
-        const files = await FilesetResolver.forVisionTasks('/models/mediapipe-1.1.1/wasm');
-        const model = await PoseLandmarker.createFromOptions(files, { baseOptions: { modelAssetPath: '/models/pose/pose_landmarker_lite.task' }, numPoses: 2,
-          minPoseDetectionConfidence: .3, minPosePresenceConfidence: .3, minTrackingConfidence: .3, runningMode: 'VIDEO' });
-        if (active) { pose.current = model; setPoseStatus('Pose model ready'); } else model.close();
-      } catch { if (active) setPoseStatus('Pose unavailable — face monitoring continues'); }
+        const result = await loadPoseModel();
+        if (active) { pose.current = result.model; setPoseStatus(`Pose model: ready · ${result.delegate}`); } else result.model.close();
+      } catch (error) {
+        if (active) setPoseStatus(`Pose model: error ${error instanceof Error ? error.message : String(error)}`);
+      }
     })();
     return () => { active = false; faceReady.current = false; pose.current?.close(); pose.current = null; };
   }, []);
@@ -63,10 +66,13 @@ export function useVision(videoRef: RefObject<HTMLVideoElement | null>, canvasRe
     tracker.current = new FaceTracker();
     const bodies = new BodyTracker();
     const signals = new Map<string, { visitId: string; tracker: SignalTracker }>();
-    let stopped = false, detecting = false, uploading = false, reporting = false;
+    const missingBodies = new Map<string, { track: BodyTrack; until: number }>();
+    const reportedPosture = new Map<string, string>();
+    let stopped = false, faceDetecting = false, uploading = false, reporting = false;
     let cancel = () => {};
-    let lastDetector = -Infinity, lastUpload = -Infinity, lastReport = -Infinity, lastStats = performance.now(), frameCount = 0, fps = 0;
-    let nextDetector: 'face' | 'pose' = 'face';
+    let lastFaceAt = -Infinity, lastPoseAt = -Infinity, lastUpload = -Infinity, lastReport = -Infinity, lastStats = performance.now(), frameCount = 0, fps = 0;
+    const poseInterval = 80, faceInterval = 250;
+    let poseDetecting = false;
     let poses: PoseSample['landmarks'][] = [], poseAt = -Infinity, appliedPoseAt = -Infinity;
     const source = options.replayName ? 'replay' : 'live';
     function frame() {
@@ -80,47 +86,63 @@ export function useVision(videoRef: RefObject<HTMLVideoElement | null>, canvasRe
         sampleCanvas.width = Math.min(320, width); sampleCanvas.height = Math.round(height * sampleCanvas.width / width);
       }
       frameCount++;
-      sampleCtx!.drawImage(video, 0, 0, sampleCanvas.width, sampleCanvas.height);
-      const pixels = sampleCtx!.getImageData(0, 0, sampleCanvas.width, sampleCanvas.height);
       const faces = tracker.current.current(now);
       if (poseAt !== appliedPoseAt) {
+        const previousBodies = bodies.current(now);
         bodies.update(poses, faces, gallery.current, poseAt, width, height); appliedPoseAt = poseAt;
+        const currentIds = new Set(bodies.current(now).map(track => track.id));
+        for (const track of previousBodies) if (!currentIds.has(track.id)) {
+          const signal = signals.get(track.id);
+          signal?.tracker.pushPose({ t: poseAt, landmarks: [] });
+          if (track.match && signal?.tracker.read(now).posture?.fallSuspected) {
+            missingBodies.set(track.id, { track: { ...track, source: 'body' }, until: now + 1500 });
+          }
+        }
+        for (const [id, entry] of missingBodies) if (now > entry.until || currentIds.has(id)) missingBodies.delete(id);
       }
       const bodyTracks = bodies.current(now);
       // A face can still be monitored when its torso is outside the image.
-      const tracks = [...bodyTracks, ...faces.filter(face => !bodyTracks.some(body =>
+      const tracks = [...bodyTracks, ...[...missingBodies.values()].map(entry => entry.track), ...faces.filter(face => !bodyTracks.some(body =>
         poseForFace(face.face.box, [body.pose], width, height) || face.match && body.match?.visitId === face.match.visitId))];
+      const pixels = tracks.some(track => track.source !== 'body' && track.match) ? (() => {
+        sampleCtx!.drawImage(video, 0, 0, sampleCanvas.width, sampleCanvas.height);
+        return sampleCtx!.getImageData(0, 0, sampleCanvas.width, sampleCanvas.height);
+      })() : null;
       const activeIds = new Set(tracks.map(track => track.id));
       for (const id of signals.keys()) if (!activeIds.has(id)) signals.delete(id);
       const rendered: RenderTrack[] = tracks.map(track => {
         let signal = signals.get(track.id);
-        if (!track.match) { signals.delete(track.id); signal = undefined; }
-        else if (!signal || signal.visitId !== track.match.visitId) {
-          signal = { visitId: track.match.visitId, tracker: createSignalTracker() }; signals.set(track.id, signal);
+        const visitId = track.match?.visitId ?? '';
+        if (!signal || signal.visitId !== visitId) {
+          signal = { visitId, tracker: createSignalTracker() }; signals.set(track.id, signal);
         }
-        const assignedPose = 'pose' in track && now - poseAt < 700 ? track.pose as PoseSample['landmarks'] : null;
+        const assignedPose = 'pose' in track && !missingBodies.has(track.id) && now - poseAt < 700 ? track.pose as PoseSample['landmarks'] : null;
         if (signal) {
-          const sample = track.source !== 'body' ? meanCheekSample(pixels, track.face, width, height, now, video.videoWidth) : null;
+          const sample = pixels && track.source !== 'body' ? meanCheekSample(pixels, track.face, width, height, now, video.videoWidth) : null;
           if (sample) signal.tracker.pushFace(sample);
           // Count only fresh model results, never repeat a cached pose as evidence.
           if (assignedPose) signal.tracker.pushPose({ t: poseAt, landmarks: assignedPose });
         }
-        let reading = signal?.tracker.read(now) ?? { hrBpm: null, hrQuality: 'none' as const, rrBpm: null, rrQuality: 'none' as const, posture: null, hint: null, hrSecondsCollected: 0, pulseTrace: null };
+        let reading = signal?.tracker.read(now) ?? { hrBpm: null, hrQuality: 'none' as const, rrBpm: null, rrQuality: 'none' as const, posture: null, hint: null, hrSecondsCollected: 0, pulseTrace: null, velocity: 0 };
         if (track.source === 'body') reading = { ...reading, hrBpm: null, hrQuality: 'low', pulseTrace: null, hint: 'Face hidden — tracking body',
           hrDisplay: undefined };
         return { track, pose: assignedPose, reading };
       });
       ctx!.drawImage(video, 0, 0, width, height);
-      drawOverlay(ctx!, rendered, room.current, { ...options, fps, now });
+      drawOverlay(ctx!, rendered, room.current, { ...options, fps, now, modelStatus: poseStatusRef.current });
       if (now - lastStats >= 1000) {
         fps = frameCount * 1000 / (now - lastStats); frameCount = 0; lastStats = now;
         setStats({ fps, count: tracks.length });
       }
-      if (now - lastReport >= 1000 && !reporting) {
+      const urgent = rendered.filter(({ track, reading }) => track.match &&
+        (reading.posture?.fallSuspected || (reading.posture?.headDropSec ?? 0) >= 3));
+      const newUrgent = urgent.some(({ track, reading }) => reportedPosture.get(track.id) !== (reading.posture?.fallSuspected ? 'fall' : 'headDrop'));
+      if ((now - lastReport >= 1000 || newUrgent) && !reporting) {
         lastReport = now;
         const observations = rendered.map(({ track, reading }) => makeObservation(track, reading, { cam: options.cam, source, now: Date.now(), width, height }));
         if (observations.length) {
           reporting = true;
+          for (const { track, reading } of urgent) reportedPosture.set(track.id, reading.posture?.fallSuspected ? 'fall' : 'headDrop');
           void api.observations(observations).catch(() => { if (!stopped) setError('Observation upload unavailable'); }).finally(() => { reporting = false; });
         }
       }
@@ -134,25 +156,26 @@ export function useVision(videoRef: RefObject<HTMLVideoElement | null>, canvasRe
             .catch(() => { if (!stopped) setError('Frame upload unavailable'); }).finally(() => { uploading = false; });
         }, 'image/jpeg', 0.7);
       }
-      // One detector per frame, at most 20 combined passes/s. RGB sampling above stays at source fps.
-      if (!detecting && now - lastDetector >= 45 && (faceReady.current || pose.current)) {
-        const kind = nextDetector === 'face' && faceReady.current ? 'face' : pose.current ? 'pose' : 'face';
-        nextDetector = kind === 'face' ? 'pose' : 'face'; lastDetector = now;
-        if (kind === 'face' && faceReady.current) {
-          detecting = true;
-          detectorCanvas.width = video.videoWidth; detectorCanvas.height = video.videoHeight;
-          detectorCtx!.drawImage(video, 0, 0);
+      // Pose runs independently at about 12 fps; face detection stays below 4 Hz and slows for stable tracks.
+      if (!faceDetecting && faceReady.current && now - lastFaceAt >= (faces.length ? 500 : faceInterval)) {
+          faceDetecting = true; lastFaceAt = now;
+          const largeFaces = faces.length > 0 && faces.every(face => face.face.box.w >= width * .16);
+          detectorCanvas.width = Math.min(largeFaces ? 320 : 640, video.videoWidth);
+          detectorCanvas.height = Math.round(video.videoHeight * detectorCanvas.width / video.videoWidth);
+          detectorCtx!.drawImage(video, 0, 0, detectorCanvas.width, detectorCanvas.height);
           const sx = width / detectorCanvas.width, sy = height / detectorCanvas.height;
-          void detectFaces(detectorCanvas).then(faces => {
+          void detectFaces(detectorCanvas, largeFaces ? 320 : 512).then(faces => {
             if (!stopped) tracker.current.update(faces.map(face => ({ ...face,
               box: { x: face.box.x * sx, y: face.box.y * sy, w: face.box.w * sx, h: face.box.h * sy },
               landmarks: face.landmarks.map(p => ({ x: p.x * sx, y: p.y * sy })) })), gallery.current, performance.now());
           })
-            .catch(() => { if (!stopped) setModels('Face detection unavailable'); }).finally(() => { detecting = false; });
-        } else if (pose.current) {
-          try { poses = pose.current.detectForVideo(video, now).landmarks; poseAt = now; }
-          catch { poses = []; if (!stopped) setPoseStatus('Pose detection unavailable'); }
-        }
+            .catch(error => { if (!stopped) setModels(`Face models: error ${error instanceof Error ? error.message : String(error)}`); }).finally(() => { faceDetecting = false; });
+      }
+      if (!poseDetecting && pose.current && now - lastPoseAt >= poseInterval) {
+        poseDetecting = true; lastPoseAt = now;
+        try { poses = pose.current.detectForVideo(video, now).landmarks; poseAt = now; }
+        catch (error) { poses = []; if (!stopped) setPoseStatus(`Pose model: error ${error instanceof Error ? error.message : String(error)}`); }
+        finally { poseDetecting = false; }
       }
     }
     cancel = scheduleVideoFrame(video, frame);

@@ -26,6 +26,13 @@ function bodyTracker() {
   return new tracking.BodyTracker();
 }
 describe('body continuity identity', () => {
+  it('retains shoulders and skeleton when hips are occluded', () => {
+    const bodies = bodyTracker(), sample = pose();
+    sample[23].visibility = sample[24].visibility = .1;
+    bodies.update([sample], identified().current(200), gallery, 200, 640, 480);
+    expect(bodies.current(200)).toHaveLength(1);
+    expect(bodies.current(200)[0]).toMatchObject({ pose: sample, match: { visitId: 'jason-3' } });
+  });
   it('keeps two same-name visits separate when pose order changes and faces disappear', () => {
     const bodies = bodyTracker(), faces = identified();
     bodies.update([pose(.3), pose(.7)], faces.current(200), gallery, 200, 640, 480);

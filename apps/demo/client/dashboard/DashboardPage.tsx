@@ -15,12 +15,14 @@ import { useSuggestions } from '../staff/useSuggestions.ts';
 import { Suggestions } from '../staff/Suggestions.tsx';
 import { StaffToast } from '../staff/StaffToast.tsx';
 import { staffRequest } from '../staff/tools.ts';
-import { useVoice } from './useVoice.ts';
+import { useAlertVoice, useMonitoringSound } from './useVoice.ts';
 import './dashboard.css';
 
 export function DashboardPage() {
   const { state: live, connected } = useRoomState();
-  const [now, setNow] = useState(Date.now()), [voice, setVoice] = useState(false), [busy, setBusy] = useState(false);
+  const [now, setNow] = useState(Date.now()), [busy, setBusy] = useState(false);
+  const monitoring = useMonitoringSound();
+  const voice = monitoring.enabled;
   const [error, setError] = useState(''), [selected, setSelected] = useState<string | null>(null);
   const [fixture, setFixture] = useState<RoomState | null>(null);
   const fixtureAllowed = import.meta.env.DEV && typeof location !== 'undefined' && new URLSearchParams(location.search).get('fixture') === '1';
@@ -40,11 +42,10 @@ export function DashboardPage() {
 
   useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(timer); }, []);
   const openAlerts = state?.alerts.filter(a => a.status === 'open' && state.visits.some(v => v.id === a.visitId && v.status === 'waiting')).sort((a, b) => Number(b.level === 'red') - Number(a.level === 'red') || a.openedAt - b.openedAt) ?? [];
-  const audio = useVoice(voice, [
-    ...openAlerts.filter(a => a.explanation && (a.audio === 'ready' || a.audio === 'failed')).map(a => ({ key: `${a.id}:${a.updatedAt}`, id: a.id, url: a.audio === 'ready' ? api.alertAudioUrl(a.id) : null, speech: a.explanation!.speech })),
+  const audio = useAlertVoice(voice, state?.alerts.filter(a => a.status !== 'checked' && state.visits.some(v => v.id === a.visitId && v.status === 'waiting')) ?? [], [
     ...(notice && notice.speak && notice.message ? [{ key: notice.key, id: 'staff-confirmation', url: null, speech: notice.message }] : []),
     ...((synthetic || suggestions.ready) ? suggestionState.suggestions : []).filter(card => !spokenSuggestionIds.includes(card.id)).map(card => ({ key: `suggestion:${card.id}`, id: card.id, url: null, speech: `${synthetic ? 'Synthetic example. ' : ''}${card.text}` })),
-  ]);
+  ], state?.visits.filter(v => synthetic || state.vitals[v.id]?.source === 'replay').map(v => v.id));
   async function perform(work: () => Promise<unknown>) {
     if (busy) return; setBusy(true); setError('');
     try { await work(); } catch (e) { setError(e instanceof Error ? e.message : 'Action failed. Please try again.'); } finally { setBusy(false); }
@@ -77,7 +78,7 @@ export function DashboardPage() {
   const selectedVisit = state?.visits.find(v => v.id === selected);
   return <div className="dashboard"><div className="page-heading"><div><p className="eyebrow">No one waits unseen</p><h1>Crisp Command Center</h1></div></div>
     {fixtureAllowed && <div className="fixture-controls"><button className="secondary" onClick={() => { setFixture(synthetic ? null : demoFixture()); setPreviewHidden([]); setSelected(null); }}>{synthetic ? 'Return to live room' : 'Load demo fixture'}</button>{synthetic && <><strong className="synthetic-label">SYNTHETIC · illustrative data · actions stay in this preview</strong><button className="secondary" onClick={() => setFixture(current => current ? { ...current, alerts: demoFixture(now).alerts, vitals: demoFixture(now).vitals, serverNow: now } : current)}>Trigger synthetic request</button></>}</div>}
-    <SystemStrip state={state} connected={connected} synthetic={synthetic} now={now} voice={voice} onVoice={() => setVoice(v => !v)} busy={busy} onReset={() => {
+    <SystemStrip state={state} connected={connected} synthetic={synthetic} now={now} voice={voice} onVoice={monitoring.toggle} busy={busy} onReset={() => {
       if (!window.confirm(synthetic ? 'Reset this synthetic preview?' : 'Reset all demo visits, alerts, and camera state?')) return;
       if (synthetic) { setFixture(demoFixture()); setSelected(null); confirm({ ok: true, message: 'Reset done · synthetic preview' }, false); }
       else void perform(async () => {

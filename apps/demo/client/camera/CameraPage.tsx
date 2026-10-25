@@ -88,7 +88,7 @@ export function CameraPage({ roomView = false }: { roomView?: boolean }) {
       <p className="camera-technical">{vision.models} · {vision.poseStatus}</p>
     </div>
     {requests.length > 0 && <div className="camera-check-request" role="alert"><strong>Check requested</strong> · {requests.map(alert => `${state?.vitals[alert.visitId]?.source === 'replay' ? 'REPLAY · ' : ''}${alert.facts.name} · #${alert.facts.queueNo}: ${alert.reasons[0] ?? 'may need a check'}`).join(' / ')} · May need a check</div>}
-    <div className="camera-status"><Chip>{replay ? `REPLAY · ${filename}` : 'LIVE'}</Chip><Chip>{vision.stats.count} {vision.stats.count === 1 ? 'person' : 'people'}</Chip>{privacy && <Chip>Unknown faces blurred</Chip>}{debug && <Chip>Debug · face/body identity + posture counters</Chip>}</div>
+    <div className="camera-status"><Chip>{replay ? `REPLAY · ${filename}` : 'LIVE'}</Chip><Chip>{vision.stats.count} {vision.stats.count === 1 ? 'person' : 'people'}</Chip><Chip>{vision.poseStatus}</Chip><Chip>Overlay {vision.stats.fps.toFixed(1)} fps</Chip>{privacy && <Chip>Unknown faces blurred</Chip>}{debug && <Chip>Debug · face/body identity + posture counters</Chip>}</div>
     <p className="camera-source-message" role="status">{message}</p>
     <video ref={video} muted playsInline autoPlay className="source-video" aria-label="Camera source video" />
     <div className="camera-stage"><canvas ref={canvas} className="camera-canvas" aria-label="Face detection overlay" onClick={event => {
@@ -104,5 +104,5 @@ export function CameraPage({ roomView = false }: { roomView?: boolean }) {
     {vision.error && <p role="alert">{vision.error}</p>}
     <p className="camera-footnote">{state?.cameras[cam] ? `Streaming · ${state.cameras[cam].fps.toFixed(1)} fps` : 'Waiting for frames'} · Heart and breathing readings are camera estimates.</p>
   </Card></div>;
-  return roomView ? <RoomView call={state?.nowCalling ?? null} connected={connected}>{camera}</RoomView> : camera;
+  return roomView ? <RoomView call={state?.nowCalling ?? null} connected={connected} alerts={requests} replayVisitIds={state?.visits.filter(v => state.vitals[v.id]?.source === 'replay').map(v => v.id)}>{camera}</RoomView> : camera;
 }

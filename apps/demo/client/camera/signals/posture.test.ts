@@ -45,3 +45,31 @@ it('keeps a head drop signal when the face landmark becomes unavailable but the 
   }
   expect(tracker.read(7200).posture?.headDropSec).toBe(3);
 });
+
+it('flags a fast drop followed by absent posture within 1.5 seconds, then expires the evidence', () => {
+  const tracker = createSignalTracker();
+  tracker.pushPose(pose(0));
+  tracker.pushPose(pose(100, .08));
+  tracker.pushPose({ t: 200, landmarks: [] });
+  expect(tracker.read(200).posture?.fallSuspected).toBe(true);
+  expect(tracker.read(1800).posture?.fallSuspected ?? false).toBe(false);
+});
+
+it('does not flag a slow descent into a low posture', () => {
+  const tracker = createSignalTracker();
+  for (let t = 0; t <= 4000; t += 100) {
+    tracker.pushPose(pose(t, .25 * t / 4000));
+    expect(tracker.read(t).posture?.fallSuspected ?? false).toBe(false);
+  }
+});
+
+it('counts head drop with occluded seated hips while the shoulders stay visible', () => {
+  const tracker = createSignalTracker();
+  for (let t = 0; t <= 7200; t += 200) {
+    const sample = pose(t, 0, t >= 4200 ? .6 : .2);
+    sample.landmarks[23].visibility = sample.landmarks[24].visibility = .1;
+    tracker.pushPose(sample);
+  }
+  expect(tracker.read(7200).referenceReady).toBe(true);
+  expect(tracker.read(7200).posture?.headDropSec).toBe(3);
+});
