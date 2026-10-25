@@ -1,18 +1,16 @@
 {
-  "name": "echo-health-context",
-  "version": "0.1.0",
+  "name": "crisp",
+  "version": "1.0.0",
   "private": true,
-  "type": "module",
+  "description": "Crisp — a proactive, ambient AI assistant for hospitals and clinics (SBUHacks 2026).",
   "engines": {
     "node": ">=24.0.0"
   },
   "scripts": {
-    "start": "node server/src/main.ts",
-    "dev": "node --watch server/src/main.ts",
-    "test": "node --test tests/*.test.ts",
-    "wr:dev": "npm --prefix apps/waiting-room run dev",
-    "wr:test": "npm --prefix apps/waiting-room run test",
-    "wr:build": "npm --prefix apps/waiting-room run build",
-    "wr:typecheck": "npm --prefix apps/waiting-room run typecheck"
+    "postinstall": "npm --prefix apps/demo install",
+    "dev": "npm --prefix apps/demo run dev",
+    "demo": "npm --prefix apps/demo run demo",
+    "test": "npm --prefix apps/demo test",
+    "typecheck": "npm --prefix apps/demo run typecheck"
   }
 }

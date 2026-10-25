@@ -1,6 +1,0 @@
-Prepared for Waiting Room Monitor P1-A2, 2026-10-24.
-Pose landmarker lite float16 version 1: Google / MediaPipe, Apache License 2.0.
-MediaPipe Tasks Vision WASM runtime and loaders: @mediapipe/tasks-vision 1.1.1, Apache License 2.0.
-Files are unmodified. License text: /models/pose/LICENSE.txt.
-Sources, hashes and limitations: /models/manifest.json and docs/model-manifest.md.
-No model inference, accuracy or medical suitability is asserted by distributing these assets.

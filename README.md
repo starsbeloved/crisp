@@ -125,6 +125,5 @@ Camera values are **estimates** with signal-quality labels. Unavailable readings
 | [`apps/demo`](apps/demo/) | Current application, server, tests, and deployment kit. |
 | [`apps/demo/docs`](apps/demo/docs/) | Application setup and technical notes. |
 | [`apps/demo/public/models`](apps/demo/public/models/) | Required vision models, runtime files, manifests, and licenses. |
-| `apps/waiting-room`, `packages`, `server`, `tests` | Earlier application code. Use the commands in `apps/demo` for the current app. |
 
-The current development branch is **`crisp-demo`**.
+Earlier prototypes are preserved in git history and the `checkpoint-*` tags. The default branch is **`crisp-demo`**.
