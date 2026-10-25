@@ -9,13 +9,13 @@ import type { RoomState } from '../../../shared/types.ts';
 
 const sdk = vi.hoisted(() => ({
   status: 'disconnected', options: {} as Record<string, any>, start: vi.fn(), end: vi.fn(), mute: vi.fn(),
-  callbacks: {} as Record<string, any>, room: null as RoomState | null,
+  context: vi.fn(), callbacks: {} as Record<string, any>, room: null as RoomState | null,
 }));
 vi.mock('@elevenlabs/react', () => ({
   ConversationProvider: ({ children, isMuted }: PropsWithChildren<{ isMuted?: boolean }>) => { if (isMuted !== undefined) sdk.mute(isMuted); return children; },
   useConversation: (callbacks: Record<string, any>) => {
     sdk.callbacks = callbacks;
-    return { status: sdk.status, isSpeaking: false, endSession: sdk.end, setMuted: sdk.mute, getOutputVolume: () => 0,
+    return { status: sdk.status, isSpeaking: false, sendContextualUpdate: sdk.context, endSession: sdk.end, setMuted: sdk.mute, getOutputVolume: () => 0,
       startSession: (options: Record<string, any>) => { sdk.options = options; sdk.start(options); } };
   },
 }));
@@ -27,6 +27,7 @@ beforeEach(() => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
   container = document.createElement('div'); document.body.append(container); root = createRoot(container);
   sdk.status = 'disconnected'; sdk.options = {}; sdk.start.mockClear(); sdk.end.mockClear(); sdk.mute.mockClear();
+  sdk.context.mockClear();
   sdk.room = { serverNow: 0, visits: [], vitals: {}, alerts: [], cameras: {}, nowCalling: null, handoffs: {}, references: [], providers: { gemini: false, elevenlabs: false, agent: true } };
   vi.stubGlobal('fetch', vi.fn().mockImplementation(async () => new Response('{"signedUrl":"wss://api.elevenlabs.io/v1/convai/conversation?test=1"}')));
 });
@@ -57,10 +58,15 @@ describe('voice widgets with a simulated ElevenLabs session', () => {
     await render(<CheckInContext value={c}><CrispAgent /></CheckInContext>);
     await act(async () => click('Talk to Crisp'));
     expect(c.via).toBe('voice');
+    expect(c.goTo).toHaveBeenCalledWith('name');
+    expect(sdk.options.clientTools.set_patient_details).toBeTypeOf('function');
     expect(sdk.options).toMatchObject({ connectionType: 'websocket', signedUrl: expect.stringContaining('wss://') });
     await act(async () => { await sdk.options.clientTools.set_name({ name: 'Ama' });
       sdk.callbacks.onMessage({ role: 'user', source: 'user', message: 'My name is Ama' });
       sdk.callbacks.onMessage({ role: 'agent', source: 'ai', message: '[happy] Thanks, Ama [laughs]' }); });
+    sdk.status = 'connected'; await render(<CheckInContext value={c}><CrispAgent /></CheckInContext>);
+    expect(sdk.context).toHaveBeenCalledWith(expect.stringContaining('date of birth'));
+    expect(sdk.context).toHaveBeenCalledWith(expect.stringContaining('get_follow_up_question'));
     expect(c.name).toBe('Ama'); expect(container.textContent).toContain('You: My name is Ama'); expect(container.textContent).toContain('Crisp: Thanks, Ama'); expect(container.textContent).not.toContain('[happy]');
     await act(async () => click('I’d rather tap'));
     expect(c.name).toBe('Ama'); expect(c.via).toBe('form'); expect(sdk.end).toHaveBeenCalled(); expect(container.querySelector('button')).toBeNull();
@@ -84,4 +90,17 @@ describe('voice widgets with a simulated ElevenLabs session', () => {
     await act(async () => { window.dispatchEvent(new Event('blur')); });
     expect(sdk.mute).toHaveBeenLastCalledWith(true);
   });
+});
+
+it('shows voice identity fields and the actual follow-up context', async () => {
+  const c = controller(); c.via = 'voice'; c.step = 'followup';
+  c.answers.dateOfBirth = '1995-05-14'; c.answers.phone = '202-555-0100';
+  c.followUpPrompt = { question: 'Where is the tightness?', why: 'Because you mentioned “chest tightness”.', source: 'template' };
+  sdk.status = 'connected';
+  await render(<CheckInContext value={c}><CrispAgent /></CheckInContext>);
+  expect(container.textContent).toContain('1995-05-14');
+  expect(container.textContent).toContain('202-555-0100');
+  expect(container.textContent).toContain('Template fallback');
+  expect(container.textContent).toContain('Where is the tightness?');
+  expect(container.textContent).toContain('Because you mentioned “chest tightness”.');
 });

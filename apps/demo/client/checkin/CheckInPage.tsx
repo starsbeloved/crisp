@@ -9,6 +9,8 @@ import { FaceGuide } from './ui/FaceGuide.tsx';
 import { KioskIcon } from './ui/KioskIcon.tsx';
 import { KioskProgress } from './ui/KioskProgress.tsx';
 import { ResetCountdown } from './ui/ResetCountdown.tsx';
+import { detailsError, localToday } from './details.ts';
+import { FollowUpContext } from './ui/FollowUpContext.tsx';
 import './checkin.css';
 
 const reasons = ['chest pain', 'trouble breathing', 'dizziness or fainting', 'headache', 'fever', 'stomach pain', 'injury', 'nausea', 'allergic reaction', 'other'];
@@ -30,6 +32,8 @@ export function CheckInPage() {
     event.preventDefault(); setValidation('');
     if (c.step === 'name') {
       if (!c.name.trim()) { setValidation('Please enter your preferred name or alias.'); return; }
+      const error = detailsError(c.answers);
+      if (error) { setValidation(error); return; }
       void c.startFaceScan();
     } else if (c.step === 'questions') {
       if (!c.answers.reason.trim() && !c.answers.reasonChips.length) { setValidation('Please tell Crisp what brings you in, or choose a chip.'); return; }
@@ -50,10 +54,19 @@ export function CheckInPage() {
         {c.step === 'face' && <p>Look at me for a second! Keep your face inside the oval.</p>}
         {c.step === 'questions' && <p>Tap or type — whatever is easier.</p>}
       </div></div>}
-      {c.step !== 'done' && <div className="checkin-agent"><CrispAgentSlot /></div>}
+      <div className="checkin-agent"><CrispAgentSlot /></div>
       {c.step === 'welcome' && <div className="checkin-welcome-actions"><ol className="checkin-how"><li>Tell Crisp your name</li><li>Look at the camera for two seconds</li><li>Say what brings you in, in your own words</li></ol></div>}
       <form className="checkin-form" onSubmit={submit} aria-busy={c.busy}>
-        {c.step === 'name' && <div className="checkin-name-panel"><label htmlFor="checkin-name">Your name</label><input id="checkin-name" name="name" autoComplete="given-name" maxLength={120} value={c.name} onChange={event => c.setName(event.target.value)} aria-describedby={validation ? 'checkin-error' : undefined} /><Button className="checkin-primary" type="submit">Continue</Button></div>}
+        {c.step === 'name' && <div className="checkin-name-panel">
+          <div><label htmlFor="checkin-name">Your name</label><input id="checkin-name" name="name" autoComplete="given-name" maxLength={120} value={c.name} onChange={event => c.setName(event.target.value)} aria-describedby={validation ? 'checkin-error' : undefined} /></div>
+          <div className="checkin-details-grid">
+            <div><label htmlFor="checkin-dob">Date of birth <span className="checkin-optional">(optional)</span></label><input id="checkin-dob" name="dateOfBirth" type="date" autoComplete="bday" min="1900-01-01" max={localToday()} value={c.answers.dateOfBirth ?? ''} onChange={event => c.setAnswers({ dateOfBirth: event.target.value || null })} aria-describedby="checkin-details-note" /></div>
+            <div><label htmlFor="checkin-phone">Phone number <span className="checkin-optional">(optional)</span></label><input id="checkin-phone" name="phone" type="tel" autoComplete="tel" maxLength={40} value={c.answers.phone ?? ''} onChange={event => c.setAnswers({ phone: event.target.value || null })} aria-describedby="checkin-details-note" /></div>
+          </div>
+          <p id="checkin-details-note">Your date of birth helps staff find your record. Your phone number is shown only to staff. You can leave either blank and ask staff to help.</p>
+          <Button className="checkin-primary" type="submit">Continue</Button>
+        </div>}
+
         <div className="checkin-face-layout" hidden={c.step !== 'face'}>
           <div className="checkin-preview"><video ref={c.videoRef} autoPlay muted playsInline aria-label="Check-in camera preview" /><FaceGuide message={c.face.message} saved={c.face.status === 'saved'} /><div className="checkin-face-status" role="status" aria-live="polite"><span className="checkin-status-chip" data-saved={c.face.status === 'saved'}>{c.face.message}</span></div>{c.replay && <span className="checkin-replay">REPLAY · {c.replay.split('/').pop()}</span>}<span className="checkin-photo-note">Face pattern only — no photo is stored</span></div>
           <aside className="checkin-face-aside">
@@ -74,6 +87,7 @@ export function CheckInPage() {
         </>}
         {c.step === 'followup' && <section className="checkin-followup-panel">
           <div className="checkin-review"><p><strong>{c.name || 'Your name'}</strong> · {c.face.status === 'saved' ? 'Face saved' : 'Staff can help with your face scan'}</p><p>{reasonText}</p><Button type="button" className="checkin-secondary" onClick={() => c.goTo('questions')} disabled={c.busy}>Edit answers</Button></div>
+          <FollowUpContext prompt={c.followUpPrompt} />
           {c.followUpLoading ? <p role="status">Crisp is thinking… You can skip this question.</p> : <><label htmlFor="checkin-followup">{c.followUpQuestion || 'Is there anything else you would like the nurse to know?'}</label><textarea id="checkin-followup" rows={2} maxLength={4000} value={c.answers.followUp?.answer ?? ''} onChange={event => c.setFollowUp(c.followUpQuestion || 'Is there anything else you would like the nurse to know?', event.target.value)} disabled={c.busy} /></>}
           <Button className="checkin-primary" type="submit" disabled={c.busy || c.followUpLoading}>{c.busy ? 'Saving check-in…' : c.error ? 'Retry check-in' : 'Finish check-in'}</Button>
           <Button className="checkin-secondary checkin-skip" type="button" disabled={c.busy} onClick={() => { c.setAnswers({ followUp: null }); void c.finish().catch(() => {}); }}>Skip question and check in</Button>

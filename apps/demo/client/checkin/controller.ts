@@ -162,6 +162,9 @@ export function useCheckIn(): CheckInState {
     return request;
   }, [goTo, update]);
   return { ...state, videoRef, replay, cameraMessage, reset, goTo, startFaceScan, skipFace, finish, prepareFollowUp,
+    // Tool calls can arrive back to back, before React commits the next render.
+    get name() { return latest.current.name; },
+    get answers() { return latest.current.answers; },
     setVia(via) { update({ via, answers: { ...latest.current.answers, via } }); },
     setName(name) { update({ name }); },
     setAnswers(patch: Partial<CheckInAnswers>) {

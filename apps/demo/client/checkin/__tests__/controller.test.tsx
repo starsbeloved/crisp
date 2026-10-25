@@ -52,6 +52,16 @@ afterEach(async () => {
   vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals();
 });
 describe('check-in controller', () => {
+  it('lets consecutive voice tools read edits before React rerenders', async () => {
+    await mount();
+    const toolController = current;
+    await act(async () => {
+      toolController.setName('Ben');
+      toolController.setAnswers({ reason: 'Chest tightness', onset: 'today', trend: 'worse' });
+      expect(toolController.name).toBe('Ben');
+      expect(toolController.answers.reason).toBe('Chest tightness');
+    });
+  });
   it('lets voice tools jump from Welcome to Done and submits their latest synchronous edits', async () => {
     await mount();
     await act(async () => {

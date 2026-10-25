@@ -60,7 +60,7 @@ describe('agent signing', () => {
 
 function mockController(): CheckInController {
   const controller: CheckInController = {
-    followUpPrompt: null, setFollowUpPrompt: vi.fn(),
+    followUpPrompt: null, setFollowUpPrompt: vi.fn(prompt => { controller.followUpPrompt = prompt; }),
     step: 'welcome', name: '', answers: { reason: '', reasonChips: [], onset: null, trend: null, followUp: null, via: 'form' },
     face: { status: 'idle', message: '' }, queueNo: null, via: 'form',
     setVia: vi.fn(v => { controller.via = v; controller.answers.via = v; }),
@@ -85,10 +85,46 @@ describe('check-in client tools', () => {
     expect(controller.answers).toMatchObject({ reason: 'My chest feels tight', onset: 'today', trend: 'worse', via: 'voice' });
     expect(await tools.get_follow_up_question()).toBe('What would you like the nurse to know?');
     expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toMatchObject({ answers: { reason: 'My chest feels tight', via: 'voice' } });
-    expect(await tools.save_follow_up({ question: 'What else?', answer: 'Nothing else' })).toContain('saved');
-    expect(controller.setFollowUp).toHaveBeenCalledWith('What else?', 'Nothing else');
+    expect(await tools.save_follow_up({ question: 'What would you like the nurse to know?', answer: 'Nothing else' })).toContain('saved');
+    expect(controller.setFollowUp).toHaveBeenCalledWith('What would you like the nurse to know?', 'Nothing else');
     expect(await tools.finish_check_in()).toBe('queue number 3');
     expect(controller.finish).toHaveBeenCalledOnce();
+  });
+  it('collects DOB and phone without guessing and preserves them on answer corrections', async () => {
+    const controller = mockController();
+    const tools = createCheckInTools(() => controller);
+    await tools.set_name({ name: 'Ama' });
+    expect(await tools.set_patient_details({ dateOfBirth: '1995-05-14', phone: '+1 202-555-0100' })).toContain('saved');
+    expect(controller.answers).toMatchObject({ dateOfBirth: '1995-05-14', phone: '+1 202-555-0100' });
+    expect(await tools.set_patient_details({ dateOfBirth: '1995-02-30' })).toContain('date of birth');
+    expect(controller.answers.dateOfBirth).toBe('1995-05-14');
+    await tools.save_answers({ reason: 'Headache', onset: 'today', trend: 'same' });
+    expect(controller.answers.phone).toBe('+1 202-555-0100');
+  });
+  it('requires the follow-up tool before saving or finishing and rejects an invented question', async () => {
+    const controller = mockController(); controller.name = 'Ama';
+    const fetcher = vi.fn<typeof fetch>().mockImplementation(async () => new Response('{"question":"Where is the tightness?","source":"gemini"}'));
+    const tools = createCheckInTools(() => controller, fetcher);
+    await tools.save_answers({ reason: 'Chest tightness', onset: 'today', trend: 'worse' });
+    expect(await tools.save_follow_up({ question: 'Invented?', answer: 'No' })).toContain('get_follow_up_question');
+    expect(await tools.finish_check_in()).toContain('get_follow_up_question');
+    expect(controller.finish).not.toHaveBeenCalled();
+    expect(await tools.get_follow_up_question()).toBe('Where is the tightness?');
+    expect(controller.followUpPrompt).toMatchObject({ source: 'gemini', why: 'Because you mentioned “Chest tightness”.' });
+    expect(await tools.save_follow_up({ question: 'Invented?', answer: 'No' })).toContain('returned question');
+    expect(controller.setFollowUp).not.toHaveBeenCalled();
+    expect(await tools.save_follow_up({ question: 'Where is the tightness?', answer: 'In the middle' })).toContain('saved');
+    await tools.finish_check_in();
+    expect(controller.finish).toHaveBeenCalledOnce();
+  });
+  it('requests a fresh follow-up after a complaint correction', async () => {
+    const controller = mockController(); controller.name = 'Ama';
+    const tools = createCheckInTools(() => controller, vi.fn().mockImplementation(async () => new Response('{"question":"Where?","source":"template"}')));
+    await tools.save_answers({ reason: 'Headache', onset: 'today', trend: 'same' });
+    await tools.get_follow_up_question();
+    await tools.save_answers({ reason: 'Ankle injury' });
+    expect(await tools.finish_check_in()).toContain('get_follow_up_question');
+    expect(controller.finish).not.toHaveBeenCalled();
   });
   it('returns scan failures and does not invent unsupported answer chips', async () => {
     const controller = mockController();
@@ -111,7 +147,7 @@ describe('check-in client tools', () => {
     expect(current.answers).toMatchObject({ reason: 'A bad headache', onset: 'today', trend: 'same' });
   });
   it('returns a usable follow-up on an offline provider and a recoverable finish failure', async () => {
-    const controller = mockController(); controller.name = 'Ama'; controller.answers.reason = 'Headache';
+    const controller = mockController(); controller.name = 'Ama'; controller.answers.reason = 'Headache'; controller.answers.onset = 'today'; controller.answers.trend = 'same';
     const tools = createCheckInTools(() => controller, vi.fn().mockRejectedValue(new Error('offline')));
     expect(await tools.get_follow_up_question()).toContain('nurse');
     vi.mocked(controller.finish).mockRejectedValueOnce(new Error('offline'));

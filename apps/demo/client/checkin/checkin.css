@@ -255,3 +255,10 @@ main:has(> .checkin){max-width:none;margin:0;padding:0}
 .checkin .understood-face-edit { display: flex; margin-top: 10px; }
 .checkin .checkin-understood-chips button { min-height: 44px; padding: 8px 14px; border-radius: var(--r-pill); font-size: 16px; }
 .checkin .checkin-understood-chips button[aria-pressed=true] { background: var(--c-leaf); border-color: var(--c-leaf); color: var(--c-surface); }
+
+.checkin-details-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.checkin-name-panel .checkin-details-grid input,.checkin-name-panel>div>input{margin-top:10px}
+.checkin-optional{font-size:16px;font-weight:400;color:var(--c-text-2)}
+.checkin-followup-context{display:flex;flex-direction:column;align-items:flex-start;gap:10px;overflow-wrap:anywhere}
+.checkin-followup-source{font-size:14px;font-weight:600;padding:6px 12px;border:1px solid var(--c-border);border-radius:var(--r-pill);background:var(--c-canvas)}
+@media(max-width:760px){.checkin-details-grid{grid-template-columns:minmax(0,1fr)}}
