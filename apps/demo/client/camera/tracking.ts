@@ -154,7 +154,9 @@ export class BodyTracker {
     for (const track of previous) for (const [index, p] of visible.entries()) {
       const a = torso(track.pose)!, b = torso(p)!;
       const ratio = b.size / a.size, cost = Math.hypot(a.x - b.x, a.y - b.y) / Math.max(a.size, b.size);
-      if (ratio >= .5 && ratio <= 2 && cost < 1.7) candidates.push({ track, index, cost });
+      const fastDownward = now - track.lastSeen <= 400 && b.y > a.y &&
+        b.y - a.y < Math.max(a.size, b.size) * 3 && Math.abs(b.x - a.x) < Math.max(a.size, b.size) * .5;
+      if (ratio >= .5 && ratio <= 2 && (cost < 1.7 || fastDownward)) candidates.push({ track, index, cost });
     }
     const assigned = new Map<number, BodyTrack>(), used = new Set<string>();
     for (const candidate of candidates.sort((a, b) => a.cost - b.cost)) {

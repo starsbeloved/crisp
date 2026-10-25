@@ -65,4 +65,6 @@ it('draws at video cadence, caps face inference, and uploads a drop followed by 
   expect(model.observations.mock.calls.flatMap(call => call[0])).toEqual(expect.arrayContaining([
     expect.objectContaining({ visitId: 'ama', source: 'replay', at: 106250, hrBpm: null, posture: expect.objectContaining({ fallSuspected: true }) }),
   ]));
+  const fallReport = model.observations.mock.calls.find(call => call[0].some((observation: { posture: { fallSuspected: boolean } | null }) => observation.posture?.fallSuspected))![0];
+  expect(fallReport.filter((observation: { visitId: string | null }) => observation.visitId === 'ama')).toHaveLength(1);
 });

@@ -33,6 +33,14 @@ describe('body continuity identity', () => {
     expect(bodies.current(200)).toHaveLength(1);
     expect(bodies.current(200)[0]).toMatchObject({ pose: sample, match: { visitId: 'jason-3' } });
   });
+
+  it('keeps an unambiguous body identity through a large fast downward movement', () => {
+    const bodies = bodyTracker();
+    bodies.update([pose()], identified().current(200), gallery, 200, 640, 480);
+    const id = bodies.current(200)[0].id;
+    bodies.update([pose().map(point => ({ ...point, y: point.y + .28 }))], [], gallery, 300, 640, 480);
+    expect(bodies.current(300)[0]).toMatchObject({ id, source: 'body', match: { visitId: 'jason-3' } });
+  });
   it('keeps two same-name visits separate when pose order changes and faces disappear', () => {
     const bodies = bodyTracker(), faces = identified();
     bodies.update([pose(.3), pose(.7)], faces.current(200), gallery, 200, 640, 480);

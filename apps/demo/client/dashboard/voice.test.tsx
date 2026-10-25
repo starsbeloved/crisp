@@ -122,3 +122,14 @@ it('remembers the one-click sound choice after the monitoring surface remounts',
   expect(container.textContent).toBe('on');
   sessionStorage.clear();
 });
+
+it('speaks an alert immediately when a non-alert announcement is already playing', async () => {
+  setup();
+  const speak = vi.fn((u: SpeechSynthesisUtterance) => u.onend?.(new Event('end') as SpeechSynthesisEvent));
+  vi.stubGlobal('SpeechSynthesisUtterance', class { onend = null; onerror = null; constructor(public text: string) {} });
+  vi.stubGlobal('speechSynthesis', { speak, cancel: vi.fn() });
+  await act(() => root!.render(<Harness enabled items={[a]} />));
+  await act(() => root!.render(<Harness enabled items={[...alertVoiceItems([alert('urgent')]), a]} />));
+  expect(speak).toHaveBeenCalledOnce();
+  expect(players[0].pause).toHaveBeenCalled();
+});

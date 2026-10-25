@@ -104,8 +104,8 @@ export function drawOverlay(ctx: CanvasRenderingContext2D, tracks: RenderTrack[]
       ctx.font = '11px monospace';
       const debugWidth = Math.min(width - 8, Math.max(...lines.map(line => ctx.measureText(line).width)) + 12);
       const dx = Math.max(4, Math.min(width - debugWidth - 4, box.x));
-      const dy = Math.max(76, Math.min(height - 98, box.y + box.h + 70));
       const debugHeight = lines.length * 15 + 8;
+      const dy = Math.max(76, Math.min(height - debugHeight - 36, box.y + box.h + 70));
       ctx.fillStyle = 'rgba(0,0,0,.86)'; ctx.fillRect(dx, dy, debugWidth, debugHeight);
       ctx.fillStyle = '#fff'; lines.forEach((line, i) => ctx.fillText(line, dx + 6, dy + 14 + i * 15));
     }

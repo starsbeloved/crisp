@@ -100,9 +100,9 @@ export function useVision(videoRef: RefObject<HTMLVideoElement | null>, canvasRe
         }
         for (const [id, entry] of missingBodies) if (now > entry.until || currentIds.has(id)) missingBodies.delete(id);
       }
-      const bodyTracks = bodies.current(now);
+      const bodyTracks = [...bodies.current(now), ...[...missingBodies.values()].map(entry => entry.track)];
       // A face can still be monitored when its torso is outside the image.
-      const tracks = [...bodyTracks, ...[...missingBodies.values()].map(entry => entry.track), ...faces.filter(face => !bodyTracks.some(body =>
+      const tracks = [...bodyTracks, ...faces.filter(face => !bodyTracks.some(body =>
         poseForFace(face.face.box, [body.pose], width, height) || face.match && body.match?.visitId === face.match.visitId))];
       const pixels = tracks.some(track => track.source !== 'body' && track.match) ? (() => {
         sampleCtx!.drawImage(video, 0, 0, sampleCanvas.width, sampleCanvas.height);
@@ -124,7 +124,8 @@ export function useVision(videoRef: RefObject<HTMLVideoElement | null>, canvasRe
           if (assignedPose) signal.tracker.pushPose({ t: poseAt, landmarks: assignedPose });
         }
         let reading = signal?.tracker.read(now) ?? { hrBpm: null, hrQuality: 'none' as const, rrBpm: null, rrQuality: 'none' as const, posture: null, hint: null, hrSecondsCollected: 0, pulseTrace: null, velocity: 0 };
-        if (track.source === 'body') reading = { ...reading, hrBpm: null, hrQuality: 'low', pulseTrace: null, hint: 'Face hidden — tracking body',
+        if (track.source === 'body') reading = { ...reading, hrBpm: null, hrQuality: 'low', pulseTrace: null,
+          hint: missingBodies.has(track.id) ? 'Body left view after fast downward movement' : 'Face hidden — tracking body',
           hrDisplay: undefined };
         return { track, pose: assignedPose, reading };
       });
