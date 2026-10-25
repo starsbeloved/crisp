@@ -15,6 +15,14 @@ export function useVoiceAgent(mode: 'checkin' | 'nurse', enabled: boolean, tools
     onMessage: message => setCaptions(items => [...items.slice(-11), { speaker: message.role === 'user' || message.source === 'user' ? 'You' : 'Crisp', text: stripCaptionTags(message.message) }]),
   });
   const { endSession, getOutputVolume, status, isSpeaking, sendContextualUpdate } = conversation;
+  // Loud venues: keep the mic closed while Crisp talks so room noise cannot cut a sentence short.
+  const setMuted = (conversation as { setMuted?: (muted: boolean) => void }).setMuted;
+  useEffect(() => {
+    if (status !== 'connected' || !setMuted) return;
+    if (isSpeaking) { setMuted(true); return; }
+    const reopen = setTimeout(() => setMuted(false), 250);
+    return () => clearTimeout(reopen);
+  }, [status, isSpeaking, setMuted]);
   useEffect(() => {
     if (status === 'connected' && context) sendContextualUpdate(context);
   }, [status, context, sendContextualUpdate]);
