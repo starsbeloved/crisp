@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { parseEnv } from 'node:util';
 
-const DEFAULT_ENV = '/Users/ducthanhnguyenpham/Coding/APPLE HEALTH DEVICE/apps/waiting-room/.local/providers.env';
+// Local secrets live outside git; set PROVIDERS_ENV to use another file.
+const DEFAULT_ENV = new URL('../.local/providers.env', import.meta.url);
 
 /** Only the signed session URL crosses the browser boundary. Never log provider responses. */
 export async function signedUrl(mode: 'checkin' | 'nurse'): Promise<string | null> {

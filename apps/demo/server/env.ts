@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 
-const DEFAULT_ENV = '/Users/ducthanhnguyenpham/Coding/APPLE HEALTH DEVICE/apps/waiting-room/.local/providers.env';
+// Local secrets live outside git; set PROVIDERS_ENV to use another file.
+const DEFAULT_ENV = new URL('../.local/providers.env', import.meta.url);
 
 export function providerVariables(): Record<string, string> {
   let source = '';

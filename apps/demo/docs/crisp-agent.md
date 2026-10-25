@@ -51,7 +51,7 @@ Rules:
 7. **Security:** enable authentication / private agent so the page connects only with a **signed URL** from our server
    (the server fetches it with your API key; the key never reaches the browser).
 8. Copy the **agent id** → add `ELEVENLABS_AGENT_ID=<id>` to
-   `/Users/ducthanhnguyenpham/Coding/APPLE HEALTH DEVICE/apps/waiting-room/.local/providers.env`.
+   `apps/demo/.local/providers.env` (or the file named by `PROVIDERS_ENV`).
 
 ## Agent 2 — "Crisp Nurse Assistant" (Ask Crisp on the dashboard)
 

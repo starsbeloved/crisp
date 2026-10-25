@@ -21,7 +21,7 @@ Crisp's longer-term role spans the hospital's authorized systems: records, sched
 
 | Area | Current prototype |
 | --- | --- |
-| Patient intake | Conversational check-in, adaptive follow-up questions, a visible form, face enrollment, an optional camera pulse check, and a request-for-help action. |
+| Patient intake | Conversational check-in, adaptive follow-up questions, a visible form, face enrollment, and a request-for-help action. |
 | Room awareness | Recognition of enrolled patients, body tracking, posture observations, and heart-rate/breathing camera estimates with signal quality. |
 | Staff Command Center | Patient context, recorded timelines, check requests, incident debriefs, acknowledgment, and call-in controls. |
 | Proactive coordination | Suggestions for a newly free room, long waits with a worsening report, a missing camera sighting, a ready chart, and patient check-backs; shift summaries on request. |
@@ -49,7 +49,7 @@ The current prototype retrieves recorded visit context and fictional histories. 
 
 ## Built around existing equipment
 
-Crisp is primarily software. The first version can reuse a clinic's laptops, desktop PCs, displays, microphones, speakers, and compatible cameras. Staff open their station in a browser. A touchscreen connected to a computer can become a check-in kiosk, with a microphone and speaker for conversation and a camera for enrollment and optional pulse estimation.
+Crisp is primarily software. The first version can reuse a clinic's laptops, desktop PCs, displays, microphones, speakers, and compatible cameras. Staff open their station in a browser. A touchscreen connected to a computer can become a check-in kiosk, with a microphone and speaker for conversation and a camera for face enrollment.
 
 The goal is to lower the hardware barrier for smaller clinics and under-resourced healthcare systems. Our demo uses Vultr; the application can also be hosted on a hospital-managed server. Enabled Gemini and ElevenLabs features still use their provider APIs with either hosting arrangement.
 
@@ -82,7 +82,7 @@ Camera and microphone use require browser permission. Remote devices need a trus
 
 ### Provider configuration
 
-Keep provider credentials in a private, untracked environment file on the server and select it with `PROVIDERS_ENV`:
+Keep provider credentials in a private, untracked environment file. By default the server reads `apps/demo/.local/providers.env` (git-ignored); select another file with `PROVIDERS_ENV`:
 
 ```sh
 PROVIDERS_ENV=/absolute/path/to/providers.env npm run demo
