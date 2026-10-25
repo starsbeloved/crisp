@@ -2,6 +2,8 @@
 
 Date: October 25, 2026 · Branch: `crisp-demo-apple-design` · Audited commit: `8ea50ce`.
 
+Follow-up: all nine findings were addressed in the [Apple Design implementation report](apple-design-fixes-2026-10-25.md). This audit preserves the observations from before those fixes.
+
 ## Summary
 
 **Needs work.** Crisp already has a coherent visual identity: restrained green controls, a calm neutral canvas, system typography, and a distinctive apple companion. The largest problems are misleading monitoring status, insufficient contrast on amber treatments, and a dashboard that places the patient queue below secondary content.

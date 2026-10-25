@@ -1,0 +1,782 @@
+{
+  "viewports": [
+    {
+      "route": "/",
+      "width": 1440,
+      "scale": 1,
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "88px"
+    },
+    {
+      "route": "/",
+      "width": 1440,
+      "scale": 2,
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "115.2px"
+    },
+    {
+      "route": "/station?choose=1",
+      "width": 1440,
+      "scale": 1,
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "52px"
+    },
+    {
+      "route": "/station?choose=1",
+      "width": 1440,
+      "scale": 2,
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "72px"
+    },
+    {
+      "route": "/check-in",
+      "width": 1440,
+      "scale": 1,
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "64px"
+    },
+    {
+      "route": "/check-in",
+      "width": 1440,
+      "scale": 2,
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "128px"
+    },
+    {
+      "route": "/dashboard?fixture=1",
+      "width": 1440,
+      "scale": 1,
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "overflow": [],
+      "shortControls": [],
+      "queueY": 445.484375,
+      "headingSize": "36px"
+    },
+    {
+      "route": "/dashboard?fixture=1",
+      "width": 1440,
+      "scale": 2,
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "overflow": [],
+      "shortControls": [],
+      "queueY": 728.375,
+      "headingSize": "56px"
+    },
+    {
+      "route": "/lobby",
+      "width": 1440,
+      "scale": 1,
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": null
+    },
+    {
+      "route": "/lobby",
+      "width": 1440,
+      "scale": 2,
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": null
+    },
+    {
+      "route": "/camera",
+      "width": 1440,
+      "scale": 1,
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "32px"
+    },
+    {
+      "route": "/camera",
+      "width": 1440,
+      "scale": 2,
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "64px"
+    },
+    {
+      "route": "/room",
+      "width": 1440,
+      "scale": 1,
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "36px"
+    },
+    {
+      "route": "/room",
+      "width": 1440,
+      "scale": 2,
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "72px"
+    },
+    {
+      "route": "/exam?room=1",
+      "width": 1440,
+      "scale": 1,
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "42px"
+    },
+    {
+      "route": "/exam?room=1",
+      "width": 1440,
+      "scale": 2,
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "57.6px"
+    },
+    {
+      "route": "/",
+      "width": 768,
+      "scale": 1,
+      "viewport": 768,
+      "documentWidth": 768,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "61.44px"
+    },
+    {
+      "route": "/",
+      "width": 768,
+      "scale": 2,
+      "viewport": 768,
+      "documentWidth": 768,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "96px"
+    },
+    {
+      "route": "/station?choose=1",
+      "width": 768,
+      "scale": 1,
+      "viewport": 768,
+      "documentWidth": 768,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "38.4px"
+    },
+    {
+      "route": "/station?choose=1",
+      "width": 768,
+      "scale": 2,
+      "viewport": 768,
+      "documentWidth": 768,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "64px"
+    },
+    {
+      "route": "/check-in",
+      "width": 768,
+      "scale": 1,
+      "viewport": 768,
+      "documentWidth": 768,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "58px"
+    },
+    {
+      "route": "/check-in",
+      "width": 768,
+      "scale": 2,
+      "viewport": 768,
+      "documentWidth": 768,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "116px"
+    },
+    {
+      "route": "/dashboard?fixture=1",
+      "width": 768,
+      "scale": 1,
+      "viewport": 768,
+      "documentWidth": 768,
+      "overflow": [],
+      "shortControls": [],
+      "queueY": 492.6875,
+      "headingSize": "28px"
+    },
+    {
+      "route": "/dashboard?fixture=1",
+      "width": 768,
+      "scale": 2,
+      "viewport": 768,
+      "documentWidth": 768,
+      "overflow": [],
+      "shortControls": [],
+      "queueY": 1243.34375,
+      "headingSize": "56px"
+    },
+    {
+      "route": "/lobby",
+      "width": 768,
+      "scale": 1,
+      "viewport": 768,
+      "documentWidth": 768,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": null
+    },
+    {
+      "route": "/lobby",
+      "width": 768,
+      "scale": 2,
+      "viewport": 768,
+      "documentWidth": 768,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": null
+    },
+    {
+      "route": "/camera",
+      "width": 768,
+      "scale": 1,
+      "viewport": 768,
+      "documentWidth": 768,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "32px"
+    },
+    {
+      "route": "/camera",
+      "width": 768,
+      "scale": 2,
+      "viewport": 768,
+      "documentWidth": 768,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "64px"
+    },
+    {
+      "route": "/room",
+      "width": 768,
+      "scale": 1,
+      "viewport": 768,
+      "documentWidth": 768,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "30px"
+    },
+    {
+      "route": "/room",
+      "width": 768,
+      "scale": 2,
+      "viewport": 768,
+      "documentWidth": 768,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "60px"
+    },
+    {
+      "route": "/exam?room=1",
+      "width": 768,
+      "scale": 1,
+      "viewport": 768,
+      "documentWidth": 768,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "30.72px"
+    },
+    {
+      "route": "/exam?room=1",
+      "width": 768,
+      "scale": 2,
+      "viewport": 768,
+      "documentWidth": 768,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "52px"
+    },
+    {
+      "route": "/",
+      "width": 390,
+      "scale": 1,
+      "viewport": 390,
+      "documentWidth": 390,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "48px"
+    },
+    {
+      "route": "/",
+      "width": 390,
+      "scale": 2,
+      "viewport": 390,
+      "documentWidth": 390,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "96px"
+    },
+    {
+      "route": "/station?choose=1",
+      "width": 390,
+      "scale": 1,
+      "viewport": 390,
+      "documentWidth": 390,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "32px"
+    },
+    {
+      "route": "/station?choose=1",
+      "width": 390,
+      "scale": 2,
+      "viewport": 390,
+      "documentWidth": 390,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "64px"
+    },
+    {
+      "route": "/check-in",
+      "width": 390,
+      "scale": 1,
+      "viewport": 390,
+      "documentWidth": 390,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "44px"
+    },
+    {
+      "route": "/check-in",
+      "width": 390,
+      "scale": 2,
+      "viewport": 390,
+      "documentWidth": 390,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "88px"
+    },
+    {
+      "route": "/dashboard?fixture=1",
+      "width": 390,
+      "scale": 1,
+      "viewport": 390,
+      "documentWidth": 390,
+      "overflow": [],
+      "shortControls": [],
+      "queueY": 702.78125,
+      "headingSize": "28px"
+    },
+    {
+      "route": "/dashboard?fixture=1",
+      "width": 390,
+      "scale": 2,
+      "viewport": 390,
+      "documentWidth": 390,
+      "overflow": [],
+      "shortControls": [],
+      "queueY": 1672.53125,
+      "headingSize": "56px"
+    },
+    {
+      "route": "/lobby",
+      "width": 390,
+      "scale": 1,
+      "viewport": 390,
+      "documentWidth": 390,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": null
+    },
+    {
+      "route": "/lobby",
+      "width": 390,
+      "scale": 2,
+      "viewport": 390,
+      "documentWidth": 390,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": null
+    },
+    {
+      "route": "/camera",
+      "width": 390,
+      "scale": 1,
+      "viewport": 390,
+      "documentWidth": 390,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "32px"
+    },
+    {
+      "route": "/camera",
+      "width": 390,
+      "scale": 2,
+      "viewport": 390,
+      "documentWidth": 390,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "64px"
+    },
+    {
+      "route": "/room",
+      "width": 390,
+      "scale": 1,
+      "viewport": 390,
+      "documentWidth": 390,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "30px"
+    },
+    {
+      "route": "/room",
+      "width": 390,
+      "scale": 2,
+      "viewport": 390,
+      "documentWidth": 390,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "60px"
+    },
+    {
+      "route": "/exam?room=1",
+      "width": 390,
+      "scale": 1,
+      "viewport": 390,
+      "documentWidth": 390,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "26px"
+    },
+    {
+      "route": "/exam?room=1",
+      "width": 390,
+      "scale": 2,
+      "viewport": 390,
+      "documentWidth": 390,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "52px"
+    },
+    {
+      "route": "/",
+      "width": 320,
+      "scale": 1,
+      "viewport": 320,
+      "documentWidth": 320,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "48px"
+    },
+    {
+      "route": "/",
+      "width": 320,
+      "scale": 2,
+      "viewport": 320,
+      "documentWidth": 320,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "96px"
+    },
+    {
+      "route": "/station?choose=1",
+      "width": 320,
+      "scale": 1,
+      "viewport": 320,
+      "documentWidth": 320,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "32px"
+    },
+    {
+      "route": "/station?choose=1",
+      "width": 320,
+      "scale": 2,
+      "viewport": 320,
+      "documentWidth": 320,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "64px"
+    },
+    {
+      "route": "/check-in",
+      "width": 320,
+      "scale": 1,
+      "viewport": 320,
+      "documentWidth": 320,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "44px"
+    },
+    {
+      "route": "/check-in",
+      "width": 320,
+      "scale": 2,
+      "viewport": 320,
+      "documentWidth": 320,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "88px"
+    },
+    {
+      "route": "/dashboard?fixture=1",
+      "width": 320,
+      "scale": 1,
+      "viewport": 320,
+      "documentWidth": 320,
+      "overflow": [],
+      "shortControls": [],
+      "queueY": 754.78125,
+      "headingSize": "28px"
+    },
+    {
+      "route": "/dashboard?fixture=1",
+      "width": 320,
+      "scale": 2,
+      "viewport": 320,
+      "documentWidth": 320,
+      "overflow": [],
+      "shortControls": [],
+      "queueY": 2041.90625,
+      "headingSize": "56px"
+    },
+    {
+      "route": "/lobby",
+      "width": 320,
+      "scale": 1,
+      "viewport": 320,
+      "documentWidth": 320,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": null
+    },
+    {
+      "route": "/lobby",
+      "width": 320,
+      "scale": 2,
+      "viewport": 320,
+      "documentWidth": 320,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": null
+    },
+    {
+      "route": "/camera",
+      "width": 320,
+      "scale": 1,
+      "viewport": 320,
+      "documentWidth": 320,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "32px"
+    },
+    {
+      "route": "/camera",
+      "width": 320,
+      "scale": 2,
+      "viewport": 320,
+      "documentWidth": 320,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "64px"
+    },
+    {
+      "route": "/room",
+      "width": 320,
+      "scale": 1,
+      "viewport": 320,
+      "documentWidth": 320,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "30px"
+    },
+    {
+      "route": "/room",
+      "width": 320,
+      "scale": 2,
+      "viewport": 320,
+      "documentWidth": 320,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "60px"
+    },
+    {
+      "route": "/exam?room=1",
+      "width": 320,
+      "scale": 1,
+      "viewport": 320,
+      "documentWidth": 320,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "26px"
+    },
+    {
+      "route": "/exam?room=1",
+      "width": 320,
+      "scale": 2,
+      "viewport": 320,
+      "documentWidth": 320,
+      "overflow": [],
+      "shortControls": [],
+      "headingSize": "52px"
+    }
+  ],
+  "interactions": {
+    "desktopQueue": {
+      "x": 691.15625,
+      "y": 445.484375,
+      "width": 724.84375,
+      "height": 986.078125
+    },
+    "desktopActions": {
+      "x": 853.953125,
+      "y": 821.171875,
+      "width": 124.59375,
+      "height": 44
+    },
+    "focusRestored": true,
+    "nestedEscape": true,
+    "mobileQueue": {
+      "x": 16,
+      "y": 702.78125,
+      "width": 358,
+      "height": 1246.25
+    },
+    "currentNavigationVisible": true,
+    "checkinNoOverlap": true,
+    "symptomNotObscured": true,
+    "noCameraStatus": "No active camera",
+    "offlineStatus": "Reconnecting to room",
+    "cameraEscape": true,
+    "amber": [
+      {
+        "selector": ".alert-banner.amber p",
+        "color": "rgb(143, 84, 0)",
+        "background": "rgb(255, 249, 239)",
+        "contrast": 5.834789459895539
+      },
+      {
+        "selector": ".tag.amber",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(143, 84, 0)",
+        "contrast": 6.111655693872132
+      }
+    ],
+    "reducedMotion": true,
+    "increasedContrast": true
+  },
+  "populated": [
+    {
+      "width": 1440,
+      "screen": "exam",
+      "scale": 1,
+      "viewport": 1440,
+      "overflow": []
+    },
+    {
+      "width": 1440,
+      "screen": "exam",
+      "scale": 2,
+      "viewport": 1440,
+      "overflow": []
+    },
+    {
+      "width": 1440,
+      "screen": "lobby",
+      "scale": 1,
+      "viewport": 1440,
+      "overflow": []
+    },
+    {
+      "width": 1440,
+      "screen": "lobby",
+      "scale": 2,
+      "viewport": 1440,
+      "overflow": []
+    },
+    {
+      "width": 390,
+      "screen": "exam",
+      "scale": 1,
+      "viewport": 390,
+      "overflow": []
+    },
+    {
+      "width": 390,
+      "screen": "exam",
+      "scale": 2,
+      "viewport": 390,
+      "overflow": []
+    },
+    {
+      "width": 390,
+      "screen": "lobby",
+      "scale": 1,
+      "viewport": 390,
+      "overflow": []
+    },
+    {
+      "width": 390,
+      "screen": "lobby",
+      "scale": 2,
+      "viewport": 390,
+      "overflow": []
+    },
+    {
+      "width": 320,
+      "screen": "exam",
+      "scale": 1,
+      "viewport": 320,
+      "overflow": []
+    },
+    {
+      "width": 320,
+      "screen": "exam",
+      "scale": 2,
+      "viewport": 320,
+      "overflow": []
+    },
+    {
+      "width": 320,
+      "screen": "lobby",
+      "scale": 1,
+      "viewport": 320,
+      "overflow": []
+    },
+    {
+      "width": 320,
+      "screen": "lobby",
+      "scale": 2,
+      "viewport": 320,
+      "overflow": []
+    }
+  ]
+}

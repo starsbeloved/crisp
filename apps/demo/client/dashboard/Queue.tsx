@@ -18,7 +18,7 @@ export function Queue({ state, now, onSelect, actions, busy, talkingId, syntheti
     });
   }, [order]);
   const called = state.visits.filter(v => v.status === 'called' && v.room);
-  return <section className="panel queue-panel"><div className="section-heading"><h2>Waiting room · {visits.length} waiting</h2></div>
+  return <section className="panel queue-panel" aria-labelledby="waiting-room-heading"><div className="section-heading"><h2 id="waiting-room-heading" tabIndex={-1}>Waiting room <span className="queue-count">{visits.length} waiting</span></h2></div>
     <p className="queue-help">People who may need a check appear first; everyone else in check-in order.</p>
     <div ref={root} className="patient-list">{visits.map(visit => { const alert = activeAlert(state, visit.id); return <QueueRow key={visit.id} visit={visit} vitals={state.vitals[visit.id]} alert={alert} now={now} onSelect={() => onSelect(visit.id)} actions={actions} busy={busy} talking={talkingId === alert?.id} synthetic={synthetic} />; })}</div>
     {!visits.length && <div className="queue-empty"><div aria-hidden="true"><Crisp size={156} /></div><h3>No one is waiting</h3><p>Check someone in to start. They’ll appear here when they’re ready.</p><a className="empty-action" href="/check-in" target="_blank" rel="noreferrer">Check someone in <span aria-hidden="true">↗</span></a><small>Keep this dashboard open to follow the room.</small></div>}

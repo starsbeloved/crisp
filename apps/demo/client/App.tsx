@@ -1,4 +1,4 @@
-import { lazy, Suspense, type ComponentType } from 'react';
+import { lazy, Suspense, useEffect, useRef, type ComponentType } from 'react';
 import { CheckInPage } from './checkin/CheckInPage.tsx';
 import { CameraPage } from './camera/CameraPage.tsx';
 import { DashboardPage } from './dashboard/DashboardPage.tsx';
@@ -26,8 +26,19 @@ export function App() {
   const explicitRole = new URLSearchParams(location.search).has('role') ? selectionFromLocation(location.pathname, location.search) : null;
   const path = explicitRole ? stationUrl(explicitRole).split('?')[0] : location.pathname;
   const lobby = path === '/lobby' || path === '/room';
+  const navigation = useRef<HTMLElement>(null);
+  useEffect(() => {
+    function revealCurrentPage() {
+      const nav = navigation.current;
+      const current = nav?.querySelector<HTMLElement>('[aria-current="page"]');
+      if (nav && current && nav.scrollWidth > nav.clientWidth) nav.scrollLeft = current.offsetLeft - nav.offsetLeft - (nav.clientWidth - current.offsetWidth) / 2;
+    }
+    revealCurrentPage();
+    window.addEventListener('resize', revealCurrentPage);
+    return () => window.removeEventListener('resize', revealCurrentPage);
+  }, [path]);
   return <StationShell path={path}>
-    {!lobby && <header><a href="/" className="wordmark"><AppleMark /><span>Crisp</span></a><nav aria-label="Demo pages">{links.map(([url, title]) => <a href={url} key={url} aria-current={path === url ? 'page' : undefined}>{title}</a>)}</nav></header>}
+    {!lobby && <header><a href="/" className="wordmark"><AppleMark /><span>Crisp</span></a><nav ref={navigation} aria-label="Demo pages">{links.map(([url, title]) => <a href={url} key={url} aria-current={path === url ? 'page' : undefined}>{title}</a>)}</nav></header>}
     <main className={lobby ? 'app-main-lobby' : undefined}>
       {path === '/check-in' ? <CheckInPage /> : path === '/camera' ? <CameraPage /> : path === '/dashboard' ? <DashboardPage /> : path === '/lobby' ? <LobbyPage /> : path === '/room' ? <CameraPage roomView /> : path === '/exam' ? <Suspense fallback={<p>Opening Exam room…</p>}>{ExamPage ? <ExamPage /> : <section className="card"><h1>Exam room is unavailable in this build.</h1><a href="/station?choose=1">Choose another station</a></section>}</Suspense> : <>
         <section className="launcher-hero"><p className="launcher-kicker"><AppleMark /> Waiting room companion</p><h1>No one waits unseen.</h1><p className="launcher-intro">Crisp helps people check in, helps staff see the room, and keeps everyone informed while they wait.</p></section>

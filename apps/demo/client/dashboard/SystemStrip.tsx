@@ -5,10 +5,20 @@ export function SystemStrip({ state, connected, now, voice, onVoice, onTestSound
 }) {
   const cameras = Object.values(state?.cameras ?? {}).filter(camera => now - camera.lastFrameAt < 60_000 && camera.cameraId.toLowerCase() !== 'synthetic');
   const paused = cameras.some(camera => !camera.visible);
+  const stale = cameras.some(camera => now - camera.lastFrameAt > 2000 || camera.fps <= 0);
+  const replay = cameras.some(camera => camera.source === 'replay');
+  const available = connected && !!state && cameras.length > 0 && !paused && !stale && !synthetic;
+  let summary = 'Live camera connected';
+  if (synthetic) summary = 'Synthetic preview';
+  else if (!connected || !state) summary = 'Reconnecting to room';
+  else if (!cameras.length) summary = 'No active camera';
+  else if (paused) summary = 'Camera paused';
+  else if (stale) summary = 'Camera feed stale';
+  else if (replay) summary = cameras.every(camera => camera.source === 'replay') ? 'Replay camera connected' : 'Live and replay cameras';
   return <section className="system-strip" aria-label="System status">
-    <span className={`system-summary ${paused ? 'paused' : 'good'}`} role="status"><i aria-hidden="true" />{paused ? 'Camera paused' : 'All systems normal'}</span>
+    <span className={`system-summary ${available && !replay ? 'good' : 'paused'}`} role="status"><i aria-hidden="true" />{summary}</span>
     {cameras.filter(camera => !camera.visible).map(camera => <strong className="camera-warning" key={camera.cameraId}>Camera window hidden — processing may pause</strong>)}
-    <div className="strip-actions"><button aria-pressed={voice} onClick={onVoice}>{voice ? 'Monitoring · sound on' : 'Start monitoring (sound on)'}</button><button className="secondary" onClick={onTestSound}>Test alert sound</button>{talking && <span role="status" aria-live="polite">🔊 speaking</span>}
+    <div className="strip-actions"><button aria-pressed={voice} onClick={onVoice}>{voice ? 'Alert sound on' : 'Enable alert sound'}</button>{talking && <span role="status" aria-live="polite">🔊 speaking</span>}
       <details className="system-details"><summary>System</summary><div className="system-popover">
         <span>{synthetic ? 'SYNTHETIC preview' : `SSE · ${connected ? 'Connected' : 'Reconnecting…'}`}</span>
         {cameras.map(camera => <span key={camera.cameraId}>Camera {camera.cameraId} · {camera.fps.toFixed(1)} fps · {Math.max(0, (now - camera.lastFrameAt) / 1000).toFixed(1)} s ago{now - camera.lastFrameAt > 2000 && ' · STALE'}</span>)}
@@ -16,7 +26,9 @@ export function SystemStrip({ state, connected, now, voice, onVoice, onTestSound
         <span>ElevenLabs · {state?.providers.elevenlabs ? 'Configured' : 'Browser voice'}</span>
         <label className="system-vision-toggle"><input type="checkbox" checked={geminiVision} onChange={event => onGeminiVision(event.target.checked)} /> Gemini sees alert frame (opt in)</label>
         <span>Agent · {state?.providers.agent ? 'Configured' : 'Unavailable'}</span>
+        <button className="secondary" onClick={onTestSound}>Test alert sound</button>
+        <button className="secondary" disabled={busy || !state} onClick={onReset}>Reset demo</button>
       </div></details>
-      <button className="secondary" disabled={busy || !state} onClick={onReset}>Reset demo</button></div>
+      </div>
   </section>;
 }

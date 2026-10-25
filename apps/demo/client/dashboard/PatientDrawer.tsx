@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useLayoutEffect, useRef, useState, type FormEvent } from 'react';
 import type { RoomState, Visit } from '../../shared/types.ts';
 import { api } from '../lib/api.ts';
 import { ReplayPlayer } from './ReplayPlayer.tsx';
@@ -11,7 +11,15 @@ export function PatientDrawer({ visit, state, onClose, synthetic, actions, actio
   const dialog = useRef<HTMLDialogElement>(null);
   const [reference, setReference] = useState(''), [message, setMessage] = useState(''), [busy, setBusy] = useState(false);
   const [visionHidden, setVisionHidden] = useState(false), [description, setDescription] = useState('');
-  useEffect(() => { const node = dialog.current; node?.showModal(); return () => node?.close(); }, []);
+  useLayoutEffect(() => {
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const node = dialog.current; node?.showModal();
+    return () => {
+      node?.close();
+      if (opener?.isConnected) opener.focus({ preventScroll: true });
+      else document.querySelector<HTMLElement>('#waiting-room-heading')?.focus({ preventScroll: true });
+    };
+  }, []);
   const vitals = state.vitals[visit.id], alerts = state.alerts.filter(a => a.visitId === visit.id).sort((a, b) => b.openedAt - a.openedAt);
   const request = activeAlert(state, visit.id);
   const latest = alerts[0], note = state.handoffs[visit.id], mae = referenceMae(state, visit.id);

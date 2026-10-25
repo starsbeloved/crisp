@@ -97,8 +97,14 @@ export function DashboardPage() {
     {(error || audio.error) && <p className="error-message" role="alert">{error || audio.error}</p>}
     <StaffToast result={notice} />
     <AlertBanner alert={openAlerts[0]} visit={state?.visits.find(v => v.id === openAlerts[0]?.visitId)} onAcknowledge={actions.acknowledge} busy={busy} />
-    {latestRed && state && <IncidentDebrief alert={latestRed} visit={state.visits.find(v => v.id === latestRed.visitId)!} />}
-    <div className="command-room-camera"><VideoPanel cameras={state?.cameras ?? {}} now={now} /></div>
+    <div className="dashboard-columns">
+      <div className="dashboard-queue">
+      {state ? <Queue state={state} now={synthetic ? state.serverNow : now} onSelect={setSelected} actions={actions} busy={busy} talkingId={audio.talkingId} synthetic={synthetic} /> : <section className="panel"><h2>Waiting queue</h2><p>Connecting to the room…</p></section>}
+      </div>
+      <div className="dashboard-left command-room-camera"><VideoPanel cameras={state?.cameras ?? {}} now={now} /></div>
+    </div>
+    {latestRed && state && <details className="incident-details"><summary>What happened with {state.visits.find(v => v.id === latestRed.visitId)?.name}?<span>Recorded facts and staff response</span></summary><IncidentDebrief alert={latestRed} visit={state.visits.find(v => v.id === latestRed.visitId)!} /></details>}
+    <div className="dashboard-support"><AskCrisp synthetic={synthetic} snapshot={{ state: live, connected }} /><div className="dashboard-assistance">
     <Suggestions snapshot={suggestionState} ready={synthetic || suggestions.ready} busy={busy} synthetic={synthetic}
       onAccept={id => {
         if (synthetic) { setPreviewHidden(ids => [...ids, id]); actions.call('synthetic-ama', '1'); confirm({ ok: true, message: 'SYNTHETIC · Calling Ama to Room 1.' }); return; }
@@ -109,9 +115,7 @@ export function DashboardPage() {
         void perform(async () => { const response = await fetch('/api/suggestions/dismiss', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }), signal: AbortSignal.timeout(6000) }); confirm(await response.json()); window.dispatchEvent(new Event('crisp-staff-change')); });
       }} />
     <button type="button" className="secondary" disabled={!connected || synthetic || busy} onClick={() => { void perform(async () => { const result = await staffRequest('shift_summary', {}); confirm(result, !result.ok); window.dispatchEvent(new Event('crisp-staff-change')); }); }}>Summarize this shift</button>
-    <div className="dashboard-columns"><div className="dashboard-left"><AskCrisp synthetic={synthetic} snapshot={{ state: live, connected }} /></div>
-      {state ? <Queue state={state} now={synthetic ? state.serverNow : now} onSelect={setSelected} actions={actions} busy={busy} talkingId={audio.talkingId} synthetic={synthetic} /> : <section className="panel"><h2>Waiting queue</h2><p>Connecting to the room…</p></section>}
-    </div>
+    </div></div>
     {selectedVisit && state && <PatientDrawer key={selectedVisit.id} visit={selectedVisit} state={state} onClose={() => setSelected(null)} synthetic={synthetic} actions={actions} actionBusy={busy} geminiVision={geminiVision} />}
   </div>;
 }
