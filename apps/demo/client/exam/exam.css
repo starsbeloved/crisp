@@ -55,3 +55,7 @@
 .exam-replay { flex-basis: 100%; color: var(--c-text-2); }
 .exam-replay input { width: min(100%, 420px); font-size: 12px; padding: 6px 10px; }
 .exam-agent { border-top: 1px solid var(--c-hairline); padding: 12px 0; margin-bottom: 12px; }
+.exam-doctor-brief { margin-bottom: 20px; background: var(--c-leaf-tint); border-color: var(--c-leaf); }
+.exam-brief-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.exam-brief-heading h2 { margin-bottom: 0; }
+.exam-brief-copy { white-space: pre-line; line-height: 1.7 !important; }

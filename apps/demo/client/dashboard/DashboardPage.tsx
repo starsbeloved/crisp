@@ -4,6 +4,7 @@ import { api } from '../lib/api.ts';
 import { useRoomState } from '../lib/useRoomState.ts';
 import { SystemStrip } from './SystemStrip.tsx';
 import { AlertBanner } from './AlertBanner.tsx';
+import { IncidentDebrief } from './IncidentDebrief.tsx';
 import { VideoPanel } from './VideoPanel.tsx';
 import { Queue } from './Queue.tsx';
 import { PatientDrawer } from './PatientDrawer.tsx';
@@ -25,6 +26,7 @@ export function DashboardPage() {
   const monitoring = useMonitoringSound();
   const voice = monitoring.enabled;
   const [error, setError] = useState(''), [selected, setSelected] = useState<string | null>(null);
+  const [geminiVision, setGeminiVision] = useState(false);
   const [fixture, setFixture] = useState<RoomState | null>(null);
   const fixtureAllowed = import.meta.env.DEV && typeof location !== 'undefined' && new URLSearchParams(location.search).get('fixture') === '1';
   const state = fixture ?? live, synthetic = fixture !== null;
@@ -78,9 +80,10 @@ export function DashboardPage() {
     },
   };
   const selectedVisit = state?.visits.find(v => v.id === selected);
+  const latestRed = state?.alerts.filter(alert => alert.level === 'red' && alert.status !== 'checked').sort((a, b) => b.openedAt - a.openedAt)[0];
   return <div className="dashboard"><div className="page-heading"><div><p className="eyebrow">No one waits unseen</p><h1>Crisp Command Center</h1></div></div>
     {fixtureAllowed && <div className="fixture-controls"><button className="secondary" onClick={() => { setFixture(synthetic ? null : demoFixture()); setPreviewHidden([]); setSelected(null); }}>{synthetic ? 'Return to live room' : 'Load demo fixture'}</button>{synthetic && <><strong className="synthetic-label">SYNTHETIC · illustrative data · actions stay in this preview</strong><button className="secondary" onClick={() => setFixture(current => current ? { ...current, alerts: demoFixture(now).alerts, vitals: demoFixture(now).vitals, serverNow: now } : current)}>Trigger synthetic request</button></>}</div>}
-    <SystemStrip state={state} connected={connected} synthetic={synthetic} now={now} voice={voice} onVoice={monitoring.toggle} onTestSound={monitoring.test} talking={Boolean(audio.talkingId)} busy={busy} onReset={() => {
+    <SystemStrip state={state} connected={connected} synthetic={synthetic} now={now} voice={voice} onVoice={monitoring.toggle} onTestSound={monitoring.test} talking={Boolean(audio.talkingId)} geminiVision={geminiVision} onGeminiVision={setGeminiVision} busy={busy} onReset={() => {
       if (!window.confirm(synthetic ? 'Reset this synthetic preview?' : 'Reset all demo visits, alerts, and camera state?')) return;
       if (synthetic) { setFixture(demoFixture()); setSelected(null); confirm({ ok: true, message: 'Reset done · synthetic preview' }, false); }
       else void perform(async () => {
@@ -94,6 +97,7 @@ export function DashboardPage() {
     {(error || audio.error) && <p className="error-message" role="alert">{error || audio.error}</p>}
     <StaffToast result={notice} />
     <AlertBanner alert={openAlerts[0]} visit={state?.visits.find(v => v.id === openAlerts[0]?.visitId)} onAcknowledge={actions.acknowledge} busy={busy} />
+    {latestRed && state && <IncidentDebrief alert={latestRed} visit={state.visits.find(v => v.id === latestRed.visitId)!} />}
     <div className="command-room-camera"><VideoPanel cameras={state?.cameras ?? {}} now={now} /></div>
     <Suggestions snapshot={suggestionState} ready={synthetic || suggestions.ready} busy={busy} synthetic={synthetic}
       onAccept={id => {
@@ -108,6 +112,6 @@ export function DashboardPage() {
     <div className="dashboard-columns"><div className="dashboard-left"><AskCrisp synthetic={synthetic} snapshot={{ state: live, connected }} /></div>
       {state ? <Queue state={state} now={synthetic ? state.serverNow : now} onSelect={setSelected} actions={actions} busy={busy} talkingId={audio.talkingId} synthetic={synthetic} /> : <section className="panel"><h2>Waiting queue</h2><p>Connecting to the room…</p></section>}
     </div>
-    {selectedVisit && state && <PatientDrawer key={selectedVisit.id} visit={selectedVisit} state={state} onClose={() => setSelected(null)} synthetic={synthetic} actions={actions} actionBusy={busy} />}
+    {selectedVisit && state && <PatientDrawer key={selectedVisit.id} visit={selectedVisit} state={state} onClose={() => setSelected(null)} synthetic={synthetic} actions={actions} actionBusy={busy} geminiVision={geminiVision} />}
   </div>;
 }

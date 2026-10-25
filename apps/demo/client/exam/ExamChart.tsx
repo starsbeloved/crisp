@@ -3,7 +3,7 @@ import type { RoomState, Visit } from '../../shared/types.ts';
 import { ageFromDob, cameraEstimate, RECORDS_LABEL } from './model.ts';
 
 const time = (at: number) => new Date(at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-const source = (value: 'gemini' | 'template') => value === 'gemini' ? 'Gemini' : 'Template';
+const source = (value: 'gemini' | 'template') => value === 'gemini' ? '✦ Gemini' : 'Template';
 export function ExamChart({ visit, state, record, recordStatus, connected }: {
   visit: Visit; state: RoomState; record: DemoRecord | null; recordStatus: 'loading' | 'ready' | 'error'; connected: boolean;
 }) {

@@ -1,7 +1,7 @@
 import type { RoomState } from '../../shared/types.ts';
 
-export function SystemStrip({ state, connected, now, voice, onVoice, onTestSound, talking, onReset, busy, synthetic = false }: {
-  state: RoomState | null; connected: boolean; now: number; voice: boolean; onVoice: () => void; onTestSound: () => void; talking: boolean; onReset: () => void; busy: boolean; synthetic?: boolean;
+export function SystemStrip({ state, connected, now, voice, onVoice, onTestSound, talking, geminiVision, onGeminiVision, onReset, busy, synthetic = false }: {
+  state: RoomState | null; connected: boolean; now: number; voice: boolean; onVoice: () => void; onTestSound: () => void; talking: boolean; geminiVision: boolean; onGeminiVision: (enabled: boolean) => void; onReset: () => void; busy: boolean; synthetic?: boolean;
 }) {
   const cameras = Object.values(state?.cameras ?? {}).filter(camera => now - camera.lastFrameAt < 60_000 && camera.cameraId.toLowerCase() !== 'synthetic');
   const paused = cameras.some(camera => !camera.visible);
@@ -14,6 +14,7 @@ export function SystemStrip({ state, connected, now, voice, onVoice, onTestSound
         {cameras.map(camera => <span key={camera.cameraId}>Camera {camera.cameraId} · {camera.fps.toFixed(1)} fps · {Math.max(0, (now - camera.lastFrameAt) / 1000).toFixed(1)} s ago{now - camera.lastFrameAt > 2000 && ' · STALE'}</span>)}
         <span>Gemini · {state?.providers.gemini ? 'Configured' : 'Template'}</span>
         <span>ElevenLabs · {state?.providers.elevenlabs ? 'Configured' : 'Browser voice'}</span>
+        <label className="system-vision-toggle"><input type="checkbox" checked={geminiVision} onChange={event => onGeminiVision(event.target.checked)} /> Gemini sees alert frame (opt in)</label>
         <span>Agent · {state?.providers.agent ? 'Configured' : 'Unavailable'}</span>
       </div></details>
       <button className="secondary" disabled={busy || !state} onClick={onReset}>Reset demo</button></div>
