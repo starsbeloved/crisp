@@ -1,6 +1,15 @@
 import { expect, it } from 'vitest';
 import { createFaceMotionSignals } from './faceMotion.ts';
 
+it('allows detector scheduling jitter when fast downward movement is followed by disappearance', () => {
+  const signal = createFaceMotionSignals();
+  signal.push(0, { x: 100, y: 100, w: 80, h: 80 });
+  signal.push(250, { x: 100, y: 160, w: 80, h: 80 });
+  signal.push(500, { x: 100, y: 160, w: 80, h: 80 });
+  signal.push(1000, null);
+  expect(signal.read(1000)).toMatchObject({ fallSuspected: true, trigger: 'face-disappeared' });
+});
+
 it('ignores detector box size jumps rather than interpreting camera approach as a fall', () => {
   const signal = createFaceMotionSignals();
   signal.push(0, { x: 100, y: 100, w: 80, h: 80 });

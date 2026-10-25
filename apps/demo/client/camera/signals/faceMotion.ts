@@ -18,7 +18,7 @@ export function createFaceMotionSignals() {
       if (!previous || t - previous.t > 1000) { recent = []; origin = null; fastAt = -Infinity; velocity = 0; }
       if (!box) {
         // Loss alone proves nothing. Require the immediately preceding fast downward motion.
-        if (previous && origin && t - fastAt <= 500 && previous.y - origin.y >= origin.h * .25 &&
+        if (previous && origin && t - fastAt <= 1000 && previous.y - origin.y >= origin.h * .25 &&
           Math.abs(previous.x - origin.x) < origin.h * .75 && t > until) {
           until = t + 1500; trigger = 'face-disappeared';
         }
