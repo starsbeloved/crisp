@@ -46,3 +46,7 @@ describe('exam selection and honest presentation', () => {
     expect(parseExamCommand('Hey Crisp, recommend treatment')).toEqual({ kind: 'unsupported' });
   });
 });
+
+it('opens the called chart for spoken and numeric versions of the same room', () => {
+  for (const room of ['1', 'Room 1', 'room one', ' ONE ']) expect(examVisits([visit('Anna', { room: 'one' })], room)).toHaveLength(1);
+});

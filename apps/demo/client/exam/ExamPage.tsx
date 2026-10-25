@@ -1,3 +1,4 @@
+import { recordReadBack } from '../../server/records.ts';
 import { useEffect, useRef, useState } from 'react';
 import type { RecordResult } from '../../server/records.ts';
 import { useRoomState } from '../lib/useRoomState.ts';
@@ -32,6 +33,7 @@ export function ExamPage() {
     id => setSelection(current => current?.id === id && current.kind === 'recognized' ? current : { id, kind: 'recognized' }), replay);
   const voice = useDoctorVoice(voiceEnabled && connected, command => { void handleCommand(command); });
   const spoken = useRef('');
+  useEffect(() => { setSelection(null); setReply(null); }, [candidates[0]?.id]);
   useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(timer); }, []);
   useEffect(() => () => { if (replay) URL.revokeObjectURL(replay); }, [replay]);
   useEffect(() => {
@@ -67,7 +69,7 @@ export function ExamPage() {
         const result: RecordResult = await response.json();
         // A response belongs only to the chart that was queried.
         if (activeKey.current !== key || !online.current) return;
-        respond(result.record ? `${result.allergyText}. Demo record — fictional.` : result.message);
+        respond(result.record ? recordReadBack(visit.name, result) : result.message);
       } catch { if (activeKey.current === key && online.current) respond('Recorded allergies are unavailable. Please review the chart.'); }
       return;
     }
@@ -79,8 +81,8 @@ export function ExamPage() {
   return <div className="exam-page">
     <div className="exam-toolbar"><div><p className="exam-eyebrow">Crisp · clinician view</p><h2>Exam room {room}</h2><span className="exam-demo-label">{RECORDS_LABEL}</span></div><span className={`exam-connection ${connected ? '' : 'offline'}`} role="status">{connected ? 'Connected · read only' : 'Disconnected · information may be out of date'}</span></div>
     <div className="exam-tools">
-      <label>Called to this room<select aria-label="Patient chart" value={visit?.id ?? ''} onChange={event => { setSelection({ id: event.target.value, kind: 'manual' }); setReply(null); }} disabled={!candidates.length || !connected}>
-        {!candidates.length && <option value="">Waiting for patient</option>}{candidates.map(item => <option key={item.id} value={item.id}>#{item.queueNo} · {item.name}</option>)}
+      <label>Called to this room<select title="Queue number" aria-label="Patient chart" value={visit?.id ?? ''} onChange={event => { setSelection({ id: event.target.value, kind: 'manual' }); setReply(null); }} disabled={!candidates.length || !connected}>
+        {!candidates.length && <option value="">Waiting for patient</option>}{candidates.map(item => <option key={item.id} value={item.id}>#{item.queueNo} · {item.name} — Room {room}</option>)}
       </select></label>
       <PatientDone room={room} visitId={visit?.id} connected={connected} />
       <button type="button" className="secondary" disabled={!connected || !voice.available} aria-pressed={voiceEnabled} onClick={() => { setVoiceEnabled(!voiceEnabled); if (voiceEnabled) window.speechSynthesis?.cancel(); }}>{voiceEnabled ? 'Stop browser chart voice · mic on' : 'Browser chart voice (fallback)'}</button>

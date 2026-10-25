@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from 'vitest';
-import { loadProfile, saveProfile, selectionFromLocation, stationUrl } from './model.ts';
+import { loadProfile, saveProfile, selectionFromLocation, stationUrl, stationChoices, stationLabel } from './model.ts';
 
 afterEach(() => { vi.restoreAllMocks(); localStorage.clear(); sessionStorage.clear(); });
 
@@ -67,4 +67,11 @@ it.each([
   ['?role=exam&room=1', { role: 'exam', room: '1' }],
 ] as const)('accepts explicit query role %s', (search, expected) => {
   expect(selectionFromLocation('/', search)).toEqual(expected);
+});
+
+it('hides Lobby in the picker while preserving direct routing and saved Lobby profiles', () => {
+  expect(stationChoices.some(choice => choice.selection.role === 'lobby')).toBe(false);
+  expect(stationLabel({ role: 'lobby' })).toBe('Lobby');
+  expect(selectionFromLocation('/lobby', '')).toEqual({ role: 'lobby' });
+  expect(selectionFromLocation('/exam', '?room=room%20one')).toEqual({ role: 'exam', room: '1' });
 });

@@ -19,11 +19,12 @@ afterEach(async () => {
 });
 function button(label: string) { return [...container.querySelectorAll('button')].find(button => button.textContent?.includes(label))!; }
 
-it('shows five explained roles and saves the screen name and Exam room 1', async () => {
+it('shows four explained roles and saves the screen name and Exam room 1', async () => {
   const navigate = vi.fn();
   await act(async () => root.render(<StationShell path="/station" navigate={navigate}><p>Old page</p></StationShell>));
   expect(container.textContent).not.toContain('Old page');
-  for (const label of ['Kiosk', 'Room view', 'Command Center', 'Exam room 1', 'Lobby']) expect(button(label)).toBeDefined();
+  for (const label of ['Kiosk', 'Room view', 'Command Center', 'Exam room 1']) expect(button(label)).toBeDefined();
+  expect(button('Lobby')).toBeUndefined();
   expect(button('Exam room 2')).toBeUndefined();
   expect(container.textContent).toContain('Screen name (shown in Command Center)');
   const input = container.querySelector('input')!;

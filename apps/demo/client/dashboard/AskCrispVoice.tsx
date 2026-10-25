@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CommandResult } from '../../server/commands.ts';
-import { createStaffTools } from '../staff/tools.ts';
+import { createStaffTools, staffRequest } from '../staff/tools.ts';
+import { useStaffSession } from '../staff/useStaffSession.ts';
 import { useWakeWord } from '../staff/useWakeWord.ts';
 import { StaffToast } from '../staff/StaffToast.tsx';
 import '../staff/staff.css';
@@ -54,6 +55,8 @@ function NurseVoice({ holding, setHolding, handsFree, setHandsFree, room, visitI
   const { state, connected: liveConnected } = snapshot;
   const connected = liveConnected && enabled;
   const [wakeEnabled, setWakeEnabled] = useState(false);
+  const [completed, setCompleted] = useState(0);
+  const [toolBusy, setToolBusy] = useState(false);
   const [notice, setNotice] = useState<CommandResult | null>(null);
   const current = useRef({ state, connected, room, visitId, onRecord });
   current.current = { state, connected, room, visitId, onRecord };
@@ -63,15 +66,24 @@ function NurseVoice({ holding, setHolding, handsFree, setHandsFree, room, visitI
     connected: () => current.current.connected,
     digest: () => JSON.stringify({ ...JSON.parse(roomDigest(current.current.connected ? current.current.state : null)),
       screenContext: { room: current.current.room ?? null, selectedVisitId: current.current.visitId ?? null } }),
+    request: async (tool, parameters) => {
+      setToolBusy(true);
+      try {
+        const screen = current.current;
+        const input = tool === 'get_record' && screen.room && parameters && typeof parameters === 'object'
+          ? { ...parameters, room: screen.room, ...(screen.visitId ? { visitId: screen.visitId } : {}) } : parameters;
+        return await staffRequest(tool, input);
+      } finally { setToolBusy(false); }
+    },
     notify: (result, tool) => {
-      setNotice(result);
+      setNotice(result); setCompleted(value => value + 1);
       const data = result.data as { suggestionId?: string } | undefined;
       window.dispatchEvent(new CustomEvent('crisp-staff-change', { detail: { spokenSuggestionId: tool === 'shift_summary' && result.ok ? data?.suggestionId : undefined } }));
     },
     onRecord: result => current.current.onRecord?.(result),
   }), []);
   const context = JSON.stringify({ screen: room ? 'Exam room' : 'Crisp Command Center', room, selectedVisitId: visitId,
-    instruction: 'Use remove_patient({name}) to remove a patient from the queue only after asking staff to confirm. Records are retained. Use client tools for every staff action. Speak their returned confirmation exactly once. Ask for clarification on ambiguous names. Get the selected patient name from get_room_digest before any allergies request. Read allergies verbatim and label demo records fictional. Never diagnose or rank patients clinically.' });
+    instruction: 'Use remove_patient({name}) to remove a patient from the queue only after asking staff to confirm. Records are retained. Use client tools for every staff action. Speak their returned confirmation exactly once. Ask for clarification on ambiguous names. Get the selected patient name from get_room_digest before any allergies request. Read the returned get_record message exactly; it identifies the demo record naturally. After completing each command ask "Anything else?". If staff says no, that is all, thanks, or stop, end the conversation using end_call. End after 8 seconds of silence following the question. Never diagnose or rank patients clinically.' });
   const voice = useVoiceAgent('nurse', enabled && Boolean(state?.providers.agent), tools, context);
   const { endSession, status, sendUserMessage } = voice;
   const captionBox = useRef<HTMLDivElement>(null);
@@ -81,6 +93,7 @@ function NurseVoice({ holding, setHolding, handsFree, setHandsFree, room, visitI
     command => { if (starting.current) return; pending.current = command || null; starting.current = true; setHandsFree(true); void voice.start(); });
   function release() { setHolding(false); }
   function end() { pending.current = null; starting.current = false; setHandsFree(false); release(); void endSession(); }
+  useStaffSession({ connected: status === 'connected', captions: voice.captions, speaking: Boolean(voice.isSpeaking), busy: toolBusy, completed, getInputVolume: voice.getInputVolume }, end);
   useEffect(() => {
     if (status !== 'connected') return;
     starting.current = false;
@@ -124,7 +137,8 @@ function NurseVoice({ holding, setHolding, handsFree, setHandsFree, room, visitI
     </div>
     <p role="status" className="staff-mic"><span className="staff-mic-light" data-live={wake.listening || holding || (handsFree && status === 'connected')} aria-hidden="true" />{!connected ? 'Mic off · room disconnected.' : !voice.available ? 'Mic off · nurse agent unavailable. Use text or on-screen actions.' : handsFree ? `Mic on · nurse session ${status}` : holding ? 'Mic on · hold to speak' : wakeEnabled ? wake.status : 'Mic off · wake word is off.'}</p>
     <p className="staff-last-heard">Last heard: {wake.lastHeard || voice.captions.filter(c => c.speaker === 'You').at(-1)?.text || 'Nothing yet'}</p>
-    <small>Wake listening uses browser speech recognition. Say “Hey Crisp”, then your request. End voice to return to wake listening.</small>
+    <p className="staff-last-heard">Matched wake phrase: {wake.matchedPhrase || 'None yet'}</p>
+    <small>Wake listening uses browser speech recognition. Say “Hey Crisp”, then your request. After a command, say “no”, “that’s all”, “thanks”, or “stop”, or wait 8 seconds to return to wake listening.</small>
     <StaffToast result={notice} />
     <div ref={captionBox} onScroll={event => { const box = event.currentTarget; followCaptions.current = box.scrollHeight - box.scrollTop - box.clientHeight < 48; }} role="log" aria-label="Nurse voice captions" aria-live="polite" style={{ maxHeight: 160, overflowY: 'auto' }}>
       {voice.captions.map((caption, i) => <p key={i}><strong>{caption.speaker}:</strong> {caption.text}</p>)}

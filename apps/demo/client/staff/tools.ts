@@ -20,7 +20,7 @@ export function createStaffTools(options: {
     }
     options.notify(result, name);
     if (name === 'get_record' && result.ok) options.onRecord?.(result.data);
-    return JSON.stringify(result);
+    return JSON.stringify({ ...result, next: 'Speak this confirmation once, then ask "Anything else?". End with end_call if staff says no, that is all, thanks, or stop; allow 8 seconds of silence.' });
   };
   return tools;
 }

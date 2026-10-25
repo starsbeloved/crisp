@@ -21,7 +21,7 @@ describe('read-only exam chart', () => {
   });
   it('shows no prior record found without inventing history or reusing another visit', () => {
     const html = renderToStaticMarkup(<ExamChart visit={visit} state={state} record={null} recordStatus="ready" connected />);
-    expect(html).toContain('No prior record found'); expect(html).not.toContain('Penicillin');
+    expect(html).toContain("I don&#x27;t have earlier records for Ama in this demo system."); expect(html).not.toContain('Penicillin');
   });
   it('labels replay and hides low-quality historical and current values', () => {
     const s: RoomState = { ...state, vitals: { ama: { visitId: 'ama', lastSeenAt: 182000, cameraId: 'A', box: { x: 0, y: 0, w: 1, h: 1 }, hrBpm: 197, rrBpm: 47, hrQuality: 'low', rrQuality: 'low', baselineHr: null, baselineRr: null, posture: null, hint: 'too dark', source: 'replay', pulseTrace: null, level: 'none', history: [{ t: 181000, hr: 197, rr: 47 }] } } };

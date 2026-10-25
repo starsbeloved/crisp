@@ -1,3 +1,4 @@
+import { normalizeRoom } from '../client/staff/rooms.ts';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { GalleryEntry, Visit } from '../shared/types.ts';
 import type { RoomStore } from './store.ts';
@@ -10,28 +11,37 @@ export interface DemoRecord {
 }
 // Invented examples for the film. These never replace today's patient-entered answers.
 export const DEMO_RECORDS: readonly DemoRecord[] = [
-  { name: 'Ama', dateOfBirth: '1994-06-15', allergies: ['Penicillin, recorded 2023 (demo record)'], medications: ['Cetirizine 10 mg daily, recorded 2025'], problems: ['Seasonal allergies, recorded 2023'], pastVisits: [{ date: '2025-04-12', note: 'Annual visit; medication list recorded.' }, { date: '2023-08-09', note: 'Penicillin allergy recorded.' }], lastVitals: { date: '2025-04-12', heartRate: 76, respiratoryRate: 16, bloodPressure: '118/76' } },
-  { name: 'Ben', dateOfBirth: '1988-11-02', allergies: [], medications: [], problems: [], pastVisits: [{ date: '2025-09-20', note: 'Routine visit; no medications recorded.' }], lastVitals: { date: '2025-09-20', heartRate: 72, respiratoryRate: 15, bloodPressure: '122/78' } },
-  { name: 'Cara', dateOfBirth: '1975-03-21', allergies: ['Latex, recorded 2022 (demo record)'], medications: ['Lisinopril 5 mg daily, recorded 2024'], problems: ['Hypertension, recorded 2024'], pastVisits: [{ date: '2025-07-08', note: 'Medication list updated.' }], lastVitals: { date: '2025-07-08', heartRate: 80, respiratoryRate: 17, bloodPressure: '128/82' } },
-  { name: 'Dev', dateOfBirth: '2001-09-10', allergies: ['Peanuts, recorded 2020 (demo record)'], medications: [], problems: ['Eczema, recorded 2021'], pastVisits: [{ date: '2025-02-18', note: 'Skin follow-up visit recorded.' }], lastVitals: { date: '2025-02-18', heartRate: 68, respiratoryRate: 14, bloodPressure: '114/72' } },
-  { name: 'Elena', dateOfBirth: '1962-12-04', allergies: [], medications: ['Levothyroxine 50 mcg daily, recorded 2023'], problems: ['Hypothyroidism, recorded 2023'], pastVisits: [{ date: '2025-10-01', note: 'Routine follow-up; medication list recorded.' }], lastVitals: { date: '2025-10-01', heartRate: 74, respiratoryRate: 16, bloodPressure: '124/80' } },
+  { name: 'Jason Miller', dateOfBirth: '1990-03-12', allergies: ['Penicillin'], medications: ['Cetirizine 10 mg daily'], problems: ['Seasonal allergies'], pastVisits: [{ date: '2025-04-12', note: 'Annual visit; medication list recorded.' }, { date: '2023-08-09', note: 'Penicillin allergy recorded.' }], lastVitals: { date: '2025-04-12', heartRate: 76, respiratoryRate: 16, bloodPressure: '118/76' } },
+  { name: 'Daniel Kim', dateOfBirth: '1985-11-02', allergies: ['Latex'], medications: ['Lisinopril 5 mg daily'], problems: ['Hypertension'], pastVisits: [{ date: '2025-07-08', note: 'Medication list reviewed.' }, { date: '2024-06-18', note: 'Latex allergy recorded.' }], lastVitals: { date: '2025-07-08', heartRate: 80, respiratoryRate: 17, bloodPressure: '128/82' } },
+  { name: 'Anna Lopez', dateOfBirth: '1997-07-21', allergies: ['Penicillin'], medications: ['Cetirizine 10 mg as needed'], problems: ['Seasonal allergies'], pastVisits: [{ date: '2025-09-20', note: 'Routine visit; allergy history reviewed.' }, { date: '2024-03-14', note: 'Penicillin allergy and medication list recorded.' }], lastVitals: { date: '2025-09-20', heartRate: 72, respiratoryRate: 15, bloodPressure: '112/74' } },
 ];
-const normalizedName = (name: string) => name.trim().toLowerCase();
-const roomNumber = (room: string) => room.trim().replace(/^room\s*/i, '').toLowerCase();
+const normalizedName = (name: string) => name.trim().replace(/\s+/g, ' ').toLowerCase();
+const firstName = (name: string) => normalizedName(name).split(' ')[0];
 export function findDemoRecord(name: string, dateOfBirth: string | null | undefined): DemoRecord | null {
-  if (!dateOfBirth) return null;
-  return DEMO_RECORDS.find(record => normalizedName(record.name) === normalizedName(name) && record.dateOfBirth === dateOfBirth) ?? null;
+  const needle = normalizedName(name);
+  const matches = DEMO_RECORDS.filter(record => normalizedName(record.name) === needle || firstName(record.name) === needle);
+  // A supplied DOB must match. Never fall back from a mismatched birthday.
+  const eligible = dateOfBirth ? matches.filter(record => record.dateOfBirth === dateOfBirth) : matches;
+  return eligible.length === 1 ? eligible[0] : null;
 }
 export interface RecordResult { label: typeof RECORDS_LABEL; visitId: string | null; record: DemoRecord | null; allergyText: string | null; message: string }
 export function recordForVisit(visit: Visit): RecordResult {
   const record = findDemoRecord(visit.name, visit.answers.dateOfBirth);
-  return { label: RECORDS_LABEL, visitId: visit.id, record, allergyText: record ? record.allergies.join('; ') || 'None recorded' : null, message: record ? 'Record retrieved by exact name and date of birth' : 'No prior record found' };
+  return { label: RECORDS_LABEL, visitId: visit.id, record, allergyText: record ? record.allergies.join('; ') || 'None recorded' : null,
+    message: record ? (visit.answers.dateOfBirth ? 'Matched by first name + date of birth' : 'matched by name only') : `I don't have earlier records for ${visit.name.trim().split(/\s+/)[0]} in this demo system.` };
 }
-/** Doctor/nurse client tool: retrieve recorded data only; never fuzzy-match a history. */
+export function recordReadBack(name: string, result: RecordResult): string {
+  if (!result.record) return result.message;
+  const allergies = result.record.allergies;
+  return `From ${name.trim().split(/\s+/)[0]}'s demo record: ${allergies.length ? `allergic to ${allergies.join('; ').toLowerCase()}` : 'no allergies recorded'}.`;
+}
+/** Resolve today's visit uniquely before retrieving a fictional history. */
 export function getRecord(visits: Visit[], input: { name: string; room?: string; visitId?: string }): RecordResult {
-  const matches = visits.filter(visit => normalizedName(visit.name) === normalizedName(input.name) &&
-    (!input.room || (visit.status === 'called' && visit.room && roomNumber(visit.room) === roomNumber(input.room))) &&
+  const eligible = visits.filter(visit =>
+    (!input.room || (visit.status === 'called' && visit.room && normalizeRoom(visit.room) === normalizeRoom(input.room))) &&
     (!input.visitId || visit.id === input.visitId));
+  const exact = eligible.filter(visit => normalizedName(visit.name) === normalizedName(input.name));
+  const matches = exact.length ? exact : eligible.filter(visit => firstName(visit.name) === normalizedName(input.name));
   if (matches.length !== 1) return { label: RECORDS_LABEL, visitId: null, record: null, allergyText: null, message: matches.length ? 'Patient name is ambiguous; select the visit on screen' : 'No patient found' };
   return recordForVisit(matches[0]);
 }
@@ -45,7 +55,7 @@ export async function handleExamRequest(request: IncomingMessage, response: Serv
   if (request.method === 'GET' && url.pathname === '/api/exam/gallery') {
     const room = url.searchParams.get('room');
     if (!room?.trim()) return send(400, { error: 'Room is required' });
-    const entries: GalleryEntry[] = store.state.visits.filter(visit => visit.status === 'called' && visit.room && roomNumber(visit.room) === roomNumber(room))
+    const entries: GalleryEntry[] = store.state.visits.filter(visit => visit.status === 'called' && visit.room && normalizeRoom(visit.room) === normalizeRoom(room))
       .flatMap(visit => (store.descriptors[visit.id] ?? []).map(descriptor => ({ visitId: visit.id, name: visit.name, descriptor })));
     return send(200, entries);
   }

@@ -1,12 +1,13 @@
+import { normalizeRoom } from '../client/staff/rooms.ts';
 import { randomUUID } from 'node:crypto';
 import type { NowCalling, Visit } from '../shared/types.ts';
 import type { RoomStore } from './store.ts';
 import { onChecked } from './engine/index.ts';
-import { recordForVisit } from './records.ts';
+import { recordForVisit, recordReadBack, getRecord } from './records.ts';
 
 export interface CommandResult { ok: boolean; message: string; data?: unknown; choices?: { name: string; queueNo: number; id: string }[] }
 const normalized = (name: string) => name.trim().replace(/\s+/g, ' ').toLowerCase();
-export const normalizeStaffRoom = (room: string) => room.trim().replace(/^room\s*/i, '').trim();
+export const normalizeStaffRoom = normalizeRoom;
 export function matchPatient(visits: Visit[], name: string): { visit?: Visit; choices: Visit[] } {
   const needle = normalized(name);
   if (!needle) return { choices: [] };
@@ -40,6 +41,11 @@ export class StaffCommands {
     }
     if (!['patient_summary', 'get_record', 'call_patient', 'acknowledge_request', 'mark_checked', 'remove_patient'].includes(tool)) return { ok: false, message: 'Unknown staff tool.' };
     if (typeof input.name !== 'string' || !input.name.trim() || input.name.length > 120) return { ok: false, message: 'Please say the patient name.' };
+    if (tool === 'get_record' && (input.room !== undefined || input.visitId !== undefined)) {
+      if ((input.room !== undefined && typeof input.room !== 'string') || (input.visitId !== undefined && typeof input.visitId !== 'string')) return { ok: false, message: 'Expected room and visitId as text.' };
+      const result = getRecord(this.store.state.visits, { name: input.name, room: input.room as string | undefined, visitId: input.visitId as string | undefined });
+      return { ok: Boolean(result.visitId), message: recordReadBack(input.name, result), data: result };
+    }
     // Resolve across all visits: do not silently select one of two identical names based on queue status.
     const match = matchPatient(this.store.state.visits, input.name);
     if (!match.visit) return { ok: false, message: match.choices.length ? `Which patient? ${match.choices.map(v => `${v.name}, number ${v.queueNo}`).join('; ')}. Use a full unique name, or select the visit on screen.` : 'No patient matches that name. Please repeat the full name.',
@@ -58,7 +64,7 @@ export class StaffCommands {
     }
     if (tool === 'get_record') {
       const record = recordForVisit(visit);
-      return { ok: true, message: record.record ? `${record.allergyText}. ${record.label}.` : `${record.message}. ${record.label}.`, data: record };
+      return { ok: true, message: recordReadBack(visit.name, record), data: record };
     }
     if (visit.status !== 'waiting') return { ok: false, message: `${visit.name} is no longer waiting. Please review the visit on screen.` };
     if (tool === 'remove_patient') {
@@ -84,6 +90,8 @@ export class StaffCommands {
     return { ok: true, message: tool === 'mark_checked' ? `Marked ${visit.name} checked.` : `Acknowledged the request for ${visit.name}.` };
   }
   call(visit: Visit, room: string, now = Date.now()): CommandResult {
+    room = normalizeStaffRoom(room);
+    if (!room) return { ok: false, message: 'Which room? Please give a room name or number.' };
     if (visit.status !== 'waiting') return { ok: false, message: `${visit.name} is no longer waiting.` };
     if (this.store.state.visits.some(v => v.status === 'called' && v.room && normalized(normalizeStaffRoom(v.room)) === normalized(room))) return { ok: false, message: `Room ${room} is occupied. Please choose another room or mark its patient done.` };
     visit.status = 'called'; visit.room = room; visit.calledAt = now;
