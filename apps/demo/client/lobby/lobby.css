@@ -56,3 +56,43 @@
   .lobby-footer { font-size: 18px; padding-bottom: var(--s-3); }
 }
 @media (prefers-reduced-motion: reduce) { .lobby-mascot-stage.speaking .lobby-mascot-disc { animation: none; } }
+
+/* The 1920 × 1080 artboard: 720px mascot column, call and next queue on the right. */
+.lobby { display: flex; flex-direction: column; min-height: 0; height: calc(100dvh - 104px); overflow: visible; }
+.lobby-header { flex: none; }
+.lobby-main { flex: 1; min-height: 0; width: 100%; max-width: none; margin: 0; }
+.lobby-mascot-stage { min-height: 0; }
+.lobby-right { display: flex; flex-direction: column; gap: 56px; min-width: 0; }
+.lobby-called-person span { overflow-wrap: anywhere; }
+.lobby-up-next { width: 100%; }
+.lobby-up-next li { font-size: 64px; }
+.lobby-footer { flex: none; }
+.lobby-mascot-stage.speaking .lobby-mascot-disc { animation: none; }
+@media (max-width: 1550px) {
+  .lobby-main { grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr); gap: 40px; }
+  .lobby-right { gap: 28px; }
+  .lobby-mascot-disc { height: min(40vw, 48dvh); width: min(40vw, 48dvh); }
+  .lobby-mascot-disc .crisp-character { height: auto; width: min(46vw, 55dvh); }
+  .lobby-quote { font-size: 28px; padding: 20px 28px; }
+  .lobby-call-panel { padding: 32px 40px; border-radius: 32px; }
+  .lobby-call-label { font-size: 28px; }
+  .lobby-room { margin-top: 20px; height: 80px; font-size: 48px; }
+  .lobby-up-next h2 { font-size: 28px; }
+  .lobby-up-next li { height: 112px; font-size: 36px; border-radius: var(--r-kiosk); }
+  .lobby-idle-title { font-size: 64px; }
+  .lobby-idle-copy { font-size: 24px; }
+}
+@media (max-width: 960px), (max-height: 650px) {
+  .lobby { height: auto; min-height: calc(100dvh - 56px); }
+  .lobby-main { display: flex; flex-direction: column; gap: 24px; }
+  .lobby-right { width: 100%; gap: 24px; }
+  .lobby-mascot-disc { width: min(78vw, 380px); height: min(78vw, 380px); }
+  .lobby-mascot-disc .crisp-character { width: min(84vw, 420px); height: auto; }
+  .lobby-call-panel { padding: 28px; }
+  .lobby-up-next ol { flex-wrap: wrap; }
+  .lobby-up-next li { min-width: 100px; }
+  .lobby-footer { align-items: flex-start; font-size: 18px; }
+  .lobby-info { flex: none; }
+}
+
+.lobby-header .lobby-sound { margin: 0; min-height: 44px; font-size: 14px; padding: 10px 16px; background: var(--c-surface); border-color: var(--c-border); color: var(--c-text); }
