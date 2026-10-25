@@ -23,11 +23,20 @@ describe('staff name matching', () => {
   });
 });
 describe('deterministic staff commands', () => {
-  it('lists waiting, returns recorded summary and exact DOB matched fictional history', async () => {
-    const { commands } = setup();
-    expect((await commands.run('list_waiting', {})).data).toMatchObject({ waiting: [{ name: 'Ama' }, { name: 'Ben' }] });
-    expect((await commands.run('patient_summary', { name: 'am' })).data).toMatchObject({ answers: { reason: 'Patient words' } });
-    expect((await commands.run('get_record', { name: 'am' })).data).toMatchObject({ label: 'Demo records — fictional', record: { allergies: ['Penicillin, recorded 2023 (demo record)'] } });
+  it('lists waiting, returns recorded summary and fictional history without falling back from a wrong DOB', async () => {
+    const anna = visit('Anna'); anna.answers.dateOfBirth = '1997-07-21';
+    const daniel = visit('Daniel'); daniel.answers.dateOfBirth = '1985-11-02';
+    const { commands } = setup([anna, daniel]);
+    expect((await commands.run('list_waiting', {})).data).toMatchObject({ waiting: [{ name: 'Anna' }, { name: 'Daniel' }] });
+    expect((await commands.run('patient_summary', { name: 'an' })).data).toMatchObject({ answers: { reason: 'Patient words' } });
+    expect(await commands.run('get_record', { name: 'an' })).toMatchObject({ ok: true, message: "From Anna's demo record: allergic to penicillin.", data: { label: 'Demo records — fictional', record: { name: 'Anna Lopez', allergies: ['Penicillin'] }, message: 'Matched by first name + date of birth' } });
+    anna.answers.dateOfBirth = null;
+    expect((await commands.run('get_record', { name: 'Anna' })).data).toMatchObject({ record: { name: 'Anna Lopez' }, message: 'matched by name only' });
+    anna.answers.dateOfBirth = '1997-07-22';
+    expect(await commands.run('get_record', { name: 'Anna' })).toMatchObject({ message: "I don't have earlier records for Anna in this demo system.", data: { record: null, allergyText: null } });
+    const ambiguous = setup([anna, visit('other', 'Anna')]);
+    const result = await ambiguous.commands.run('get_record', { name: 'Anna' });
+    expect(result.ok).toBe(false); expect(result.data).toBeUndefined(); expect(result.choices).toHaveLength(2);
   });
   it('does not mutate on ambiguous names, malformed room or unknown tool', async () => {
     const { commands, store, onCall } = setup([visit('1', 'Ama'), visit('2', 'Amanda')]);
