@@ -1,5 +1,5 @@
 import { Crisp } from './ui/Crisp.tsx';
-import { lazy, Suspense, useEffect, useRef, type ComponentType } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, type ComponentType } from 'react';
 import { CheckInPage } from './checkin/CheckInPage.tsx';
 import { CameraPage } from './camera/CameraPage.tsx';
 import { DashboardPage } from './dashboard/DashboardPage.tsx';
@@ -31,6 +31,11 @@ export function App() {
   const path = rawPath === '/' ? '/check-in' : rawPath === '/home' ? '/' : rawPath;
   const lobby = path === '/lobby';
   const navigation = useRef<HTMLElement>(null);
+  const [navCollapsed, setNavCollapsed] = useState(() => { try { return localStorage.getItem('crisp-nav-collapsed') === '1'; } catch { return false; } });
+  useEffect(() => {
+    try { localStorage.setItem('crisp-nav-collapsed', navCollapsed ? '1' : '0'); } catch { /* storage unavailable */ }
+    document.documentElement.toggleAttribute('data-nav-collapsed', navCollapsed);
+  }, [navCollapsed]);
   useEffect(() => {
     function revealCurrentPage() {
       const nav = navigation.current;
@@ -42,7 +47,9 @@ export function App() {
     return () => window.removeEventListener('resize', revealCurrentPage);
   }, [path]);
   return <StationShell path={path}>
-    {!lobby && <header><a href="/check-in" className="wordmark"><AppleMark /><span>Crisp</span></a><nav ref={navigation} aria-label="Demo pages">{links.map(([url, title]) => <a href={url} key={url} aria-current={path === url.split('?')[0] ? 'page' : undefined}>{title}</a>)}</nav></header>}
+    {!lobby && (navCollapsed
+      ? <button type="button" className="nav-expand" aria-label="Show menu" onClick={() => setNavCollapsed(false)}><AppleMark /><span>Menu</span></button>
+      : <header><a href="/check-in" className="wordmark"><AppleMark /><span>Crisp</span></a><nav ref={navigation} aria-label="Demo pages">{links.map(([url, title]) => <a href={url} key={url} aria-current={path === url.split('?')[0] ? 'page' : undefined}>{title}</a>)}</nav><button type="button" className="nav-collapse" aria-label="Hide menu" title="Hide menu" onClick={() => setNavCollapsed(true)}>⌃</button></header>)}
     <main className={lobby ? 'app-main-lobby' : undefined}>
       {path === '/check-in' ? <CheckInPage /> : path === '/camera' ? <CameraPage /> : path === '/dashboard' ? <DashboardPage /> : path === '/lobby' ? <LobbyPage /> : path === '/room' ? <CameraPage roomView /> : path === '/exam' ? <Suspense fallback={<p>Opening Exam room…</p>}>{ExamPage ? <ExamPage /> : <section className="card"><h1>Exam room is unavailable in this build.</h1><a href="/station?choose=1">Choose another station</a></section>}</Suspense> : <>
         <section className="launcher-hero"><div className="launcher-hero-text"><p className="launcher-kicker"><AppleMark /> Waiting room companion</p><h1>No one waits unseen.</h1><p className="launcher-intro">Crisp helps people check in, helps staff see the room, and keeps everyone informed while they wait.</p></div><div className="launcher-hero-crisp" aria-hidden="true"><Crisp state="happy" size={340} /></div></section>
