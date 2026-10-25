@@ -1,3 +1,4 @@
+import { HallwayCheckBack } from '../staff/HallwayCheckBack.tsx';
 import { useState } from 'react';
 import type { NowCalling } from '../../shared/types.ts';
 import { api } from '../lib/api.ts';
@@ -26,6 +27,7 @@ export function NowCallingPanel({ call, connected }: { call: NowCalling | null; 
     {call && <p className="room-call-caption">“{speech}”</p>}
     <button className="secondary room-sound" aria-pressed={sound} onClick={() => setSound(value => !value)}>{sound ? 'Disable sound' : 'Enable sound'}</button>
     <p className="room-call-status" role="status">{voice.error || (!connected ? 'Reconnecting to the waiting room…' : sound ? 'Call-outs play once.' : 'Enable sound to hear call-outs.')}</p>
+    <HallwayCheckBack />
     <p className="room-hallway-note">Feeling worse? Please tell the front desk.</p>
   </aside>;
 }

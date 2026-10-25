@@ -14,7 +14,7 @@ const ExamPage = examModule ? lazy(async () => ({ default: (await examModule()).
 const links = [
   ['/check-in', 'Check in', 'A calm, guided start for people arriving at the clinic.'],
   ['/camera', 'Room camera', 'See the live room view and camera estimate status.'],
-  ['/dashboard', 'Nurse dashboard', 'Review the waiting room and requests for a check.'],
+  ['/dashboard', 'Crisp Command Center', 'Review the waiting room and requests for a check.'],
   ['/lobby', 'Lobby', 'A clear, friendly display for the waiting room.'],
   ['/station?choose=1', 'Choose station', 'Give this laptop a role, and switch whenever you need.'],
 ] as const;

@@ -29,7 +29,7 @@
 
 1. Register all nine tools and replacement nurse prompt from `.plans/elevenlabs-nurse-agent-update.md` on the nurse agent. Keep provider keys server-only.
 2. Mount `client/staff/HallwayCheckBack.tsx` in the room-view hallway panel. Preserve its public-safe queue/initial-only messages.
-3. Rename the shared app navigation's “Nurse dashboard” label to “Crisp Command Center” (`client/App.tsx` is outside P13a).
+3. Rename the shared app navigation's “Crisp Command Center” label to “Crisp Command Center” (`client/App.tsx` is outside P13a).
 4. If broader lifecycle statuses are desired after the demo, integrate done/left into shared types deliberately. This packet preserves the frozen waiting/called contract: retained completed/left visits have room=null and their actual disposition is in GET /api/suggestions.
 
 ## Human checks
