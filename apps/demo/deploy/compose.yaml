@@ -1,0 +1,54 @@
+name: crisp
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      target: api
+    restart: unless-stopped
+    init: true
+    secrets:
+      - providers
+    volumes:
+      - room_data:/app/.data
+    # No host port: Caddy is the only public entry point.
+    expose:
+      - "8787"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      target: web
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      CRISP_HOST: ${CRISP_HOST:?Set CRISP_HOST in deploy/.env to a public hostname}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+secrets:
+  providers:
+    file: ${CRISP_PROVIDERS_FILE:?Set CRISP_PROVIDERS_FILE to an absolute server-only env-file path}
+
+volumes:
+  room_data:
+  caddy_data:
+  caddy_config:
