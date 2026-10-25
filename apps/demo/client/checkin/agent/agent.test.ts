@@ -85,6 +85,19 @@ describe('check-in client tools', () => {
     expect(c.finish).toHaveBeenCalledOnce();
     expect(c.answers).toMatchObject({ reason: 'My chest feels tight', onset: null, trend: null });
   });
+  it('caps follow-ups at two even when the patient corrects the complaint', async () => {
+    const c = mockController(); c.name = 'Anna';
+    const fetcher = vi.fn().mockImplementation(async () => new Response('{"question":"Where is the chest tightness?","source":"gemini"}'));
+    const tools = createCheckInTools(() => c, fetcher);
+    for (const reason of ['Chest tightness', 'Chest tightness after walking']) {
+      await tools.save_answers({ reason }); await tools.get_follow_up_question();
+      await tools.save_follow_up({ question: 'Where is the chest tightness?', answer: 'In the middle' });
+    }
+    await tools.save_answers({ reason: 'Chest tightness after walking upstairs' });
+    expect(await tools.get_follow_up_question()).toMatch(/limit|wrap up/i);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(await tools.finish_check_in()).toContain('Queue number 3');
+  });
   it('fills the shared controller, scans, asks one follow-up and returns the actual queue number', async () => {
     const controller = mockController();
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response('{"question":"Where is the tightness?","source":"gemini"}'));
