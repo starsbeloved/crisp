@@ -1,12 +1,14 @@
 import type { Quality, PostureState } from '../../../shared/types.ts';
 import { median } from './dsp.ts';
 import { estimatePulse, validFace } from './pulse.ts';
+import { createPoseSignals } from './posture.ts';
 export interface FaceSample { t: number; rgb: [number, number, number]; brightness: number; faceWidthPx: number }
 export interface PoseSample { t: number; landmarks: { x: number; y: number; z: number; visibility: number }[] }
 export interface SignalReading { hrBpm: number | null; hrQuality: Quality; rrBpm: number | null; rrQuality: Quality;
   posture: PostureState | null; hint: string | null; hrSecondsCollected: number; pulseTrace: number[] | null }
 export interface SignalTracker { pushFace(s: FaceSample): void; pushPose(s: PoseSample): void; read(now: number): SignalReading; reset(): void }
 export function createSignalTracker(): SignalTracker {
+  const pose = createPoseSignals();
   let faces: FaceSample[] = [], estimates: number[] = [];
   let pulse: ReturnType<typeof estimatePulse> = { bpm: null, quality: 'none', trace: null };
   let lastEstimate = -Infinity, pendingJump: { bpm: number; t: number } | null = null;
@@ -27,7 +29,7 @@ export function createSignalTracker(): SignalTracker {
       // Retain one sample before the ten-second boundary for interpolation.
       while (faces.length > 2 && faces[1].t < s.t - 10_000) faces.shift();
     },
-    pushPose() {},
+    pushPose(s) { pose.push(s); },
     read(now) {
       const latest = faces.at(-1), age = latest ? now - latest.t : Infinity;
       const fresh = !!latest && Number.isFinite(now) && age >= 0 && age <= 1000;
@@ -53,8 +55,8 @@ export function createSignalTracker(): SignalTracker {
       return { hrBpm: usable && seconds >= 10 ? pulse.bpm : null,
         hrQuality: !latest ? 'none' : !usable ? 'low' : seconds < 10 ? 'none' : pulse.quality,
         hrSecondsCollected: seconds, pulseTrace: usable && seconds >= 5 ? pulse.trace : null,
-        rrBpm: null, rrQuality: 'none', posture: null, hint };
+        ...pose.read(now), hint };
     },
-    reset() { clearFace(); },
+    reset() { clearFace(); pose.reset(); },
   };
 }
