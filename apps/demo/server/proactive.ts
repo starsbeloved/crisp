@@ -12,6 +12,8 @@ export interface Disposition { status: 'done' | 'left'; at: number; name: string
 export interface SuggestionState { suggestions: Suggestion[]; dispositions: Record<string, Disposition> }
 type Entry = Suggestion & { key: string; status: 'pending' | 'accepted' | 'dismissed' | 'expired'; acceptedAt?: number };
 const roomKey = (room: string) => room.trim().replace(/^room\s*/i, '').trim().toLowerCase();
+const roomLabel = (room: string | null | undefined) => !room ? 'the room' : /^room\b/i.test(room.trim()) ? room.trim() : `Room ${room.trim()}`;
+
 export class ProactiveAgent {
   private entries: Entry[] = [];
   private rooms = new Map<string, number>();
@@ -49,10 +51,10 @@ export class ProactiveAgent {
     const next = this.waiting()[0];
     for (const [room, freedAt] of this.rooms) {
       if (!next || this.occupied(room)) continue;
-      this.propose(`room:${room}:${freedAt}:${next.id}`, { kind: 'room_free', text: `Room ${room} is free. Next by arrival is ${next.name} (#${next.queueNo}). Call them?`, action: 'call', visitId: next.id, room, createdAt: now });
+      this.propose(`room:${room}:${freedAt}:${next.id}`, { kind: 'room_free', text: `${roomLabel(room)} is free. Next by arrival is ${next.name} (#${next.queueNo}). Call them?`, action: 'call', visitId: next.id, room, createdAt: now });
     }
     for (const visit of this.store.state.visits) {
-      if (visit.status === 'called' && visit.room && this.store.state.handoffs[visit.id]) this.propose(`chart:${visit.id}:${visit.calledAt}`, { kind: 'chart_ready', text: `${visit.name}'s chart is ready in Room ${visit.room}.`, visitId: visit.id, room: visit.room, createdAt: now });
+      if (visit.status === 'called' && visit.room && this.store.state.handoffs[visit.id]) this.propose(`chart:${visit.id}:${visit.calledAt}`, { kind: 'chart_ready', text: `${visit.name}'s chart is ready in ${roomLabel(visit.room)}.`, visitId: visit.id, room: visit.room, createdAt: now });
       if (visit.status !== 'waiting') continue;
       const minutes = Math.max(0, Math.floor((now - visit.createdAt) / 60_000));
       if (now - visit.createdAt > 45 * 60_000 && visit.answers.trend === 'worse' && !this.wasChecked(visit.id)) this.propose(`wait:${visit.id}`, { kind: 'long_wait', text: `${visit.name} has waited ${minutes} min and reported getting worse. Want to check on them?`, visitId: visit.id, action: 'remind', createdAt: now });
@@ -67,7 +69,7 @@ export class ProactiveAgent {
     this.sync(); const visit = this.store.state.visits.find(v => v.id === visitId && v.status === 'called' && v.room && roomKey(v.room) === roomKey(room));
     if (!visit) return { ok: false, message: 'That patient is no longer in this room. Refresh before marking Patient done.' };
     this.finish(visit, 'done', now); this.rooms.set(roomKey(room), now);
-    return { ok: true, message: `${visit.name} marked done. Room ${roomKey(room)} is free.` };
+    return { ok: true, message: `${visit.name} marked done. ${roomLabel(roomKey(room))} is free.` };
   }
   private finish(visit: Visit, status: Disposition['status'], now: number) {
     this.dispositions[visit.id] = { status, at: now, name: visit.name, queueNo: visit.queueNo, room: visit.room };
