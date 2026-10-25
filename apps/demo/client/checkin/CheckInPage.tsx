@@ -54,7 +54,7 @@ export function CheckInPage() {
         .finally(() => setHelpBusy(false));
     }} aria-expanded={Boolean(help)}><KioskIcon name="info" /><span>I need help</span></Button></div><KioskProgress step={c.step} /></div>
     <div className="checkin-card checkin-stable-layout">
-      {(c.via !== 'voice' || c.step === 'done') && <div className="checkin-intro-group checkin-companion-scene"><div className="checkin-companion"><Crisp state={c.step === 'welcome' || c.step === 'done' ? 'happy' : c.face.status === 'scanning' && c.step === 'face' ? 'thinking' : 'idle'} size={c.step === 'welcome' || c.step === 'done' ? 320 : 160} /></div>
+      {(c.via !== 'voice' || c.step === 'done') && <div className="checkin-intro-group checkin-companion-scene"><div className="checkin-companion"><Crisp state={c.step === 'welcome' || c.step === 'done' ? 'happy' : c.face.status === 'scanning' && c.step === 'face' ? 'thinking' : 'idle'} size={c.step === 'welcome' ? 460 : c.step === 'done' ? 320 : 160} /></div>
       <div className="checkin-intro">
         {c.step === 'done' && <p className="checkin-done-greeting">You’re checked in, {c.name.trim()}.</p>}
         <h1 ref={heading} tabIndex={-1}>{c.step === 'done' ? 'You’re number' : titles[c.step]}</h1>
