@@ -8,7 +8,7 @@ export interface FaceSample { t: number; rgb: [number, number, number]; brightne
 export interface PoseSample { t: number; landmarks: { x: number; y: number; z: number; visibility: number }[] }
 export interface SignalReading { hrBpm: number | null; hrQuality: Quality; rrBpm: number | null; rrQuality: Quality;
   posture: PostureState | null; hint: string | null; hrSecondsCollected: number; pulseTrace: number[] | null;
-  hrDisplay?: HeartRateDisplay; referenceReady?: boolean }
+  hrDisplay?: HeartRateDisplay; referenceReady?: boolean; velocity: number }
 export interface SignalTracker { pushFace(s: FaceSample): void; pushPose(s: PoseSample): void; read(now: number): SignalReading; reset(): void }
 export function createSignalTracker(): SignalTracker {
   const pose = createPoseSignals();

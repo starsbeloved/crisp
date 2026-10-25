@@ -7,12 +7,12 @@ export const POSE_THRESHOLDS = {
   visibility: 0.4, referenceMs: 4000, gapMs: 1000,
   motionPerFrame: 0.003, headDescentWidths: 0.12, torsoAngleChangeDeg: 15,
   shoulderMotionPerFrame: 0.001,
-  fallDrop: 0.25, fallHoldMs: 1500,
+  fallDrop: 0.25, fallVelocity: 1.2, lowHipY: 0.88, fallHoldMs: 1500,
 } as const;
 
 type Point = PoseSample['landmarks'][number];
 type Geometry = { t: number; head: number; angle: number; shoulderY: number; hipY: number;
-  width: number; points: Point[]; visible: boolean };
+  width: number; points: Point[]; bodyVisible: boolean; headVisible: boolean };
 
 const finitePoint = (p: Point | undefined): p is Point => !!p && Number.isFinite(p.x) && Number.isFinite(p.y);
 const visiblePoint = (p: Point | undefined): p is Point => finitePoint(p) &&
@@ -30,7 +30,8 @@ function geometry(s: PoseSample): Geometry | null {
     head: finitePoint(p[0]) ? (p[0].y - shoulderY) / width : NaN,
     angle: Math.atan2(shoulderX - hipX, hipY - shoulderY) * 180 / Math.PI,
     points: [0, 11, 12, 23, 24].map(i => p[i]),
-    visible: [0, 11, 12, 23, 24].every(i => visiblePoint(p[i])) && hipY > shoulderY + 0.03 };
+    bodyVisible: [11, 12, 23, 24].every(i => visiblePoint(p[i])) && hipY > shoulderY + 0.03,
+    headVisible: visiblePoint(p[0]) };
 }
 
 /** One reference and three continuous counters per recognized person. No browser or model state. */
@@ -39,12 +40,13 @@ export function createPoseSignals() {
   let reference: Geometry[] = [], baseline: { head: number; angle: number; shoulderY: number; hipY: number } | null = null;
   let slumpStart: number | null = null, headStart: number | null = null, stillStart: number | null = null;
   let fallUntil = -Infinity, posture: PostureState | null = null;
+  let velocity = 0;
   let breaths: { t: number; value: number }[] = [], rrBpm: number | null = null, rrQuality: Quality = 'none', lastEstimate = -Infinity;
 
   function breakContinuity() {
     previous = null; recent = []; reference = []; slumpStart = headStart = stillStart = null;
     fallUntil = -Infinity; posture = null;
-    breaths = []; rrBpm = null; rrQuality = 'none'; lastEstimate = -Infinity;
+    velocity = 0; breaths = []; rrBpm = null; rrQuality = 'none'; lastEstimate = -Infinity;
   }
 
   return {
@@ -57,13 +59,17 @@ export function createPoseSignals() {
       if (!g) { breakContinuity(); rrQuality = 'low'; return; }
       recent = recent.filter(v => s.t - v.t <= 1000);
       const returningToSeat = baseline !== null && g.shoulderY <= baseline.shoulderY + .08 && g.hipY <= baseline.hipY + .08;
+      velocity = previous && dt > 0 ? Math.max(...g.points.map((point, i) => {
+        const prior = previous!.points[i];
+        return finitePoint(prior) && finitePoint(point) ? (point.y - prior.y) / g.width * 1000 / dt : 0;
+      })) : 0;
       const fell = !returningToSeat && recent.some(v => {
         const shoulderDrop = g.shoulderY - v.shoulderY, hipDrop = g.hipY - v.hipY;
         return (shoulderDrop + hipDrop) / 2 > POSE_THRESHOLDS.fallDrop && shoulderDrop > 0.15 && hipDrop > 0.15 ||
           v.hipY < 0.98 && g.hipY >= 0.98 && shoulderDrop > 0.12;
-      });
+      }) || (velocity >= POSE_THRESHOLDS.fallVelocity && g.hipY >= POSE_THRESHOLDS.lowHipY);
       if (fell) fallUntil = s.t + POSE_THRESHOLDS.fallHoldMs;
-      if (!g.visible) {
+      if (!g.bodyVisible) {
         const observedUntil = fallUntil, fall = s.t <= observedUntil;
         breakContinuity(); rrQuality = 'low';
         // The hips may leave the image at exactly the fall; preserve that observed evidence.
@@ -88,7 +94,7 @@ export function createPoseSignals() {
       const slumped = baseline !== null && (g.head - baseline.head >= POSE_THRESHOLDS.headDescentWidths - 1e-9 ||
         Math.abs(g.angle - baseline.angle) >= POSE_THRESHOLDS.torsoAngleChangeDeg - 1e-9);
       slumpStart = slumped ? slumpStart ?? s.t : null;
-      headStart = g.head > 0 ? headStart ?? s.t : null;
+      headStart = Number.isFinite(g.head) && g.head > 0 ? headStart ?? s.t : null;
       stillStart = stationary ? stillStart ?? previous!.t : null;
       posture = { slumpSec: slumpStart === null ? 0 : (s.t - slumpStart) / 1000,
         headDropSec: headStart === null ? 0 : (s.t - headStart) / 1000,
@@ -114,7 +120,7 @@ export function createPoseSignals() {
         rrBpm = peak.hz !== null && rrQuality !== 'low' ? peak.hz * 60 : null;
         lastEstimate = lastAt!;
       }
-      return { referenceReady: fresh && baseline !== null, rrBpm: fresh ? rrBpm : null,
+      return { referenceReady: fresh && baseline !== null, velocity: fresh ? velocity : 0, rrBpm: fresh ? rrBpm : null,
         rrQuality: lastAt === null ? 'none' as const : !fresh ? 'low' as const : rrQuality,
         posture: fresh && posture ? { ...posture, fallSuspected: now <= fallUntil } : null };
     },

@@ -25,3 +25,23 @@ it('does not report a routine stand and sit as a fall or slump', () => {
   for (let t = 5600; t <= 6300; t += 100) tracker.pushPose(pose(t, -.18 + .28 * (t - 5500) / 800));
   expect(tracker.read(6300).posture).toMatchObject({ fallSuspected: false, slumpSec: 0, headDropSec: 0 });
 });
+
+it('flags a fast downward velocity when the body drops into a low posture', () => {
+  const tracker = createSignalTracker();
+  for (let t = 0; t <= 4000; t += 200) tracker.pushPose(pose(t));
+  tracker.pushPose(pose(4100, .2));
+  tracker.pushPose(pose(4200, .22));
+  expect(tracker.read(4200).posture).toMatchObject({ fallSuspected: true });
+  expect(tracker.read(4200).velocity).toBeGreaterThan(1);
+});
+
+it('keeps a head drop signal when the face landmark becomes unavailable but the body remains visible', () => {
+  const tracker = createSignalTracker();
+  for (let t = 0; t <= 4000; t += 200) tracker.pushPose(pose(t));
+  for (let t = 4200; t <= 7200; t += 200) {
+    const sample = pose(t, 0, .6);
+    sample.landmarks[0].visibility = .2;
+    tracker.pushPose(sample);
+  }
+  expect(tracker.read(7200).posture?.headDropSec).toBe(3);
+});
