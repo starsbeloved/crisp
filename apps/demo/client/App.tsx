@@ -14,6 +14,7 @@ const links = [
   ['/check-in', 'Check in', 'A calm, guided start for people arriving at the clinic.'],
   ['/camera', 'Room camera', 'See the live room view and camera estimate status.'],
   ['/dashboard', 'Crisp Command Center', 'Review the waiting room and requests for a check.'],
+  ['/exam?room=1', 'Exam room', 'The doctor\'s screen: the chart opens when the patient arrives.'],
   ['/lobby', 'Lobby', 'A clear, friendly display for the waiting room.'],
   ['/station?choose=1', 'Choose station', 'Give this laptop a role, and switch whenever you need.'],
 ] as const;
@@ -38,7 +39,7 @@ export function App() {
     return () => window.removeEventListener('resize', revealCurrentPage);
   }, [path]);
   return <StationShell path={path}>
-    {!lobby && <header><a href="/" className="wordmark"><AppleMark /><span>Crisp</span></a><nav ref={navigation} aria-label="Demo pages">{links.map(([url, title]) => <a href={url} key={url} aria-current={path === url ? 'page' : undefined}>{title}</a>)}</nav></header>}
+    {!lobby && <header><a href="/" className="wordmark"><AppleMark /><span>Crisp</span></a><nav ref={navigation} aria-label="Demo pages">{links.map(([url, title]) => <a href={url} key={url} aria-current={path === url.split('?')[0] ? 'page' : undefined}>{title}</a>)}</nav></header>}
     <main className={lobby ? 'app-main-lobby' : undefined}>
       {path === '/check-in' ? <CheckInPage /> : path === '/camera' ? <CameraPage /> : path === '/dashboard' ? <DashboardPage /> : path === '/lobby' ? <LobbyPage /> : path === '/room' ? <CameraPage roomView /> : path === '/exam' ? <Suspense fallback={<p>Opening Exam room…</p>}>{ExamPage ? <ExamPage /> : <section className="card"><h1>Exam room is unavailable in this build.</h1><a href="/station?choose=1">Choose another station</a></section>}</Suspense> : <>
         <section className="launcher-hero"><p className="launcher-kicker"><AppleMark /> Waiting room companion</p><h1>No one waits unseen.</h1><p className="launcher-intro">Crisp helps people check in, helps staff see the room, and keeps everyone informed while they wait.</p></section>
