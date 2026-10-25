@@ -66,7 +66,7 @@ export function Crisp({ state = 'idle', size = 96, level = 0 }: { state?: CrispS
       </g></g>}
       {[pose.left, pose.right].map((arm, i) => <g key={i}>
         {arm.front && <ArmStroke arm={arm} />}
-        <Hand arm={arm} mirror={i === 0} />
+        <Hand arm={arm} />
       </g>)}
       {state === 'thinking' && <g className="crisp-thought" fill="var(--c-text-2)"><circle cx="225" cy="71" r="3" /><circle cx="240" cy="54" r="4.5" /><circle cx="259" cy="36" r="6" /></g>}
       {state === 'listening' && <g fill="none" stroke="var(--c-leaf)" strokeWidth="2.5" strokeLinecap="round"><path d="M259 73 Q268 86 259 99M271 64 Q285 86 271 108" /></g>}
@@ -84,9 +84,12 @@ function ArmStroke({ arm: { shoulder, bend, wrist } }: { arm: Arm }) {
 }
 
 /** One wrist coordinate and the forearm's tangent place both the cuff and palm. */
-function Hand({ arm: { wrist, bend, hand = 'rest' }, mirror }: { arm: Arm; mirror: boolean }) {
-  const angle = Math.atan2(wrist[1] - bend[1], wrist[0] - bend[0]) * 180 / Math.PI + 90;
-  return <g transform={`translate(${wrist.join(' ')}) rotate(${angle}) scale(${mirror ? -.8 : .8} .8)`}>
+function Hand({ arm: { wrist, bend, hand = 'rest' } }: { arm: Arm }) {
+  const angle = Math.atan2(wrist[1] - bend[1], wrist[0] - bend[0]) + Math.PI / 2;
+  // The thumb is on local -X. Face that side toward the apple's center in each pose,
+  // including when a hanging or hip hand turns past horizontal.
+  const mirror = (140 - wrist[0]) * Math.cos(angle) + (150 - wrist[1]) * Math.sin(angle) > 0;
+  return <g transform={`translate(${wrist.join(' ')}) rotate(${angle * 180 / Math.PI}) scale(${mirror ? -.8 : .8} .8)`}>
     <g fill="var(--c-crisp-cream)" stroke="var(--c-crisp-ink)" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
       {hand === 'open' ? <>
         <path d="M-10-10 C-16-14-20-20-23-25 C-26-31-21-35-17-30 L-12-25 L-17-38 C-19-45-12-48-9-41 L-5-30 L-6-45 C-6-52 2-52 3-45 L4-30 L8-42 C10-49 18-46 16-39 L13-27 L19-33 C24-38 30-32 25-27 L16-14 Q14-10 10-9Z" />
