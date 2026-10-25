@@ -15,7 +15,7 @@ export async function loadFaceModels(): Promise<void> {
 export type DetectedFace = { box: { x: number; y: number; w: number; h: number }; score: number; descriptor: number[]; landmarks: { x: number; y: number }[] };
 export async function detectFaces(source: HTMLVideoElement | HTMLCanvasElement): Promise<DetectedFace[]> {
   await loadFaceModels();
-  const results = await faceapi.detectAllFaces(source, new faceapi.TinyFaceDetectorOptions({ inputSize: 320 })).withFaceLandmarks(true).withFaceDescriptors();
+  const results = await faceapi.detectAllFaces(source, new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: .4 })).withFaceLandmarks(true).withFaceDescriptors();
   return results.map(result => ({
     box: { x: result.detection.box.x, y: result.detection.box.y, w: result.detection.box.width, h: result.detection.box.height },
     score: result.detection.score, descriptor: Array.from(result.descriptor),

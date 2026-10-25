@@ -1,4 +1,4 @@
-/** Filming preset, not a validated clinical rule. P8 must wire these into engine/index.ts.
+/** Filming preset used by engine/index.ts, not a validated clinical rule.
  * A fall flag is immediate; camera observations arrive ~1 Hz and retain it for 1.5 s.
  * Slump alone requests amber; existing fusion with current fair/good vitals can upgrade red.
  */

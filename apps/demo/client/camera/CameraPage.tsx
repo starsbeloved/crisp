@@ -6,6 +6,7 @@ import { Card } from '../ui/Card.tsx';
 import { Chip } from '../ui/Chip.tsx';
 import { useCameraSource } from './useCameraSource.ts';
 import { useVision } from './useVision.ts';
+import { cameraRequests } from './output.ts';
 import { RoomView } from '../room/RoomView.tsx';
 import './camera.css';
 
@@ -16,6 +17,7 @@ export function CameraPage({ roomView = false }: { roomView?: boolean }) {
   const [filename, setFilename] = useState(() => replaySource()?.split('/').pop() ?? null);
   const cam = (new URLSearchParams(location.search).get('cam') || 'A').slice(0, 80);
   const privacy = new URLSearchParams(location.search).get('privacy') !== '0';
+  const debug = new URLSearchParams(location.search).get('debug') === '1';
   const [deviceId, setDeviceId] = useState(() => { try { return localStorage.getItem(`crisp-camera-${cam}`) || ''; } catch { return ''; } });
   const [selectedTrack, setSelectedTrack] = useState<string | null>(null);
   const [correctionError, setCorrectionError] = useState('');
@@ -47,7 +49,8 @@ export function CameraPage({ roomView = false }: { roomView?: boolean }) {
     return () => { document.body.style.overflow = previous; if (header) header.inert = false; window.removeEventListener('keydown', escape); };
   }, [demoView, settings]);
   const { ready, message, devices } = useCameraSource(video, cam, replay, deviceId);
-  const vision = useVision(video, canvas, { ready, cam, replayName: replay ? filename || 'local video' : null, state, privacy });
+  const vision = useVision(video, canvas, { ready, cam, replayName: replay ? filename || 'local video' : null, state, privacy, debug });
+  const requests = cameraRequests(state);
   useEffect(() => () => { if (replay?.startsWith('blob:')) URL.revokeObjectURL(replay); }, [replay]);
   async function correct(visitId: string) {
     const track = vision.tracker.current.current(performance.now()).find(item => item.id === selectedTrack);
@@ -84,7 +87,8 @@ export function CameraPage({ roomView = false }: { roomView?: boolean }) {
     </details>
       <p className="camera-technical">{vision.models} · {vision.poseStatus}</p>
     </div>
-    <div className="camera-status"><Chip>{replay ? `REPLAY · ${filename}` : 'LIVE'}</Chip><Chip>{vision.stats.count} {vision.stats.count === 1 ? 'face' : 'faces'}</Chip>{privacy && <Chip>Unknown faces blurred</Chip>}</div>
+    {requests.length > 0 && <div className="camera-check-request" role="alert"><strong>Check requested</strong> · {requests.map(alert => `${state?.vitals[alert.visitId]?.source === 'replay' ? 'REPLAY · ' : ''}${alert.facts.name} · #${alert.facts.queueNo}: ${alert.reasons[0] ?? 'may need a check'}`).join(' / ')} · May need a check</div>}
+    <div className="camera-status"><Chip>{replay ? `REPLAY · ${filename}` : 'LIVE'}</Chip><Chip>{vision.stats.count} {vision.stats.count === 1 ? 'person' : 'people'}</Chip>{privacy && <Chip>Unknown faces blurred</Chip>}{debug && <Chip>Debug · face/body identity + posture counters</Chip>}</div>
     <p className="camera-source-message" role="status">{message}</p>
     <video ref={video} muted playsInline autoPlay className="source-video" aria-label="Camera source video" />
     <div className="camera-stage"><canvas ref={canvas} className="camera-canvas" aria-label="Face detection overlay" onClick={event => {
