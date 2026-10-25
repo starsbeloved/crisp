@@ -87,3 +87,15 @@ it('counts head drop with occluded seated hips while the shoulders stay visible'
   expect(tracker.read(7200).referenceReady).toBe(true);
   expect(tracker.read(7200).posture?.headDropSec).toBe(3);
 });
+
+it('learns and counts a head drop with hips below frame, without treating extrapolated hips as a fall', () => {
+  const tracker = createSignalTracker();
+  for (let t = 0; t <= 7200; t += 200) {
+    const sample = pose(t, 0, t >= 4200 ? .45 : .2);
+    sample.landmarks[23].y = sample.landmarks[24].y = t % 400 ? 1.8 : 1.2;
+    sample.landmarks[23].visibility = sample.landmarks[24].visibility = .05;
+    tracker.pushPose(sample);
+  }
+  expect(tracker.read(7200)).toMatchObject({ referenceReady: true,
+    posture: { headDropSec: 3, slumpSec: 3, fallSuspected: false } });
+});

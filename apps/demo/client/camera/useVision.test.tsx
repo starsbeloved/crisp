@@ -1,17 +1,17 @@
 // @vitest-environment jsdom
 import { act, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { afterEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import type { RoomState } from '../../shared/types.ts';
 import type { PoseSample } from './signals/index.ts';
 
 const model = vi.hoisted(() => ({ now: 0, poses: [] as PoseSample['landmarks'][], frame: null as (() => void) | null,
-  detectFaces: vi.fn(), detectForVideo: vi.fn(), observations: vi.fn(), overlay: vi.fn() }));
+  loadFaceModels: vi.fn(async () => {}), close: vi.fn(), disposeFaceModels: vi.fn(async () => {}), detectFaces: vi.fn(), detectForVideo: vi.fn(), observations: vi.fn(), overlay: vi.fn() }));
 vi.mock('../lib/camera.ts', () => ({ scheduleVideoFrame: (_video: unknown, callback: () => void) => {
   model.frame = callback; return () => { model.frame = null; };
 } }));
-vi.mock('../lib/face.ts', () => ({ loadFaceModels: async () => {}, detectFaces: model.detectFaces }));
-vi.mock('./pose.ts', () => ({ loadPoseModel: async () => ({ model: { detectForVideo: model.detectForVideo, close: () => {} }, delegate: 'GPU' }) }));
+vi.mock('../lib/face.ts', () => ({ loadFaceModels: model.loadFaceModels, detectFaces: model.detectFaces, disposeFaceModels: model.disposeFaceModels, faceMemory: () => ({ tensors: 10, bytes: 1024, gpuBytes: null }) }));
+vi.mock('./pose.ts', () => ({ loadPoseModel: async () => ({ model: { detectForVideo: model.detectForVideo, close: model.close }, delegate: 'GPU' }) }));
 vi.mock('./overlay.ts', () => ({ drawOverlay: model.overlay }));
 vi.mock('../lib/api.ts', () => ({ api: { gallery: async () => [{ visitId: 'ama', name: 'Ama', descriptor: [0, 0] }],
   observations: model.observations, frame: async () => {} } }));
@@ -27,6 +27,7 @@ function pose(shift = 0): PoseSample['landmarks'] {
 }
 
 let root: ReturnType<typeof createRoot> | null = null;
+beforeEach(() => { model.loadFaceModels.mockReset().mockResolvedValue(); });
 afterEach(async () => { if (root) await act(() => root!.unmount()); root = null; vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 it('draws at video cadence, caps face inference, and uploads a drop followed by disappearance immediately', async () => {
@@ -49,7 +50,7 @@ it('draws at video cadence, caps face inference, and uploads a drop followed by 
     return null;
   }
   root = createRoot(document.createElement('div'));
-  await act(() => root!.render(<Harness />));
+  await act(async () => { root!.render(<Harness />); await new Promise(resolve => setTimeout(resolve, 0)); });
   async function frame(t: number) { model.now = t; await act(async () => { model.frame?.(); await new Promise(resolve => setTimeout(resolve, 0)); }); }
   for (let t = 0; t <= 6000; t += 50) await frame(t);
   expect(model.overlay).toHaveBeenCalledTimes(121);
@@ -67,6 +68,17 @@ it('draws at video cadence, caps face inference, and uploads a drop followed by 
   ]));
   const fallReport = model.observations.mock.calls.find(call => call[0].some((observation: { posture: { fallSuspected: boolean } | null }) => observation.posture?.fallSuspected))![0];
   expect(fallReport.filter((observation: { visitId: string | null }) => observation.visitId === 'ama')).toHaveLength(1);
+  const closes = model.close.mock.calls.length;
+  await act(() => window.dispatchEvent(new Event('pagehide')));
+  expect(model.frame).toBeNull();
+  expect(model.close.mock.calls.length).toBe(closes + 1);
+  expect(model.disposeFaceModels).toHaveBeenCalled();
+  const frames = model.overlay.mock.calls.length;
+  await frame(6500);
+  expect(model.overlay.mock.calls.length).toBe(frames);
+  await act(() => window.dispatchEvent(new Event('pageshow')));
+  await frame(6600);
+  expect(model.overlay.mock.calls.length).toBeGreaterThan(frames);
 });
 
 it.each(['drop', 'disappear'])('reports face-only %s immediately with the recognized visit and unavailable vitals', async kind => {
@@ -92,7 +104,7 @@ it.each(['drop', 'disappear'])('reports face-only %s immediately with the recogn
     return null;
   }
   root = createRoot(document.createElement('div'));
-  await act(() => root!.render(<Harness />));
+  await act(async () => { root!.render(<Harness />); await new Promise(resolve => setTimeout(resolve, 0)); });
   for (let t = 0; t <= 1600; t += 50) {
     model.now = t; await act(async () => { model.frame?.(); await new Promise(resolve => setTimeout(resolve, 0)); });
   }
@@ -101,4 +113,62 @@ it.each(['drop', 'disappear'])('reports face-only %s immediately with the recogn
   expect(fall.at).toBeLessThan(101600);
   expect(model.overlay.mock.calls.at(-1)![1][0].reading.fallTrigger).toBe(kind === 'drop' ? 'face-drop' : 'face-disappeared');
   expect(model.detectFaces.mock.calls.slice(1).every(([, input]) => input === 640)).toBe(true);
+});
+
+it('attaches detector-pixel faces to normalized upper-body poses from 1280x720 video and reports posture', async () => {
+  vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+  model.now = 0; model.overlay.mockClear();
+  const upper = pose();
+  upper[23] = { x: .24, y: 1.25, z: 0, visibility: .05 };
+  upper[24] = { x: .36, y: 1.25, z: 0, visibility: .05 };
+  model.detectForVideo.mockReset().mockImplementation(() => ({ landmarks: [upper] }));
+  model.observations.mockReset().mockResolvedValue({});
+  // Detection returns pixels of its actual input canvas, NOT the TinyFaceDetector inputSize.
+  model.detectFaces.mockReset().mockImplementation(async (canvas: HTMLCanvasElement) => [{
+    box: { x: .25 * canvas.width, y: .12 * canvas.height, w: .1 * canvas.width, h: .16 * canvas.height },
+    descriptor: [0, 0], score: .95, landmarks: [],
+  }]);
+  vi.spyOn(performance, 'now').mockImplementation(() => model.now);
+  const context = { drawImage: vi.fn(), getImageData: () => ({ data: new Uint8ClampedArray(320 * 180 * 4), width: 320, height: 180 }) };
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation((() => context) as unknown as HTMLCanvasElement['getContext']);
+  vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation(callback => callback(new Blob()));
+  function Harness() {
+    const video = useRef(document.createElement('video')), canvas = useRef(document.createElement('canvas'));
+    for (const [name, value] of Object.entries({ videoWidth: 1280, videoHeight: 720, readyState: 4 })) {
+      Object.defineProperty(video.current, name, { configurable: true, value });
+    }
+    useVision(video, canvas, { ready: true, cam: 'UPPER', replayName: 'upper body fixture', state: room, privacy: false, debug: true });
+    return null;
+  }
+  root = createRoot(document.createElement('div'));
+  await act(async () => { root!.render(<Harness />); await new Promise(resolve => setTimeout(resolve, 0)); });
+  for (let t = 0; t <= 6500; t += 100) {
+    model.now = t; await act(async () => { model.frame?.(); await new Promise(resolve => setTimeout(resolve, 0)); });
+  }
+  const rendered = model.overlay.mock.calls.at(-1)![1];
+  expect(rendered).toHaveLength(1);
+  expect(rendered[0].track).toMatchObject({ id: 'body-1', source: 'face', match: { visitId: 'ama' } });
+  expect(rendered[0].track.face.box.x).toBeCloseTo(160);
+  expect(rendered[0].track.face.box.y).toBeCloseTo(43.2);
+  expect(rendered[0].pose).toBe(upper);
+  expect(rendered[0].reading.referenceReady).toBe(true);
+  expect(model.observations.mock.calls.at(-1)![0][0]).toMatchObject({ visitId: 'ama', posture: { fallSuspected: false, slumpSec: 0 } });
+});
+
+
+it('does not warm up or reload face models when their initial load finishes after pagehide', async () => {
+  vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+  let finish!: () => void;
+  model.loadFaceModels.mockImplementationOnce(() => new Promise<void>(resolve => { finish = resolve; }));
+  model.detectFaces.mockClear();
+  function Harness() {
+    const video = useRef(document.createElement('video')), canvas = useRef(document.createElement('canvas'));
+    useVision(video, canvas, { ready: false, cam: 'LATE', replayName: null, state: room, privacy: false });
+    return null;
+  }
+  root = createRoot(document.createElement('div'));
+  await act(() => root!.render(<Harness />));
+  await act(() => window.dispatchEvent(new Event('pagehide')));
+  await act(() => finish());
+  expect(model.detectFaces).not.toHaveBeenCalled();
 });

@@ -12,7 +12,7 @@ export const POSE_THRESHOLDS = {
 
 type Point = PoseSample['landmarks'][number];
 type Geometry = { t: number; head: number; angle: number; shoulderY: number; hipY: number;
-  width: number; points: Point[]; bodyVisible: boolean };
+  width: number; points: Point[] };
 
 const finitePoint = (p: Point | undefined): p is Point => !!p && Number.isFinite(p.x) && Number.isFinite(p.y);
 const visiblePoint = (p: Point | undefined): p is Point => finitePoint(p) &&
@@ -21,17 +21,19 @@ const visiblePoint = (p: Point | undefined): p is Point => finitePoint(p) &&
 
 function geometry(s: PoseSample): Geometry | null {
   const p = s.landmarks;
-  if (![11, 12].every(i => visiblePoint(p[i])) || ![23, 24].every(i => finitePoint(p[i]))) return null;
+  if (![11, 12].every(i => visiblePoint(p[i]))) return null;
   const shoulderY = (p[11].y + p[12].y) / 2, shoulderX = (p[11].x + p[12].x) / 2;
-  const hipY = (p[23].y + p[24].y) / 2, hipX = (p[23].x + p[24].x) / 2;
+  // MediaPipe extrapolates hidden hips beyond the image. They cannot veto observed head/shoulders
+  // or supply torso-angle/fall evidence. NaN keeps unavailable hip measurements out of comparisons.
+  const hipsVisible = [23, 24].every(i => visiblePoint(p[i]));
+  const hipY = hipsVisible ? (p[23].y + p[24].y) / 2 : NaN;
+  const hipX = hipsVisible ? (p[23].x + p[24].x) / 2 : NaN;
   const width = Math.hypot(p[11].x - p[12].x, p[11].y - p[12].y);
   if (width < 0.03) return null;
   return { t: s.t, shoulderY, hipY, width,
     head: finitePoint(p[0]) ? (p[0].y - shoulderY) / width : NaN,
     angle: Math.atan2(shoulderX - hipX, hipY - shoulderY) * 180 / Math.PI,
-    points: [0, 11, 12, 23, 24].map(i => p[i]),
-    // Chair occlusion must not erase visible shoulder/head evidence. Out-of-frame hips still break continuity.
-    bodyVisible: hipY < .98 && hipY > shoulderY + 0.03 };
+    points: [0, 11, 12].map(i => p[i]) };
 }
 
 /** One reference and three continuous counters per recognized person. No browser or model state. */
@@ -67,7 +69,8 @@ export function createPoseSignals() {
         return;
       }
       recent = recent.filter(v => s.t - v.t <= 1000);
-      const returningToSeat = baseline !== null && g.shoulderY <= baseline.shoulderY + .08 && g.hipY <= baseline.hipY + .08;
+      const returningToSeat = baseline !== null && g.shoulderY <= baseline.shoulderY + .08 &&
+        (!Number.isFinite(g.hipY) || !Number.isFinite(baseline.hipY) || g.hipY <= baseline.hipY + .08);
       velocity = previous && dt > 0 ? Math.max(...g.points.slice(0, 3).map((point, i) => {
         const prior = previous!.points[i];
         return finitePoint(prior) && finitePoint(point) ? (point.y - prior.y) / g.width * 1000 / dt : 0;
@@ -84,20 +87,12 @@ export function createPoseSignals() {
           !returningToSeat && (g.shoulderY - v.shoulderY) / g.width >= 1 ||
           g.head > -.25 && finitePoint(g.points[0]) && finitePoint(v.points[0]) && (g.points[0].y - v.points[0].y) / g.width >= 1)));
       if (fell) fallUntil = s.t + POSE_THRESHOLDS.fallHoldMs;
-      if (!g.bodyVisible) {
-        const observedUntil = fallUntil, fall = s.t <= observedUntil;
-        breakContinuity(); rrQuality = 'low';
-        // The hips may leave the image at exactly the fall; preserve that observed evidence.
-        if (fall) { fallUntil = observedUntil;
-          posture = { slumpSec: 0, headDropSec: 0, stillSec: 0, fallSuspected: true }; }
-        return;
-      }
       recent.push(g);
       const motion = previous && dt > 0 ? mean(g.points.map((p, i) =>
         Math.hypot(p.x - previous!.points[i].x, p.y - previous!.points[i].y))) * (1000 / 30) / dt : null;
       const stationary = motion !== null && motion < POSE_THRESHOLDS.motionPerFrame;
       if (!baseline) {
-        if ((!previous || stationary) && g.head < 0 && Math.abs(g.angle) <= 20) {
+        if ((!previous || stationary) && g.head < 0 && (!Number.isFinite(g.angle) || Math.abs(g.angle) <= 20)) {
           reference.push(g);
           if (s.t - reference[0].t >= POSE_THRESHOLDS.referenceMs) {
             baseline = { head: median(reference.map(v => v.head)), angle: median(reference.map(v => v.angle)),
