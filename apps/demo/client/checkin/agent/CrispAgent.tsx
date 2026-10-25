@@ -5,6 +5,7 @@ import { useRoomState } from '../../lib/useRoomState.ts';
 import { Crisp, type CrispState } from '../../ui/Crisp.tsx';
 import { createCheckInTools } from './tools.ts';
 import { useVoiceAgent } from './useVoiceAgent.ts';
+import { KioskIcon } from '../ui/KioskIcon.tsx';
 
 export function CrispAgent() {
   const controller = useContext(CheckInContext);
@@ -31,21 +32,42 @@ function VoiceCheckIn({ controller }: { controller: CheckInController }) {
   }, [controller.step, endSession]);
   if (!voice.available || tapping || controller.step === 'done') return null;
   const active = voice.status !== 'disconnected';
-  return <section aria-label="Talk to Crisp" style={{ textAlign: 'center', padding: '16px 0' }}>
-    <Crisp size={240} state={voice.mascotState} level={voice.level} />
-    <p role="status">{voice.status === 'connecting' ? 'Connecting to Crisp…' : active ? voice.mascotState === 'talking' ? 'Crisp is speaking' : voice.mascotState === 'thinking' ? 'Saving what you said…' : 'Crisp is listening…' : 'Tell Crisp in your own words.'}</p>
-    <div role="log" aria-label="Conversation captions" aria-live="polite" style={{ maxHeight: 180, overflowY: 'auto', textAlign: 'left' }}>
-      {voice.captions.map((caption, i) => <p key={i}><strong>{caption.speaker}:</strong> {caption.text}</p>)}
+  return <section aria-label="Talk to Crisp" className={active ? 'checkin-voice-active' : 'checkin-voice-launch'}>
+    <div className="checkin-conversation">
+      <div className="checkin-voice-character"><Crisp size={300} state={voice.mascotState} level={voice.level} />
+        <p className="checkin-voice-status" role="status"><span className="checkin-levels" aria-hidden="true">{[0.65, 1, 0.8, 0.5].map((scale, index) => <span key={index} style={{ transform: `scaleY(${Math.max(0.2, voice.level * scale)})` }} />)}</span>{voice.status === 'connecting' ? 'Connecting to Crisp…' : active ? voice.mascotState === 'talking' ? 'Crisp is speaking' : voice.mascotState === 'thinking' ? 'Saving what you said…' : 'Crisp is listening…' : 'Tell Crisp in your own words.'}</p>
+      </div>
+      <div className="checkin-captions" role="log" aria-label="Conversation captions" aria-live="polite">
+        {!voice.captions.length && <p>Say hello to Crisp. Your conversation will appear here.</p>}
+        {voice.captions.map((caption, i) => <div className="checkin-caption" data-speaker={caption.speaker} key={i}><strong>{caption.speaker}: </strong><p>{caption.text}{active && i === voice.captions.length - 1 && <span className="checkin-caption-caret" aria-hidden="true" />}</p></div>)}
+      </div>
+      <div className="checkin-voice-actions">
+        {!active && <button type="button" className="checkin-primary checkin-voice-start" onClick={() => { controller.setVia('voice'); void voice.start(); }}><KioskIcon name="mic" />Talk to Crisp</button>}
+        <button type="button" className="checkin-secondary checkin-voice-tap" onClick={() => { voice.endSession(); controller.setVia('form'); setTapping(true); }}>I’d rather tap</button>
+      </div>
     </div>
-    {!active && <button type="button" onClick={() => { controller.setVia('voice'); void voice.start(); }}>Talk to Crisp</button>}
-    <button type="button" onClick={() => { voice.endSession(); controller.setVia('form'); setTapping(true); }}>I’d rather tap</button>
+    {active && <Understood controller={controller} />}
+  </section>;
+}
+
+/** A read-only view of the same fields filled by the existing voice tools. */
+function Understood({ controller: c }: { controller: CheckInController }) {
+  const reason = c.answers.reason || c.answers.reasonChips.join(', ');
+  return <section className="checkin-understood" aria-label="What Crisp understood">
+    <h2>What Crisp understood</h2><p>Your answers appear here as we talk. You can switch to tapping to make changes.</p>
+    <div key={`name-${c.name}`} className="checkin-understood-field" data-filled={Boolean(c.name.trim())}><span>Name</span><strong>{c.name.trim() || 'Listening for your name…'}</strong></div>
+    <div key={`face-${c.face.status}`} className="checkin-understood-field" data-filled={c.face.status === 'saved'}><span>Face scan</span><strong>{c.face.status === 'saved' ? '✓ Face saved' : c.face.message || 'Not scanned yet'}</strong></div>
+    <div key={`reason-${reason}`} className="checkin-understood-field" data-filled={Boolean(reason)}><span>Why you’re here</span><strong>{reason ? `“${reason}”` : 'Listening…'}</strong></div>
+    <div key={`onset-${c.answers.onset}`} className="checkin-understood-field" data-filled={Boolean(c.answers.onset)}><span>When it started</span><div className="checkin-understood-chips">{([['<1h', 'Under 1 hour'], ['today', 'Today'], ['1-3d', '1–3 days'], ['longer', 'Longer']] as const).map(([value, label]) => <span key={value} className={c.answers.onset === value ? 'is-selected' : undefined}>{label}{c.answers.onset === value && <span className="checkin-sr-only"> — selected</span>}</span>)}</div></div>
+    <div key={`trend-${c.answers.trend}`} className="checkin-understood-field" data-filled={Boolean(c.answers.trend)}><span>How it’s changed{!c.answers.trend && ' · listening…'}</span><div className="checkin-understood-chips">{([['worse', 'Getting worse'], ['same', 'About the same'], ['better', 'Getting better']] as const).map(([value, label]) => <span key={value} className={c.answers.trend === value ? 'is-selected' : undefined}>{label}{c.answers.trend === value && <span className="checkin-sr-only"> — selected</span>}</span>)}</div></div>
+    <div className="checkin-understood-next">{c.answers.followUp?.answer ? c.answers.followUp.answer : 'One follow-up question from Crisp — next'}</div>
   </section>;
 }
 
 function CrispDemo() {
   const [state, setState] = useState<CrispState>('idle');
   const [level, setLevel] = useState(0.6);
-  return <section aria-label="Crisp character preview" style={{ padding: 16, textAlign: 'center' }}>
+  return <section aria-label="Crisp character preview" className="checkin-demo">
     <Crisp state={state} size={260} level={level} />
     <label>Character state <select value={state} onChange={e => setState(e.target.value as CrispState)}>
       {(['idle', 'listening', 'thinking', 'talking', 'happy', 'pointing'] as const).map(item => <option key={item}>{item}</option>)}
