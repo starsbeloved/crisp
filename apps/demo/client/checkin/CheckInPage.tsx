@@ -23,11 +23,12 @@ const titles: Record<Step, string> = { welcome: "Hi! I’m Crisp.", name: 'What 
 export function CrispAgentSlot() { return <CrispAgent />; }
 export function CheckInPage() {
   const c = useCheckIn();
-  const [help, setHelp] = useState(false);
+  const [help, setHelp] = useState('');
+  const [helpBusy, setHelpBusy] = useState(false);
   const [validation, setValidation] = useState('');
   const heading = useRef<HTMLHeadingElement>(null);
   const stepIndex = steps.indexOf(c.step);
-  useEffect(() => { setValidation(''); setHelp(false); heading.current?.focus(); }, [c.step]);
+  useEffect(() => { setValidation(''); setHelp(''); heading.current?.focus(); }, [c.step]);
   function submit(event: FormEvent) {
     event.preventDefault(); setValidation('');
     if (c.step === 'name') {
@@ -43,7 +44,14 @@ export function CheckInPage() {
   }
   const reasonText = c.answers.reason || c.answers.reasonChips.join(', ');
   return <CheckInContext.Provider value={c}><section className="checkin" data-step={c.step} aria-label="Check in with Crisp">
-    <div className="checkin-top"><div className="checkin-brand"><KioskIcon name="apple" /><span>{c.step === 'welcome' ? 'Crisp check-in' : c.step === 'done' ? 'All done' : c.step === 'face' ? 'Face scan' : c.step === 'questions' ? 'Three quick questions' : c.step === 'followup' ? 'One more thing' : 'Your name'}</span></div><div className="checkin-navigation"><Button className="checkin-secondary" type="button" disabled={c.busy || c.step === 'welcome' || c.step === 'done'} onClick={() => c.goTo(steps[Math.max(0, stepIndex - 1)])}>Back</Button><Button className="checkin-secondary" type="button" onClick={() => setHelp(value => !value)} aria-expanded={help}>I need help</Button></div><KioskProgress step={c.step} /></div>
+    <div className="checkin-top"><div className="checkin-brand"><KioskIcon name="apple" /><span>{c.step === 'welcome' ? 'Crisp check-in' : c.step === 'done' ? 'All done' : c.step === 'face' ? 'Face scan' : c.step === 'questions' ? 'Three quick questions' : c.step === 'followup' ? 'One more thing' : 'Your name'}</span></div><div className="checkin-navigation"><Button className="checkin-secondary" type="button" disabled={c.busy || c.step === 'welcome' || c.step === 'done'} onClick={() => c.goTo(steps[Math.max(0, stepIndex - 1)])}>Back</Button><Button className="checkin-secondary" type="button" disabled={helpBusy} onClick={() => {
+      setHelpBusy(true);
+      void fetch('/api/checkin/help', { method: 'POST', signal: AbortSignal.timeout(4000) }).then(response => {
+        if (!response.ok) throw new Error();
+        setHelp('A staff member has been notified');
+      }).catch(() => setHelp('Could not notify staff. Please ask a staff member at the front desk to help you check in.'))
+        .finally(() => setHelpBusy(false));
+    }} aria-expanded={Boolean(help)}>I need help</Button></div><KioskProgress step={c.step} /></div>
     <div className="checkin-card">
       {(c.via !== 'voice' || c.step === 'done') && <div className="checkin-intro-group"><div className="checkin-companion"><Crisp state={c.step === 'welcome' || c.step === 'done' ? 'happy' : c.face.status === 'scanning' && c.step === 'face' ? 'thinking' : 'idle'} size={c.step === 'welcome' ? 480 : c.step === 'done' ? 440 : c.step === 'face' ? 170 : 110} /></div>
       <div className="checkin-intro">
@@ -103,7 +111,7 @@ export function CheckInPage() {
       </form>
       {c.step === 'done' && <div className="checkin-done-content" role="status"><div className="checkin-ticket-row"><strong className="checkin-queue">{c.queueNo}</strong><p>Please take a seat. Crisp will call you by name on the screen when it’s your turn.</p></div><p className="checkin-done-note"><KioskIcon name="info" />If you feel worse while you wait, tell the front desk right away.</p><div className="checkin-done-actions"><Button className="checkin-secondary" onClick={c.reset}>Check in someone else</Button><ResetCountdown /></div></div>}
       {(validation || c.error) && <p id="checkin-error" className="checkin-error" role="alert">{validation || c.error}</p>}
-      {help && <p className="checkin-help" role="status">Please ask a staff member to help you check in. You can skip the face scan and continue with the form.</p>}
+      {help && <p className="checkin-help" role="status">{help}. You can skip the face scan and continue with the form.</p>}
     </div>
     {c.step === 'welcome' && <footer className="checkin-footer"><span>Crisp is a check-in helper, not a doctor. If you feel very unwell, tell the front desk right away.</span><span>We save a face pattern to find you in the waiting room — never your photo.</span></footer>}
   </section></CheckInContext.Provider>;

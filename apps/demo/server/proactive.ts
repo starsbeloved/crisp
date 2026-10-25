@@ -3,7 +3,7 @@ import type { RoomState, Visit } from '../shared/types.ts';
 import type { RoomStore } from './store.ts';
 import type { CommandResult } from './commands.ts';
 
-export type SuggestionKind = 'room_free' | 'long_wait' | 'may_have_left' | 'chart_ready' | 'shift_summary' | 'check_back';
+export type SuggestionKind = 'room_free' | 'long_wait' | 'may_have_left' | 'chart_ready' | 'shift_summary' | 'check_back' | 'kiosk_help';
 export interface Suggestion {
   id: string; kind: SuggestionKind; text: string; createdAt: number; visitId?: string; room?: string;
   action?: 'call' | 'remind' | 'left' | 'hallway'; source?: 'gemini' | 'template';
@@ -31,7 +31,7 @@ export class ProactiveAgent {
   private occupied(room: string) { return this.store.state.visits.some(v => v.status === 'called' && v.room && roomKey(v.room) === roomKey(room)); }
   private valid(entry: Entry, now: number): boolean {
     const visit = this.store.state.visits.find(v => v.id === entry.visitId);
-    if (entry.kind === 'shift_summary') return true;
+    if (entry.kind === 'shift_summary' || entry.kind === 'kiosk_help') return true;
     if (entry.kind === 'chart_ready') return Boolean(visit?.status === 'called' && visit.room === entry.room && this.store.state.handoffs[visit.id]);
     if (!visit || visit.status !== 'waiting') return false;
     if (entry.kind === 'room_free') return Boolean(entry.room && !this.occupied(entry.room) && this.waiting()[0]?.id === visit.id);
@@ -63,6 +63,20 @@ export class ProactiveAgent {
       if (now - visit.createdAt >= 30 * 60_000) this.propose(`back:${visit.id}`, { kind: 'check_back', text: `${visit.name} has waited ${minutes} min. Send a hallway check-back: “Still doing okay? Tell the front desk if you feel worse.”`, visitId: visit.id, action: 'hallway', createdAt: now });
     }
     return { suggestions: this.entries.filter(e => e.status === 'pending').map(({ key: _key, status: _status, acceptedAt: _acceptedAt, ...suggestion }) => suggestion), dispositions: { ...this.dispositions } };
+  }
+  requestHelp(now = Date.now()): CommandResult {
+    this.sync();
+    if (!this.entries.some(entry => entry.kind === 'kiosk_help' && entry.status === 'pending')) {
+      this.propose(`kiosk-help:${randomUUID()}`, { kind: 'kiosk_help', text: 'Someone asked for help at the check-in kiosk', createdAt: now });
+    }
+    this.store.changed();
+    return { ok: true, message: 'A staff member has been notified' };
+  }
+  removePatient(visit: Visit, now = Date.now()): CommandResult {
+    this.sync();
+    if (visit.status !== 'waiting') return { ok: false, message: `${visit.name} is no longer waiting. Record retained.` };
+    this.finish(visit, 'left', now);
+    return { ok: true, message: `${visit.name} removed from queue after staff confirmation. Record retained.` };
   }
   noteChecked(id: string, _now = Date.now()) { this.sync(); this.checked.add(id); }
   patientDone(room: string, visitId: string, now = Date.now()): CommandResult {

@@ -18,6 +18,7 @@ interface CommandHooks {
   onCall: (call: NowCalling, visit: Visit) => Promise<void>;
   onChecked?: (visitId: string, now: number) => void;
   acceptSuggestion?: (id?: string) => Promise<CommandResult>;
+  removePatient?: (visit: Visit, now: number) => CommandResult;
   shiftSummary?: () => Promise<CommandResult>;
 }
 export class StaffCommands {
@@ -37,7 +38,7 @@ export class StaffCommands {
         .map(visit => ({ id: visit.id, name: visit.name, queueNo: visit.queueNo, waitedMin: Math.max(0, Math.floor((now - visit.createdAt) / 60_000)) }));
       return { ok: true, message: waiting.length ? `${waiting.length} waiting: ${waiting.map(v => `${v.name}, number ${v.queueNo}`).join('; ')}.` : 'No one is waiting.', data: { waiting } };
     }
-    if (!['patient_summary', 'get_record', 'call_patient', 'acknowledge_request', 'mark_checked'].includes(tool)) return { ok: false, message: 'Unknown staff tool.' };
+    if (!['patient_summary', 'get_record', 'call_patient', 'acknowledge_request', 'mark_checked', 'remove_patient'].includes(tool)) return { ok: false, message: 'Unknown staff tool.' };
     if (typeof input.name !== 'string' || !input.name.trim() || input.name.length > 120) return { ok: false, message: 'Please say the patient name.' };
     // Resolve across all visits: do not silently select one of two identical names based on queue status.
     const match = matchPatient(this.store.state.visits, input.name);
@@ -60,6 +61,13 @@ export class StaffCommands {
       return { ok: true, message: record.record ? `${record.allergyText}. ${record.label}.` : `${record.message}. ${record.label}.`, data: record };
     }
     if (visit.status !== 'waiting') return { ok: false, message: `${visit.name} is no longer waiting. Please review the visit on screen.` };
+    if (tool === 'remove_patient') {
+      if (this.hooks.removePatient) return this.hooks.removePatient(visit, now);
+      visit.status = 'called'; visit.room = null;
+      if (this.store.state.nowCalling?.visitId === visit.id) this.store.state.nowCalling = null;
+      this.store.changed();
+      return { ok: true, message: `${visit.name} removed from queue after staff confirmation. Record retained.` };
+    }
     if (tool === 'call_patient') {
       if (typeof input.room !== 'string' || !normalizeStaffRoom(input.room) || input.room.length > 80) return { ok: false, message: 'Which room? Please give a room name or number.' };
       return this.call(visit, normalizeStaffRoom(input.room), now);
@@ -103,6 +111,7 @@ function staffServices(store: RoomStore, orchestrator: Orchestrator) {
   if (service) return service;
   const commands: StaffCommands = new StaffCommands(store, {
     onCall: (call, visit) => orchestrator.onCall(call, visit),
+    removePatient: (visit, now) => proactive.removePatient(visit, now),
     onChecked: (id, now) => proactive.noteChecked(id, now),
     acceptSuggestion: id => proactive.accept(id),
     shiftSummary: () => proactive.shiftSummary(async () => {
@@ -122,12 +131,20 @@ function staffServices(store: RoomStore, orchestrator: Orchestrator) {
 }
 export async function handleStaffRequest(request: IncomingMessage, response: ServerResponse, url: URL, store: RoomStore, orchestrator: Orchestrator): Promise<boolean> {
   const command = url.pathname.match(/^\/api\/commands\/([a-z_]+)$/);
-  const relevant = request.method === 'POST' && (command || url.pathname === '/api/suggestions/dismiss' || url.pathname === '/api/exam/patient-done') ||
+  const removal = url.pathname.match(/^\/api\/visits\/([^/]+)\/remove$/);
+  const relevant = request.method === 'POST' && (command || removal || url.pathname === '/api/checkin/help' || url.pathname === '/api/suggestions/dismiss' || url.pathname === '/api/exam/patient-done') ||
     request.method === 'GET' && ['/api/suggestions', '/api/hallway/check-back'].includes(url.pathname);
   if (!relevant) return false;
   const { commands, proactive } = staffServices(store, orchestrator);
   const send = (status: number, data: unknown) => { response.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); response.end(JSON.stringify(data)); return true; };
   if (request.method === 'GET') return send(200, url.pathname === '/api/suggestions' ? proactive.list() : { messages: proactive.hallway() });
+  if (url.pathname === '/api/checkin/help') return send(200, proactive.requestHelp());
+  if (removal) {
+    const visit = store.state.visits.find(visit => visit.id === removal[1]);
+    if (!visit) return send(404, { ok: false, message: 'Visit not found.' });
+    const result = proactive.removePatient(visit);
+    return send(result.ok ? 200 : 422, result);
+  }
   let body = ''; let size = 0;
   for await (const chunk of request) { size += chunk.length; if (size <= 8000) body += chunk.toString(); }
   if (size > 8000) return send(413, { ok: false, message: 'Body too large.' });
@@ -143,3 +160,5 @@ export async function handleStaffRequest(request: IncomingMessage, response: Ser
   if (typeof values.room !== 'string' || !values.room.trim() || typeof values.visitId !== 'string') return send(400, { ok: false, message: 'Room and current visitId are required.' });
   const result = proactive.patientDone(values.room, values.visitId); return send(result.ok ? 200 : 422, result);
 }
+
+export function resetStaffServices(store: RoomStore) { services.delete(store); }

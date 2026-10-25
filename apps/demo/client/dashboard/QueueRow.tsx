@@ -3,7 +3,7 @@ import { CallInPopover } from './CallInPopover.tsx';
 import { CrispBubble } from './CrispBubble.tsx';
 import { PulseWave } from './PulseWave.tsx';
 import { estimate, postureLabel } from './presentation.ts';
-export interface QueueActions { acknowledge: (id: string) => void; checked: (id: string) => void; call: (id: string, room: string) => void }
+export interface QueueActions { remove?: (id: string) => void; acknowledge: (id: string) => void; checked: (id: string) => void; call: (id: string, room: string) => void }
 export function QueueRow({ visit, vitals, alert, now, onSelect, actions, busy, talking, synthetic }: {
   visit: Visit; vitals?: Vitals; alert?: Alert; now: number; onSelect: () => void; actions: QueueActions; busy: boolean; talking: boolean; synthetic: boolean;
 }) {
@@ -25,6 +25,9 @@ export function QueueRow({ visit, vitals, alert, now, onSelect, actions, busy, t
       <div className="vital-cell"><span className={`signal-bars ${signal}`} aria-label={signalLabel}><i /><i /><i /></span><small>{signalLabel}</small></div></div>
     <div className="row-actions">{alert?.status === 'open' && <button className="secondary" disabled={busy} onClick={() => actions.acknowledge(alert.id)}>Acknowledge</button>}
       {alert && <button className="secondary" disabled={busy} onClick={() => actions.checked(alert.id)}>Mark checked</button>}
+      {actions.remove && <button className="secondary" disabled={busy} onClick={() => {
+        if (window.confirm(`Remove ${visit.name} (#${visit.queueNo}) from the queue? Their record will be kept.`)) actions.remove?.(visit.id);
+      }}>Remove from queue</button>}
       <CallInPopover busy={busy} onCall={room => actions.call(visit.id, room)} />
     </div>
     {alert && <CrispBubble key={alert.id} alert={alert} vitals={vitals} talking={talking} synthetic={synthetic} />}
