@@ -1,4 +1,9 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import { mkdtempSync, readFileSync, readdirSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { RoomStore } from '../server/store.ts';
+import { MjpegBuffer } from '../server/mjpeg.ts';
 import { createAppServer } from '../server/http.ts';
 import type { AddressInfo } from 'node:net';
 import type { Server } from 'node:http';
@@ -65,6 +70,7 @@ describe('P0 server smoke', () => {
     }
     expect(events).toContain('event: state');
     expect(events).toContain('"name":"Ama"');
+    expect(events).not.toContain('descriptor');
     await reader.cancel();
   });
 
@@ -104,4 +110,45 @@ describe('P0 server smoke', () => {
     expect(state.vitals[visit.id]).toMatchObject({ hrBpm: 86, rrBpm: null, level: 'none' });
     expect(state.alerts).toEqual([]);
   });
+
+  it('caps corrected descriptors and removes called visits from the gallery', async () => {
+    const base = await start();
+    const visit = await (await post(base, '/api/visits', { name: 'Ama', descriptor: [0], answers })).json();
+    for (let i = 1; i <= 7; i++) expect((await post(base, `/api/gallery/${visit.id}/descriptor`, { descriptor: [i] })).status).toBe(200);
+    const gallery = await (await fetch(`${base}/api/gallery`)).json();
+    expect(gallery.map((entry: { descriptor: number[] }) => entry.descriptor)).toEqual([[3], [4], [5], [6], [7]]);
+    expect(await (await post(base, '/api/reference', { visitId: visit.id, referenceBpm: 80 })).json()).toMatchObject({ visitId: visit.id, referenceBpm: 80, cameraBpm: null });
+    expect(await (await post(base, `/api/visits/${visit.id}/call-in`, { room: '2' })).json()).toMatchObject({ name: 'Ama', room: '2' });
+    expect(await (await fetch(`${base}/api/gallery`)).json()).toEqual([]);
+    const state = await stateFromStream(base);
+    expect(state.handoffs[visit.id]).toMatchObject({ source: 'template' });
+    expect(state.nowCalling?.audio).toBe('failed');
+  });
+
+  it('persists descriptors separately and archives state on reset', () => {
+    const dataDir = mkdtempSync(join(tmpdir(), 'crisp-p0-'));
+    const store = new RoomStore(dataDir);
+    store.descriptors.test = [[0.1]];
+    store.flush();
+    expect(new RoomStore(dataDir).descriptors.test).toEqual([[0.1]]);
+    const saved = readFileSync(join(dataDir, 'state.json'), 'utf8');
+    store.reset();
+    const archived = readdirSync(join(dataDir, 'trash'));
+    expect(archived).toHaveLength(1);
+    expect(readFileSync(join(dataDir, 'trash', archived[0]), 'utf8')).toBe(saved);
+    expect(store.gallery()).toEqual([]);
+    expect(store.state.visits).toEqual([]);
+    store.flush();
+  });
+
+  it('copies only the last 15 seconds of camera frames into a stable alert replay', () => {
+    const frames = new MjpegBuffer();
+    for (let t = 0; t <= 40_000; t += 200) frames.push('A', new Uint8Array([t / 200]), t);
+    expect(frames.capture('alert-1', 'A', 40_000)).toBe(76);
+    expect(frames.replay('alert-1', 0)).toEqual(new Uint8Array([125]));
+    frames.push('A', new Uint8Array([255]), 80_000);
+    expect(frames.replay('alert-1', 0)).toEqual(new Uint8Array([125]));
+    expect(frames.replay('alert-1', 76)).toBeNull();
+  });
+
 });
