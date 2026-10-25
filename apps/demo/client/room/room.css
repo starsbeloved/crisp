@@ -66,3 +66,8 @@
   .room-toolbar-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; gap: .5rem; }
   .room-toolbar-actions :is(a, button) { width: 100%; justify-content: center; text-align: center; padding: .625rem; }
 }
+
+/* One-laptop demo: keep the app navigation visible above the room view. */
+main:has(> .room-view), main:has(.room-view) { max-width: none; padding: 0; }
+.room-view { position: relative; inset: auto; z-index: auto; height: calc(100dvh - 65px); }
+.room-view:fullscreen { height: 100dvh; }

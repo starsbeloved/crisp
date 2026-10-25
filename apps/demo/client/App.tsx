@@ -26,7 +26,7 @@ function AppleMark() {
 export function App() {
   const explicitRole = new URLSearchParams(location.search).has('role') ? selectionFromLocation(location.pathname, location.search) : null;
   const path = explicitRole ? stationUrl(explicitRole).split('?')[0] : location.pathname;
-  const lobby = path === '/lobby' || path === '/room';
+  const lobby = path === '/lobby';
   const navigation = useRef<HTMLElement>(null);
   useEffect(() => {
     function revealCurrentPage() {
