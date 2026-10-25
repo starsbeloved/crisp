@@ -5,6 +5,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useCheckIn, type CheckInState } from '../controller.ts';
 import { detectFaces } from '../../lib/face.ts';
 import { openCamera } from '../../lib/camera.ts';
+import { createAppServer } from '../../../server/http.ts';
+import type { AddressInfo } from 'node:net';
+const realFetch = globalThis.fetch;
 
 vi.mock('../../lib/face.ts', () => ({ loadFaceModels: vi.fn().mockResolvedValue(undefined), detectFaces: vi.fn().mockResolvedValue([]) }));
 vi.mock('../../lib/camera.ts', async importOriginal => ({ ...await importOriginal<object>(), openCamera: vi.fn() }));
@@ -101,6 +104,53 @@ describe('check-in controller', () => {
     expect(stop).toHaveBeenCalled();
     await act(async () => { await current.finish(); });
     expect(posted[0].descriptor).toEqual(Array(128).fill(0.2));
+  });
+  it('persists the enrolled 128-dimensional descriptor through the real server gallery', async () => {
+    await mount();
+    vi.mocked(detectFaces).mockResolvedValue([{ box: { x: 0, y: 0, w: 150, h: 180 }, score: 0.95, descriptor: Array(128).fill(0.125), landmarks: [] }]);
+    Object.defineProperty(container.querySelector('video')!, 'readyState', { value: 4 });
+    await act(async () => { void current.startFaceScan(); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(1400); });
+    vi.useRealTimers();
+    const { server } = createAppServer({ readProviders: false, dataDir: null });
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+    const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    vi.stubGlobal('fetch', (url: string, init?: RequestInit) => realFetch(new URL(url, base), init));
+    try {
+      await act(async () => { fill(); await current.finish(); });
+      expect(current).toMatchObject({ step: 'done', queueNo: 1 });
+      const gallery = await (await realFetch(`${base}/api/gallery`)).json();
+      expect(gallery).toHaveLength(1);
+      expect(gallery[0]).toMatchObject({ name: 'Ama', descriptor: Array(128).fill(0.125) });
+    } finally {
+      await new Promise<void>(resolve => { server.close(() => resolve()); server.closeAllConnections(); });
+    }
+  });
+  it('resolves a scan timeout honestly without saving any descriptor', async () => {
+    await mount();
+    let scanned!: ReturnType<typeof current.startFaceScan>;
+    await act(async () => { scanned = current.startFaceScan(); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(20_000); });
+    expect(await scanned).toMatchObject({ ok: false });
+    expect(current.face.status).toBe('failed'); expect(stop).toHaveBeenCalled();
+    await act(async () => { fill(); await current.finish(); });
+    expect(posted[0].descriptor).toBeNull();
+  });
+  it('keeps a voice follow-up when an earlier form request returns late', async () => {
+    let complete!: (response: Response) => void;
+    request.mockImplementation(() => new Promise<Response>(resolve => { complete = resolve; }));
+    await mount();
+    let pending!: Promise<void>;
+    await act(async () => { fill(); pending = current.prepareFollowUp(); current.setFollowUp('Voice question?', 'Voice answer'); });
+    await act(async () => { complete(new Response(JSON.stringify({ question: 'Older form question?' }))); await pending; });
+    expect(current.followUpQuestion).toBe('Voice question?');
+    expect(current.followUpLoading).toBe(false);
+    expect(current.answers.followUp).toEqual({ question: 'Voice question?', answer: 'Voice answer' });
+  });
+  it('does not attach a previous follow-up answer to a corrected complaint', async () => {
+    await mount();
+    await act(async () => { fill(); current.setFollowUp('Where is the headache?', 'Left side'); current.setAnswers({ reason: 'Ankle injury' }); });
+    expect(current.answers.followUp).toBeNull();
   });
   it('resolves a programmatic scan on skip and never saves multiple faces', async () => {
     await mount();

@@ -178,10 +178,14 @@ export function useCheckIn(): CheckInState {
     setVia(via) { update({ via, answers: { ...latest.current.answers, via } }); },
     setName(name) { update({ name }); },
     setAnswers(patch: Partial<CheckInAnswers>) {
-      const answers = { ...latest.current.answers, ...patch };
-      update({ answers, via: answers.via, followUpQuestion: '', followUpLoading: false });
-      followUpRequest.current = null;
+      const changesComplaint = ['reason', 'reasonChips', 'onset', 'trend'].some(key => key in patch);
+      const answers = { ...latest.current.answers, ...(changesComplaint ? { followUp: null } : {}), ...patch };
+      if (changesComplaint) followUpRequest.current = null;
+      update({ answers, via: answers.via, ...(changesComplaint ? { followUpQuestion: '', followUpLoading: false } : {}) });
     },
-    setFollowUp(question, answer) { update({ answers: { ...latest.current.answers, followUp: { question, answer } }, followUpQuestion: question }); },
+    setFollowUp(question, answer) {
+      followUpRequest.current = null;
+      update({ answers: { ...latest.current.answers, followUp: { question, answer } }, followUpQuestion: question, followUpLoading: false });
+    },
   };
 }
