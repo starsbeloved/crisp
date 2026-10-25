@@ -130,4 +130,4 @@ Earlier prototypes are preserved in git history and the `checkpoint-*` tags. The
 
 ## License
 
-Crisp is released under the [MIT License](LICENSE) © 2026 Thanh Nguyen and Jason Lin. Bundled vision models keep their own licenses in [`apps/demo/public/models`](apps/demo/public/models/).
+Crisp is released under the [MIT License](LICENSE) © 2026 Thanh Nguyen. Bundled vision models keep their own licenses in [`apps/demo/public/models`](apps/demo/public/models/).
