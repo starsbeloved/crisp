@@ -100,4 +100,5 @@ it.each(['drop', 'disappear'])('reports face-only %s immediately with the recogn
   expect(fall).toMatchObject({ visitId: 'ama', hrBpm: null, rrBpm: null, source: 'replay' });
   expect(fall.at).toBeLessThan(101600);
   expect(model.overlay.mock.calls.at(-1)![1][0].reading.fallTrigger).toBe(kind === 'drop' ? 'face-drop' : 'face-disappeared');
+  expect(model.detectFaces.mock.calls.slice(1).every(([, input]) => input === 640)).toBe(true);
 });

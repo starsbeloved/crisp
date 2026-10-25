@@ -30,6 +30,9 @@ export function createFaceMotionSignals() {
       }
       const sample = { t, x: box.x + box.w / 2, y: box.y + box.h / 2, h: box.h };
       const prior = recent.at(-1);
+      if (prior && (sample.h / prior.h < .65 || sample.h / prior.h > 1.5)) {
+        recent = [sample]; origin = null; velocity = 0; fastAt = -Infinity; return;
+      }
       velocity = prior ? (sample.y - prior.y) / prior.h * 1000 / (t - prior.t) : 0;
       recent = recent.filter(s => t - s.t <= 1000);
       if (velocity > 1.5 && prior && Math.abs(sample.x - prior.x) < prior.h * .75) {

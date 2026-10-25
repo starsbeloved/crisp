@@ -169,11 +169,12 @@ export function useVision(videoRef: RefObject<HTMLVideoElement | null>, canvasRe
       if (!faceDetecting && faceReady.current && now - lastFaceAt >= faceInterval) {
           faceDetecting = true; lastFaceAt = now;
           const largeFaces = faces.length > 0 && faces.every(face => face.face.box.w >= width * .16);
+          const smallFaces = !faces.length || faces.some(face => face.face.box.w < 80);
           detectorCanvas.width = Math.min(largeFaces ? 320 : 640, video.videoWidth);
           detectorCanvas.height = Math.round(video.videoHeight * detectorCanvas.width / video.videoWidth);
           detectorCtx!.drawImage(video, 0, 0, detectorCanvas.width, detectorCanvas.height);
           const sx = width / detectorCanvas.width, sy = height / detectorCanvas.height;
-          void detectFaces(detectorCanvas, largeFaces ? 320 : 512).then(faces => {
+          void detectFaces(detectorCanvas, largeFaces ? 320 : smallFaces ? 640 : 512).then(faces => {
             if (!stopped) tracker.current.update(faces.map(face => ({ ...face,
               box: { x: face.box.x * sx, y: face.box.y * sy, w: face.box.w * sx, h: face.box.h * sy },
               landmarks: face.landmarks.map(p => ({ x: p.x * sx, y: p.y * sy })) })), gallery.current, now);
