@@ -59,3 +59,37 @@ it('never labels an unavailable camera LIVE and dismisses standalone settings wi
     expect(document.activeElement).toBe(settings);
   } finally { await act(() => root.unmount()); container.remove(); vi.unstubAllGlobals(); }
 });
+
+it('provides a focused Done button to close camera settings and return to its trigger', async () => {
+  vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+  const container = document.createElement('div'); document.body.append(container);
+  const root = createRoot(container);
+  try {
+    await act(() => root.render(<CameraPage roomView />));
+    const trigger = container.querySelector<HTMLButtonElement>('[aria-label="Camera settings"]')!;
+    await act(() => trigger.click());
+    const panel = container.querySelector<HTMLElement>('#camera-settings')!;
+    const done = Array.from(panel.querySelectorAll('button')).find(button => button.textContent === 'Done');
+    expect(done).toBeDefined();
+    expect(document.activeElement).toBe(done);
+    await act(() => done!.click());
+    expect(panel.hidden).toBe(true);
+    expect(document.activeElement).toBe(trigger);
+  } finally { await act(() => root.unmount()); container.remove(); vi.unstubAllGlobals(); }
+});
+
+it('dismisses camera settings on an outside press while allowing interaction inside', async () => {
+  vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+  const container = document.createElement('div'); document.body.append(container);
+  const root = createRoot(container);
+  try {
+    await act(() => root.render(<CameraPage />));
+    const trigger = container.querySelector<HTMLButtonElement>('[aria-label="Camera settings"]')!;
+    await act(() => trigger.click());
+    const panel = container.querySelector<HTMLElement>('#camera-settings')!;
+    await act(() => panel.querySelector('select')!.dispatchEvent(new Event('pointerdown', { bubbles: true })));
+    expect(panel.hidden).toBe(false);
+    await act(() => document.body.dispatchEvent(new Event('pointerdown', { bubbles: true })));
+    expect(panel.hidden).toBe(true);
+  } finally { await act(() => root.unmount()); container.remove(); vi.unstubAllGlobals(); }
+});

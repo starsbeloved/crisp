@@ -19,7 +19,6 @@
 .room-camera .camera-stage { flex: 1; min-height: 180px; overflow: hidden; }
 .room-camera .camera-canvas { height: 100%; min-height: 0; max-height: calc(100dvh - 310px); object-fit: contain; }
 .room-camera .camera-footnote { margin-bottom: 0; }
-.room-camera .camera-settings { top: 132px; right: auto; left: 24px; width: min(520px, calc(100vw - 48px)); max-height: calc(100dvh - 164px); }
 .room-hallway { display: flex; flex-direction: column; align-items: center; min-width: 0; min-height: 0; overflow: auto; padding: 24px 20px; border: 1px solid var(--c-hairline); border-radius: var(--r-panel); background: var(--c-surface); text-align: center; }
 .room-call-heading h2 { margin: 0 0 24px; color: var(--c-leaf); font-size: clamp(1.25rem, 1.7vw, 2rem); letter-spacing: .02em; }
 .room-call-content { width: 100%; overflow-wrap: anywhere; }
