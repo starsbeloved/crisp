@@ -6,6 +6,7 @@ import { qualityForRatio } from './pulse.ts';
 export const POSE_THRESHOLDS = {
   visibility: 0.7, referenceMs: 10_000, gapMs: 1000,
   motionPerFrame: 0.003, headDescentWidths: 0.12, torsoAngleChangeDeg: 15,
+  shoulderMotionPerFrame: 0.001,
   fallDrop: 0.25, fallHoldMs: 1500,
 } as const;
 
@@ -90,11 +91,14 @@ export function createPoseSignals() {
       posture = { slumpSec: slumpStart === null ? 0 : (s.t - slumpStart) / 1000,
         headDropSec: headStart === null ? 0 : (s.t - headStart) / 1000,
         stillSec: stillStart === null ? 0 : (s.t - stillStart) / 1000, fallSuspected: s.t <= fallUntil };
-      // Gross body motion cannot establish a breathing rate. Ordinary respiratory displacement can.
-      if (motion !== null && motion >= POSE_THRESHOLDS.motionPerFrame) {
+      // Gate shoulders separately: averaging five body points can hide shoulder sway.
+      const shoulderMotion = previous && dt > 0 ? Math.max(...[1, 2].map(i =>
+        Math.hypot(g.points[i].x - previous!.points[i].x, g.points[i].y - previous!.points[i].y))) * (1000 / 30) / dt : null;
+      const breathingStill = stationary && shoulderMotion !== null && shoulderMotion < POSE_THRESHOLDS.shoulderMotionPerFrame;
+      if (!breathingStill) {
         breaths = []; rrBpm = null; rrQuality = 'low'; lastEstimate = -Infinity;
       }
-      breaths.push({ t: s.t, value: g.shoulderY / g.width });
+      if (breathingStill) breaths.push({ t: s.t, value: g.shoulderY / g.width });
       while (breaths.length > 2 && breaths[1].t < s.t - 30_000) breaths.shift();
       previous = g;
     },
