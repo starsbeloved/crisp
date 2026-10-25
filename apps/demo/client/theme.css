@@ -86,8 +86,8 @@ video[hidden] { display: none; }
 
 /* Mascot colors are distinct from patient status treatments. */
 :root {
-  --c-crisp-body: color-mix(in srgb, var(--c-amber-box) 84%, var(--c-amber-tint));
-  --c-crisp-shade: color-mix(in srgb, var(--c-amber-box) 75%, var(--c-amber));
+  --c-crisp-body: var(--c-red);
+  --c-crisp-shade: var(--c-red-text);
   --c-crisp-ink: var(--c-text);
   --c-crisp-cream: var(--c-surface);
 }

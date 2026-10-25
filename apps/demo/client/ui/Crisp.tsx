@@ -27,14 +27,12 @@ export function Crisp({ state = 'idle', size = 96, level = 0 }: { state?: CrispS
     <style>{`
       .crisp-character { display:block; overflow:visible; flex:0 0 auto; }
       .crisp-arrive { transform-box:fill-box; transform-origin:center bottom; animation:crisp-settle .28s ease-out both; }
-      .crisp-wave { transform-box:fill-box; transform-origin:center bottom; animation:crisp-wave .5s ease-in-out 2; }
       .crisp-talk { transform-box:fill-box; transform-origin:center; animation:crisp-talk .55s ease-in-out infinite alternate; }
       .crisp-talk-level { animation:none; transform:scaleY(var(--crisp-mouth-scale)); }
       .crisp-thought circle { animation:crisp-thought 1.2s ease-in-out infinite; }
       .crisp-thought circle:nth-child(2) { animation-delay:.2s; }
       .crisp-thought circle:nth-child(3) { animation-delay:.4s; }
       @keyframes crisp-settle { from { opacity:.7; transform:translateY(3px); } to { opacity:1; transform:translateY(0); } }
-      @keyframes crisp-wave { 0%,100% { transform:rotate(0); } 50% { transform:rotate(-10deg); } }
       @keyframes crisp-talk { from { transform:scaleY(.55); } to { transform:scaleY(1); } }
       @keyframes crisp-thought { 0%,100% { opacity:.3; } 50% { opacity:1; } }
       @media(prefers-reduced-motion:reduce) { .crisp-character * { animation:none!important; transition:none!important; } }
@@ -65,8 +63,8 @@ export function Crisp({ state = 'idle', size = 96, level = 0 }: { state?: CrispS
         <path d="M-20-1 Q0 6 20-1 Q0 12-20-1Z" fill="var(--c-crisp-cream)" />
         {pose.open && <path d="M-10 18 Q0 10 10 18 Q0 25-10 18Z" fill="var(--c-crisp-shade)" />}
       </g></g>}
-      <g transform={pose.left.wrist}><g className={state === 'happy' ? 'crisp-wave' : undefined}><Glove pointing={state === 'happy'} /></g></g>
-      <g transform={pose.right.wrist}><Glove pointing={state === 'pointing'} /></g>
+      <g transform={pose.left.wrist}><Glove /></g>
+      <g transform={pose.right.wrist}><Glove /></g>
       {state === 'thinking' && <g className="crisp-thought" fill="var(--c-text-2)"><circle cx="225" cy="71" r="3" /><circle cx="240" cy="54" r="4.5" /><circle cx="259" cy="36" r="6" /></g>}
       {state === 'listening' && <g fill="none" stroke="var(--c-leaf)" strokeWidth="2.5" strokeLinecap="round"><path d="M259 73 Q268 86 259 99M271 64 Q285 86 271 108" /></g>}
     </g></g>
@@ -77,10 +75,11 @@ function Shoe() {
   return <g fill="var(--c-crisp-shade)" stroke="var(--c-crisp-ink)" strokeWidth="2.5" strokeLinejoin="round"><path d="M108 251 Q117 246 122 253 L123 267 Q111 271 86 269 Q82 259 103 257Z" /><path d="M85 266 Q103 267 123 265 L123 272 L85 272Z" fill="var(--c-crisp-body)" /><path d="M105 255 Q110 252 115 254" fill="none" stroke="var(--c-crisp-cream)" strokeWidth="2" strokeLinecap="round" /></g>;
 }
 
-function Glove({ pointing = false }: { pointing?: boolean }) {
+/** The cuff overlaps the arm endpoint at (0, 0); no independent hand transforms. */
+function Glove() {
   return <g fill="var(--c-crisp-cream)" stroke="var(--c-crisp-ink)" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
-    <path d={pointing ? 'M-10-11 C-19-18-17-26-10-28 L-5-28 L-5-46 Q-5-53 1-52 Q6-52 6-46 L6-29 Q17-30 17-20 Q16-13 10-10Z' : 'M-10-10 C-20-15-20-23-15-26 Q-12-29-8-24 L-11-34 Q-13-40-8-41 Q-4-42-2-33 L-2-37 Q-2-44 3-43 Q7-43 7-34 Q12-40 16-36 Q20-32 12-20 Q16-15 10-10Z'} />
-    <path d="M-6-24 Q0-18 7-22 M-5-17 2-16" fill="none" strokeWidth="1.6" />
-    <path d="M-11-11 Q0-8 11-11 L12-2 Q0 2-12-2Z" />
+    <path d="M-10-10 C-16-14-20-20-23-25 C-26-31-21-35-17-30 L-12-25 L-17-38 C-19-45-12-48-9-41 L-5-30 L-6-45 C-6-52 2-52 3-45 L4-30 L8-42 C10-49 18-46 16-39 L13-27 L19-33 C24-38 30-32 25-27 L16-14 Q14-10 10-9Z" />
+    <path d="M-10-23 Q-2-26 2-18 M-3-13 Q3-16 9-14" fill="none" strokeWidth="1.6" />
+    <path d="M-11-10 Q0-7 11-10 L12 2 Q0 6-12 2Z" />
   </g>;
 }
