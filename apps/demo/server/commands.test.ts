@@ -61,3 +61,25 @@ describe('deterministic staff commands', () => {
     expect(store.state.vitals['synthetic-ama'].baselineHr).toBe(null);
   });
 });
+
+describe('appended staff HTTP routes', () => {
+  it('serves suggestions, validates actions, and retains records after Patient done', async () => {
+    const { createAppServer } = await import('./http.ts');
+    const app = createAppServer({ dataDir: null, readProviders: false });
+    app.store.state.visits = [visit('Ama'), visit('Ben')];
+    const address = await new Promise<number>(resolve => { app.server.listen(0, '127.0.0.1', () => resolve((app.server.address() as { port: number }).port)); });
+    const url = `http://127.0.0.1:${address}`;
+    const post = async (path: string, body: unknown) => (await fetch(url + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })).json();
+    try {
+      expect((await post('/api/commands/call_patient', { name: 'Ama', room: '1' })).ok).toBe(true);
+      expect((await post('/api/exam/patient-done', { room: '1', visitId: 'Ama' })).ok).toBe(true);
+      const snapshot = await (await fetch(url + '/api/suggestions')).json();
+      expect(snapshot.dispositions.Ama.status).toBe('done');
+      const card = snapshot.suggestions.find((s: { kind: string }) => s.kind === 'room_free');
+      expect((await post('/api/commands/accept_suggestion', { id: card.id })).ok).toBe(true);
+      expect(app.store.state.visits[1]).toMatchObject({ status: 'called', room: '1' });
+      expect((await post('/api/commands/get_record', { name: 'Ama' })).data.label).toBe('Demo records — fictional');
+      expect((await fetch(url + '/api/hallway/check-back')).status).toBe(200);
+    } finally { app.server.closeAllConnections(); await new Promise<void>(resolve => app.server.close(() => resolve())); }
+  });
+});

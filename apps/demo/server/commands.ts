@@ -89,3 +89,55 @@ export class StaffCommands {
     return { ok: true, message: `Recorded shift summary: ${waiting.length} waiting; ${active.length} requests awaiting a check; longest wait ${longest} minutes.`, data: { source: 'template', waiting: waiting.length, activeRequests: active.length, longestWaitMin: longest } };
   }
 }
+
+// Appended route handler: the frozen route table and shared state shape remain intact.
+import type { IncomingMessage, ServerResponse } from 'node:http';
+import type { Orchestrator } from './orchestrator.ts';
+import { ProactiveAgent } from './proactive.ts';
+import * as providers from './providers/index.ts';
+const services = new WeakMap<RoomStore, { commands: StaffCommands; proactive: ProactiveAgent }>();
+function staffServices(store: RoomStore, orchestrator: Orchestrator) {
+  let service = services.get(store);
+  if (service) return service;
+  const commands: StaffCommands = new StaffCommands(store, {
+    onCall: (call, visit) => orchestrator.onCall(call, visit),
+    onChecked: (id, now) => proactive.noteChecked(id, now),
+    acceptSuggestion: id => proactive.accept(id),
+    shiftSummary: () => proactive.shiftSummary(async () => {
+      const fallback = commands.summary();
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        return await Promise.race([
+          providers.ask('Summarize this shift using only the recorded waiting-room events. State waiting count, outstanding human checks and arrival order. No diagnosis, clinical ranking or recommendations. Label camera readings as estimates and replay as REPLAY.', store.snapshot()),
+          new Promise<{ answer: string; source: 'template' }>(resolve => { timer = setTimeout(() => resolve({ answer: fallback.message, source: 'template' }), 6000); }),
+        ]);
+      } catch { return { answer: fallback.message, source: 'template' as const }; }
+      finally { clearTimeout(timer); }
+    }),
+  });
+  const proactive: ProactiveAgent = new ProactiveAgent(store, { call: (visit, room) => commands.call(visit, room) });
+  service = { commands, proactive }; services.set(store, service); return service;
+}
+export async function handleStaffRequest(request: IncomingMessage, response: ServerResponse, url: URL, store: RoomStore, orchestrator: Orchestrator): Promise<boolean> {
+  const command = url.pathname.match(/^\/api\/commands\/([a-z_]+)$/);
+  const relevant = request.method === 'POST' && (command || url.pathname === '/api/suggestions/dismiss' || url.pathname === '/api/exam/patient-done') ||
+    request.method === 'GET' && ['/api/suggestions', '/api/hallway/check-back'].includes(url.pathname);
+  if (!relevant) return false;
+  const { commands, proactive } = staffServices(store, orchestrator);
+  const send = (status: number, data: unknown) => { response.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); response.end(JSON.stringify(data)); return true; };
+  if (request.method === 'GET') return send(200, url.pathname === '/api/suggestions' ? proactive.list() : { messages: proactive.hallway() });
+  let body = ''; let size = 0;
+  for await (const chunk of request) { size += chunk.length; if (size <= 8000) body += chunk.toString(); }
+  if (size > 8000) return send(413, { ok: false, message: 'Body too large.' });
+  let input: unknown;
+  try { input = JSON.parse(body); } catch { return send(400, { ok: false, message: 'Invalid JSON.' }); }
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return send(400, { ok: false, message: 'Expected parameters as an object.' });
+  if (command) { const result = await commands.run(command[1], input); return send(result.ok ? 200 : 422, result); }
+  const values = input as Record<string, unknown>;
+  if (url.pathname === '/api/suggestions/dismiss') {
+    if (typeof values.id !== 'string') return send(400, { ok: false, message: 'Suggestion id is required.' });
+    const result = proactive.dismiss(values.id); return send(result.ok ? 200 : 422, result);
+  }
+  if (typeof values.room !== 'string' || !values.room.trim() || typeof values.visitId !== 'string') return send(400, { ok: false, message: 'Room and current visitId are required.' });
+  const result = proactive.patientDone(values.room, values.visitId); return send(result.ok ? 200 : 422, result);
+}
