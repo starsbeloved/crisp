@@ -79,16 +79,32 @@ describe('check-in client tools', () => {
     const tools = createCheckInTools(() => controller, fetcher);
     expect(await tools.set_name({ name: ' Ama ' })).toContain('Ama');
     expect(controller.setName).toHaveBeenCalledWith('Ama');
-    expect(await tools.start_face_scan()).toBe('saved');
+    expect(await tools.start_face_scan()).toMatch(/^saved Next:/);
     expect(controller.startFaceScan).toHaveBeenCalledOnce();
     expect(await tools.save_answers({ reason: 'My chest feels tight', onset: 'since this morning', trend: 'getting worse' })).toContain('saved');
     expect(controller.answers).toMatchObject({ reason: 'My chest feels tight', onset: 'today', trend: 'worse', via: 'voice' });
-    expect(await tools.get_follow_up_question()).toBe('What would you like the nurse to know?');
+    expect(await tools.get_follow_up_question()).toContain('What would you like the nurse to know?');
     expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toMatchObject({ answers: { reason: 'My chest feels tight', via: 'voice' } });
     expect(await tools.save_follow_up({ question: 'What would you like the nurse to know?', answer: 'Nothing else' })).toContain('saved');
     expect(controller.setFollowUp).toHaveBeenCalledWith('What would you like the nurse to know?', 'Nothing else');
-    expect(await tools.finish_check_in()).toBe('queue number 3');
+    expect(await tools.finish_check_in()).toMatch(/^Queue number 3\. Please take a seat — Crisp will call you\. Next:/);
     expect(controller.finish).toHaveBeenCalledOnce();
+  });
+  it.each(['June 15th 1994', '15 June 1994', '15/6/94'])('normalizes spoken date %s in the tool itself', async dateOfBirth => {
+    const controller = mockController();
+    const result = await createCheckInTools(() => controller).set_patient_details({ dateOfBirth, phone: '202-555-0100' });
+    expect(controller.answers.dateOfBirth).toBe('1994-06-15');
+    expect(result).toMatch(/Next:.*face scan/i);
+  });
+  it('gives spoken guidance for ambiguous and impossible dates without changing saved details', async () => {
+    const controller = mockController(); controller.answers.dateOfBirth = '1994-06-15';
+    const tools = createCheckInTools(() => controller);
+    for (const dateOfBirth of ['6/7/94', 'February 30th 1994']) {
+      const result = await tools.set_patient_details({ dateOfBirth });
+      expect(result).toMatch(/Next:/);
+      expect(result).not.toContain('YYYY-MM-DD');
+      expect(controller.answers.dateOfBirth).toBe('1994-06-15');
+    }
   });
   it('collects DOB and phone without guessing and preserves them on answer corrections', async () => {
     const controller = mockController();
@@ -109,7 +125,7 @@ describe('check-in client tools', () => {
     expect(await tools.save_follow_up({ question: 'Invented?', answer: 'No' })).toContain('get_follow_up_question');
     expect(await tools.finish_check_in()).toContain('get_follow_up_question');
     expect(controller.finish).not.toHaveBeenCalled();
-    expect(await tools.get_follow_up_question()).toBe('Where is the tightness?');
+    expect(await tools.get_follow_up_question()).toContain('Where is the tightness?');
     expect(controller.followUpPrompt).toMatchObject({ source: 'gemini', why: 'Because you mentioned “Chest tightness”.' });
     expect(await tools.save_follow_up({ question: 'Invented?', answer: 'No' })).toContain('returned question');
     expect(controller.setFollowUp).not.toHaveBeenCalled();
@@ -130,7 +146,7 @@ describe('check-in client tools', () => {
     const controller = mockController();
     vi.mocked(controller.startFaceScan).mockResolvedValue({ ok: false, reason: 'Only one person please' });
     const tools = createCheckInTools(() => controller);
-    expect(await tools.start_face_scan()).toBe('Only one person please');
+    expect(await tools.start_face_scan()).toMatch(/^Only one person please Next:/);
     await tools.save_answers({ reason: 'Not sure', onset: 'sometime', trend: 'unsure' });
     expect(controller.answers.onset).toBeNull(); expect(controller.answers.trend).toBeNull();
     expect(await tools.set_name({ name: '' })).toContain('name');

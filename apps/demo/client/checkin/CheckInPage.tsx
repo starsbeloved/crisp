@@ -56,6 +56,14 @@ export function CheckInPage() {
       </div></div>}
       <div className="checkin-agent"><CrispAgentSlot /></div>
       {c.step === 'welcome' && <div className="checkin-welcome-actions"><ol className="checkin-how"><li>Tell Crisp your name</li><li>Look at the camera for two seconds</li><li>Say what brings you in, in your own words</li></ol></div>}
+      {c.via === 'voice' && ['welcome', 'face', 'followup'].includes(c.step) && <div className="checkin-manual-continue">
+        <p>If Crisp pauses, continue here. You can fill or correct each answer on screen.</p>
+        <Button type="button" className="checkin-primary" disabled={c.busy} onClick={() => {
+          if (c.step === 'welcome') c.goTo('name');
+          else if (c.step === 'face') { if (c.face.status === 'saved') c.goTo('questions'); else c.skipFace(); }
+          else void c.finish().catch(() => {});
+        }}>Continue</Button>
+      </div>}
       <form className="checkin-form" onSubmit={submit} aria-busy={c.busy}>
         {c.step === 'name' && <div className="checkin-name-panel">
           <div><label htmlFor="checkin-name">Your name</label><input id="checkin-name" name="name" autoComplete="given-name" maxLength={120} value={c.name} onChange={event => c.setName(event.target.value)} aria-describedby={validation ? 'checkin-error' : undefined} /></div>
