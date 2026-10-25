@@ -12,7 +12,7 @@ const sdk = vi.hoisted(() => ({
   callbacks: {} as Record<string, any>, room: null as RoomState | null,
 }));
 vi.mock('@elevenlabs/react', () => ({
-  ConversationProvider: ({ children }: PropsWithChildren) => children,
+  ConversationProvider: ({ children, isMuted }: PropsWithChildren<{ isMuted?: boolean }>) => { if (isMuted !== undefined) sdk.mute(isMuted); return children; },
   useConversation: (callbacks: Record<string, any>) => {
     sdk.callbacks = callbacks;
     return { status: sdk.status, isSpeaking: false, endSession: sdk.end, setMuted: sdk.mute, getOutputVolume: () => 0,
@@ -68,6 +68,7 @@ describe('voice widgets with a simulated ElevenLabs session', () => {
     await render(<CheckInContext value={controller()}><CrispAgent /></CheckInContext>);
     await act(async () => sdk.callbacks.onError('microphone denied'));
     expect(container.querySelector('button')).toBeNull();
+    expect(sdk.end).toHaveBeenCalled();
   });
   it('mutes nurse input on keyboard release even if connection finishes later, and fetches the current room digest', async () => {
     await render(<AskCrispVoice />);

@@ -28,32 +28,28 @@ export function roomDigest(state: RoomState | null, now = Date.now()): string {
 }
 
 export function AskCrispVoice() {
-  return <ConversationProvider><NurseVoice /></ConversationProvider>;
+  const [holding, setHolding] = useState(false);
+  return <ConversationProvider isMuted={!holding}><NurseVoice holding={holding} setHolding={setHolding} /></ConversationProvider>;
 }
 
-function NurseVoice() {
+function NurseVoice({ holding, setHolding }: { holding: boolean; setHolding: (value: boolean) => void }) {
   const { state, connected } = useRoomState();
   const current = useRef(state); current.current = connected ? state : null;
   const tools = useMemo(() => ({ get_room_digest: () => roomDigest(current.current) }), []);
   const voice = useVoiceAgent('nurse', Boolean(state?.providers.agent), tools);
-  const held = useRef(false);
-  const [holding, setHolding] = useState(false);
-  const { setMuted, endSession } = voice;
-  function release() { held.current = false; setHolding(false); setMuted(true); }
+  const { endSession } = voice;
+  function release() { setHolding(false); }
+  useEffect(() => { if (!connected) setHolding(false); }, [connected, setHolding]);
   useEffect(() => {
-    // Permission/connection can resolve after pointer-up: keep the microphone muted then.
-    if (voice.status === 'connected') setMuted(!held.current);
-  }, [voice.status, setMuted]);
-  useEffect(() => {
-    const releaseMic = () => { held.current = false; setHolding(false); setMuted(true); };
+    const releaseMic = () => setHolding(false);
     window.addEventListener('blur', releaseMic);
     document.addEventListener('visibilitychange', releaseMic);
     return () => { window.removeEventListener('blur', releaseMic); document.removeEventListener('visibilitychange', releaseMic); };
-  }, [setMuted]);
+  }, [setHolding]);
   if (!voice.available) return null;
   function hold() {
     if (!connected) return;
-    held.current = true; setHolding(true); setMuted(false); void voice.start();
+    setHolding(true); void voice.start();
   }
   return <section aria-label="Ask Crisp by voice" style={{ padding: '12px 0' }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>

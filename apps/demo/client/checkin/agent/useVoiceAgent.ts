@@ -10,7 +10,7 @@ export function useVoiceAgent(mode: 'checkin' | 'nurse', enabled: boolean, tools
   const signed = useRef<string | null>(null);
   const currentTools = useRef(tools); currentTools.current = tools;
   const conversation = useConversation({
-    onError: () => { setAvailable(false); signed.current = null; },
+    onError: () => { setAvailable(false); signed.current = null; endSession(); },
     onMessage: message => setCaptions(items => [...items.slice(-11), { speaker: message.role === 'user' || message.source === 'user' ? 'You' : 'Crisp', text: message.message }]),
   });
   const { endSession, getOutputVolume, status, isSpeaking } = conversation;
