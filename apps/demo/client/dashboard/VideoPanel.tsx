@@ -10,14 +10,15 @@ export function VideoPanel({ cameras, now }: { cameras: Record<string, CameraSta
     const url = new URL(location.origin); url.port = String(c.apiPort);
     if (alive) setOrigin(url.origin);
   }).catch(() => {}); return () => { alive = false; }; }, []);
-  return <section className="panel video-panel"><div className="section-heading"><h2>Room cameras</h2>
+  return <section className="panel video-panel"><div className="section-heading"><h2>Room camera</h2>
     <button className="secondary" disabled={!origin} aria-pressed={direct} onClick={() => { setDirect(!direct); setError(''); }}>{direct ? 'Use proxy stream' : 'Use direct stream'}</button></div>
     <div className="feeds">{Object.values(cameras).map(c => <figure key={c.cameraId}>
       <figcaption><strong>Camera {c.cameraId}</strong><span className="tag">{c.source === 'replay' ? 'REPLAY' : 'LIVE'}</span>
-        {now - c.lastFrameAt > 2000 && <span className="tag warning">STALE</span>}</figcaption>
+        {now - c.lastFrameAt > 2000 && <span className="tag warning">STALE</span>}<span className="video-meta">{c.fps.toFixed(0)} fps · frame {Math.max(0, (now - c.lastFrameAt) / 1000).toFixed(1)} s ago</span></figcaption>
       <img className="stream" src={`${direct ? origin : ''}${api.streamUrl(c.cameraId)}`} alt={`Camera ${c.cameraId} · ${c.source === 'replay' ? 'REPLAY' : 'LIVE'}`} onError={() => setError('Stream unavailable. Check the camera window or try the direct stream.')} />
     </figure>)}</div>
     {!Object.keys(cameras).length && <div className="empty-camera"><p>Waiting for a camera stream</p><a href="/camera?cam=A" target="_blank" rel="noreferrer">Open room camera →</a><small>Keep the camera window visible for continuous processing.</small></div>}
+    {Object.keys(cameras).length > 0 && <p className="privacy-note">Unknown faces blurred · no images stored</p>}
     {error && <p role="status">{error}</p>}
   </section>;
 }
