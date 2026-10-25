@@ -53,7 +53,7 @@ export function createCheckInTools(getController: () => CheckInController, fetch
       const c = controller(); c.goTo('face');
       try {
         const result = await c.startFaceScan();
-        if (result.ok) { scanFailures = 0; c.goTo('questions'); return 'saved'; }
+        if (result.ok) { scanFailures = 0; return "saved. Tell the patient: Hold still for a moment — I’m checking your pulse. Then hold still for a short pulse check. Wait for the on-screen pulse step to finish or be skipped before asking what brings them in."; }
         scanFailures += 1;
         if (scanFailures >= 2) c.skipFace();
         return result.reason || 'Face scan unavailable. Please use the form to skip.';
@@ -107,7 +107,7 @@ export function createCheckInTools(getController: () => CheckInController, fetch
   const next = {
     set_name: 'ask date of birth and phone, then call set_patient_details; use null for declined details.',
     set_patient_details: 'confirm the date of birth and phone, or save null for declined details.',
-    start_face_scan: 'ask what brings them in, listen, and call save_answers with their words. Save timing or changes only if volunteered. If scanning failed, use Continue to skip.',
+    start_face_scan: 'if saved, wait for the on-screen pulse check to finish or be skipped, then ask what brings them in. If scanning failed, use Continue to skip.',
     save_answers: 'call get_follow_up_question for one natural follow-up; do not ask a list of required questions.',
     get_follow_up_question: 'ask the returned question, then call save_follow_up; if declined, call finish_check_in.',
     save_follow_up: 'call finish_check_in.',

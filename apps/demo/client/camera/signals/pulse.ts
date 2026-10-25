@@ -27,7 +27,7 @@ function clean(samples: FaceSample[]): FaceSample[] | null {
 }
 
 /** POS projections and overlap-add, copied/adapted from the earlier rPPG implementation. */
-export function estimatePulse(samples: FaceSample[]): { bpm: number | null; quality: Quality; trace: number[] | null } {
+export function estimatePulse(samples: FaceSample[]): { bpm: number | null; quality: Quality; trace: number[] | null; snr?: number } {
   const reject = () => ({ bpm: null, quality: 'low' as const, trace: null });
   const duration = samples.at(-1)!.t - samples[0].t;
   if ((samples.length - 1) * 1000 / duration < 10) return reject();
@@ -48,12 +48,12 @@ export function estimatePulse(samples: FaceSample[]): { bpm: number | null; qual
   if (weights.filter(x => x > 0).length < n * 0.8) return reject();
   const pos = signal.map((x, i) => weights[i] ? x / weights[i] : 0);
   const peak = spectrum(pos, 30, 0.7, 3), quality = qualityForRatio(peak.ratio);
-  if (quality === 'low' || peak.hz === null) return reject();
+  if (quality === 'low' || peak.hz === null) return { ...reject(), snr: peak.ratio };
   const filtered = bandpass(pos, 30, 0.7, 3).slice(-180);
   const scale = Math.max(...filtered.map(Math.abs));
   const trace = scale > 1e-9 ? Array.from({ length: 60 }, (_, i) => {
     const index = i * (filtered.length - 1) / 59, left = Math.floor(index), right = Math.min(left + 1, filtered.length - 1);
     return (filtered[left] + (filtered[right] - filtered[left]) * (index - left)) / scale;
   }) : null;
-  return { bpm: peak.hz * 60, quality, trace };
+  return { bpm: peak.hz * 60, quality, trace, snr: peak.ratio };
 }

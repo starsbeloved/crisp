@@ -282,3 +282,32 @@ main:has(> .checkin){max-width:none;margin:0;padding:0}
   .checkin .checkin-navigation button { white-space: normal; min-width: 0; width: 100%; padding: .5rem; }
   .checkin-manual-continue { flex-direction: column; align-items: stretch; }
 }
+
+/* P22b pulse step: same kiosk surfaces, type, color and controls. */
+.checkin-pulse { display:flex; flex-direction:column; gap:16px; min-width:0; }
+.checkin-pulse-summary { display:flex; align-items:center; gap:18px; }
+.checkin-pulse-summary h2 { margin-bottom:8px; }
+.checkin-pulse-clock { flex:0 0 88px; width:88px; height:88px; position:relative; color:var(--c-leaf); }
+.checkin-pulse-clock svg { width:100%; height:100%; transform:rotate(-90deg); fill:none; stroke:var(--c-border); stroke-width:5; }
+.checkin-pulse-clock circle:last-child { stroke:var(--c-leaf); stroke-linecap:round; }
+.checkin-pulse-clock span { position:absolute; inset:0; display:grid; place-items:center; font-size:1.5rem; font-weight:600; font-variant-numeric:tabular-nums; }
+.checkin p.checkin-pulse-value { color:var(--c-text); font-size:1.375rem; font-weight:600; margin-top:12px; }
+.checkin-pulse-wave { width:100%; height:90px; border-bottom:1px solid var(--c-border); }
+.checkin-pulse-wave polyline { fill:none; stroke:var(--c-leaf); stroke-width:2; stroke-linejoin:round; }
+.checkin-pulse .checkin-status-chip { align-self:flex-start; }
+.checkin-pulse-actions { display:flex; gap:12px; }
+.checkin-pulse-actions button { flex:1; }
+.checkin-pulse-debug { font-size:.875rem; overflow-wrap:anywhere; }
+.checkin-pulse-debug summary { min-height:44px; display:flex; align-items:center; cursor:pointer; }
+.checkin-pulse-debug label { font-size:1rem; }
+.checkin-pulse-debug input { min-height:44px; font-size:1rem; margin-bottom:12px; }
+.checkin-pulse-notice { grid-column:1/-1; padding:12px 0; font-size:1rem; }
+.checkin[data-step=pulse] .checkin-face-layout { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:28px; align-items:center; }
+.checkin[data-step=pulse] .checkin-card:has(.checkin-voice-active) .checkin-form { display:flex; }
+@media(max-width:760px) {
+  .checkin[data-step=pulse] .checkin-face-layout { display:flex; flex-direction:column; gap:20px; }
+  .checkin[data-step=pulse] .checkin-preview { width:100%; max-height:240px; }
+  .checkin[data-step=pulse] .checkin-companion { display:none; }
+  .checkin-pulse-summary { gap:12px; }
+  .checkin-pulse-clock { flex-basis:72px; width:72px; height:72px; }
+}

@@ -1,7 +1,7 @@
 import React, { createContext } from 'react';
 import type { CheckInAnswers } from '../../shared/types.ts';
 import type { FollowUpPrompt } from './followup.ts';
-export type Step = 'welcome' | 'name' | 'face' | 'questions' | 'followup' | 'done';
+export type Step = 'welcome' | 'name' | 'face' | 'pulse' | 'questions' | 'followup' | 'done';
 export interface CheckInController {
   step: Step; name: string; answers: CheckInAnswers;
   face: { status: 'idle' | 'scanning' | 'saved' | 'failed' | 'skipped'; message: string };
