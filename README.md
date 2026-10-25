@@ -1,48 +1,124 @@
-# Waiting Room Monitor
+# Crisp
 
-SBUHacks 2026 prototype connecting patient check-in, face enrollment, phone camera pulse capture, room-camera observations, and staff check requests.
+**A proactive AI assistant for hospitals and clinics.**
 
-The active application is in [`apps/waiting-room`](apps/waiting-room). Root `server`, `packages`, `tests`, `.plans` and `outputs` include preserved ECHO explorations. Use the active application's commands for development.
+Crisp is a JARVIS-inspired assistant with a personality: a friendly apple that lives across a clinic's cameras, screens, speakers, and connected software. The vision is one assistant that understands what is happening around it, brings relevant information together, anticipates the next task, and helps patients, nurses, doctors, and administrative staff get things done.
 
-## Local development
+For **SBUHacks 2026**, we built a demonstration across patient arrival, room observation, staff coordination, and the exam room. The waiting-room workflow is the first demonstration of a much broader healthcare assistant.
 
-Requires Node.js 24 or later and npm.
+## The vision
 
-```bash
-cd apps/waiting-room
-npm ci --ignore-scripts
+Imagine an assistant that knows a patient has arrived, remembers what they said, notices when someone may need attention, knows which room is available, and has the relevant context ready when a clinician asks.
+
+- **For patients:** a familiar voice to explain the next step, help with intake, answer supported questions, and connect them with staff.
+- **For nurses:** awareness of the room, timely reminders, patient context, and voice-controlled coordination.
+- **For doctors:** relevant history and visit context ready to retrieve, summarize, and hand over.
+- **For administrative staff:** help with intake, queues, room turnover, appointments, and routine coordination as system integrations grow.
+
+Crisp's longer-term role spans the hospital's authorized systems: records, scheduling, cameras, room status, displays, and communication. It would combine current observations with relevant past information and proactively offer useful actions. Hospital-wide integration and general administrative automation are future work.
+
+Read the [product vision](.plans/content/CRISP-VISION.md) for the full positioning.
+
+## What the demo implements
+
+| Area | Current prototype |
+| --- | --- |
+| Patient intake | Conversational check-in, adaptive follow-up questions, a visible form, face enrollment, an optional camera pulse check, and a request-for-help action. |
+| Room awareness | Recognition of enrolled patients, body tracking, posture observations, and heart-rate/breathing camera estimates with signal quality. |
+| Staff Command Center | Patient context, recorded timelines, check requests, incident debriefs, acknowledgment, and call-in controls. |
+| Proactive coordination | Suggestions for a newly free room, long waits with a worsening report, a missing camera sighting, a ready chart, and patient check-backs; shift summaries on request. |
+| Voice actions | "Hey Crisp" interactions to retrieve recorded context and carry out supported staff commands. |
+| Hallway and lobby | Patient call-outs and public queue information that omit complaints and camera estimates. |
+| Exam room | Preloaded visit context, a generated handoff, and retrieval of clearly labeled fictional demo history, including recorded allergies. |
+| Gemini sees | An opt-in description of visible posture and scene from one alert frame, with disclosure that the frame is sent to Gemini. |
+
+Crisp notices events and proposes next steps. Staff confirm workflow suggestions and remain responsible for clinical decisions. A missing camera sighting, for example, is a prompt to verify someone's whereabouts.
+
+## How it works
+
+The active application is **[`apps/demo`](apps/demo/)**.
+
+- **React + TypeScript + Vite** provide the station interfaces and the animated SVG Crisp character.
+- **face-api.js + MediaPipe** run face and pose inference in the browser using locally served model assets.
+- **POS remote photoplethysmography** estimates pulse from facial color changes; shoulder/torso motion supplies the breathing signal.
+- A **Node.js HTTP server** owns room state, local persistence, deterministic check-request rules, and supported staff actions.
+- **Server-Sent Events** update the connected screens. **MJPEG** carries the overlaid room video to the Command Center.
+- **Gemini** supports follow-up questions, summaries, explanations, handoffs, grounded Q&A, and opt-in image descriptions.
+- **ElevenLabs Agents and text to speech** give Crisp conversational interactions and spoken announcements.
+
+The current prototype retrieves recorded visit context and fictional histories. Real EHR/FHIR connections and hospital-wide data access remain part of the roadmap.
+
+## Run locally
+
+Requires **Node.js 24 or newer** and npm.
+
+```sh
+cd apps/demo
+npm ci
 npm run dev
 ```
 
-Default local client: `http://127.0.0.1:5173`; service: `http://127.0.0.1:8787`. Open `/check-in`, `/vision`, and `/staff` for the three workspaces. `/patient` is the paired phone entry; it needs a reachable trusted HTTPS address for camera capture. See [phone setup](apps/waiting-room/docs/phone-https.md) and the [demo runbook](apps/waiting-room/docs/demo-runbook.md).
+The web app runs at `http://localhost:5173`; the API runs at `http://localhost:8787`.
 
-```bash
+| Page | Purpose |
+| --- | --- |
+| `/station` | Choose this computer's station role. |
+| `/check-in` | Patient intake. |
+| `/room` | Room camera and hallway call-outs. |
+| `/dashboard` | Staff Command Center. |
+| `/exam?room=1` | Exam-room context and voice actions. |
+| `/lobby` | Public queue and call-outs. |
+
+For the optimized demo build, run `npm run demo` from `apps/demo`.
+
+Camera and microphone use require browser permission. Remote devices need a trusted HTTPS origin. See the [deployment guide](apps/demo/docs/deploy-vultr.md) for the provided hosting kit.
+
+### Provider configuration
+
+Keep provider credentials in a private, untracked environment file on the server and select it with `PROVIDERS_ENV`:
+
+```sh
+PROVIDERS_ENV=/absolute/path/to/providers.env npm run demo
+```
+
+Configuration supports `GEMINI_API_KEY`, `GEMINI_MODEL`, `ELEVENLABS_API_KEY`, `ELEVENLABS_MODEL_ID`, `ELEVENLABS_VOICE_ID`, `ELEVENLABS_CRISP_VOICE_ID`, `ELEVENLABS_AGENT_ID`, and `ELEVENLABS_NURSE_AGENT_ID`. [Agent configuration](apps/demo/docs/crisp-agent.md) describes the conversational setup.
+
+Provider failures use template text, browser speech, or visible controls where supported. To exercise fallback behavior without loading the provider file:
+
+```sh
+PROVIDERS_ENV=/dev/null GEMINI_API_KEY= ELEVENLABS_API_KEY= ELEVENLABS_AGENT_ID= ELEVENLABS_NURSE_AGENT_ID= npm run demo
+```
+
+## Models and data
+
+Computer-vision weights and their browser runtime are versioned under **[`apps/demo/public/models`](apps/demo/public/models/)**, approximately **50.8 MiB** in total. They are served by the app and run in the browser. [Model locations, sources, and provider configuration](apps/demo/docs/models.md) explains each component.
+
+Gemini and ElevenLabs run through hosted APIs; their model weights are not included in this repository. Pulse estimation uses signal-processing code rather than a separate downloaded pulse model.
+
+Environment files, local visit data, generated output, and recordings belong outside tracked source. API keys stay server-side. The demo uses face descriptors for identity matching; room video is streamed and transient frames support replay. It does not implement a complete hospital retention or access-control system.
+
+## Verification
+
+Run from `apps/demo`:
+
+```sh
 npm run typecheck
 npm test
 npm run build
 ```
 
-Some tests open temporary localhost listeners. Automated checks establish software behavior; actual face matching, phone PPG, camera physiology and provider playback require separate device/provider verification. The prototype supports a human check request and does not provide diagnosis or clinical triage.
+Automated and simulated browser checks establish software behavior. Live camera accuracy, real microphone performance, provider playback, and clinical suitability require their own evaluation.
 
-## Branches and review
+Camera values are **estimates** with signal-quality labels. Unavailable readings stay unavailable; recorded input is labeled **REPLAY**. Medical histories are labeled **Demo records — fictional**. Crisp requests a human check and does not provide diagnosis or clinical triage. This hackathon prototype has not been clinically validated.
 
-- `main`: reviewed source checkpoint. A checkpoint does not imply all device acceptance criteria have passed.
-- `dev`: integration work.
-- `fix/ui`: UI redesign, developed in an isolated worktree.
+## Repository guide
 
-Review UI changes into `dev`, run integration checks, then promote accepted work to `main`. Each agent uses its assigned checkout and files; coordinate ownership before simultaneous edits.
+| Location | Purpose |
+| --- | --- |
+| [`apps/demo`](apps/demo/) | Current application, server, tests, and deployment kit. |
+| [`apps/demo/docs`](apps/demo/docs/) | Application setup and technical notes. |
+| [`apps/demo/public/models`](apps/demo/public/models/) | Required vision models, runtime files, manifests, and licenses. |
+| [`.plans`](.plans/) | Internal build packets, research, design references, and film/submission drafts. Older names describe earlier demo framing. |
+| `apps/waiting-room`, `packages`, `server`, `tests`, `docs`, `outputs` | Preserved earlier prototypes and research. Use the commands in `apps/demo` for the current app. |
 
-## Design and agent handoff
-
-- [Product specification](docs/superpowers/specs/2026-10-24-waiting-room-monitor-design.md)
-- [UI stories, copy, components and apple theme](docs/plans/2026-10-24-waiting-room-monitor/ui-experience-blueprint.md)
-- [Tool-neutral UI implementation workflow](docs/plans/2026-10-24-waiting-room-monitor/agentic-ui-workflow.md)
-- [Project instructions](AGENTS.md)
-
-The UI blueprint is a proposal for review. Repository setup does not begin the redesign automatically. Latest explicit user assignments govern tool ownership; historical plan checkpoints may not describe the latest runtime status.
-
-## Local data and assets
-
-Environment files, local databases, private run data and generated screenshots are excluded from Git. Keep credentials on the server/local environment and use synthetic fixtures for UI previews. Do not commit participant images, face representations or recordings.
-
-Versioned model assets retain their upstream licenses/notices under `apps/waiting-room/public/models/`. Their presence does not establish measurement accuracy or face recognition performance.
+The current development branch is **`crisp-demo`**. This README and the linked product vision define Crisp's positioning; historical project names and planning documents describe earlier scopes.

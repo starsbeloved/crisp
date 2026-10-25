@@ -1,3 +1,18 @@
+# Crisp demo application
+
+**Crisp is a proactive AI assistant for hospitals and clinics.** The [project README](../../README.md) describes the hospital-wide vision and the current demonstration across intake, room awareness, staff coordination, and exam-room context.
+
+This directory contains the active React/TypeScript client and Node HTTP server. Requires Node.js 24 or newer. From this directory:
+
+```sh
+npm ci
+npm run dev
+```
+
+Open `http://localhost:5173/station` to choose a role. `npm run demo` builds and serves the optimized version. Run `npm run typecheck`, `npm test`, and `npm run build` here rather than in the historical repository-root application.
+
+Vision assets are in [`public/models`](public/models/). See [model locations and providers](docs/models.md) and [conversational agent setup](docs/crisp-agent.md).
+
 ## Deploy
 
 The [Vultr deployment guide](docs/deploy-vultr.md) contains the human-run Ubuntu,
