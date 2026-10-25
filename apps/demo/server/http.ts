@@ -10,6 +10,7 @@ import { providerStatus } from './env.ts';
 import * as engine from './engine/index.ts';
 import * as providers from './providers/index.ts';
 import { signedUrl } from './agent.ts';
+import { StationRegistry } from './stations.ts';
 
 const descriptorSchema = z.array(z.number().finite()).min(1).max(512);
 const answersSchema = z.object({ reason: z.string().max(4000), reasonChips: z.array(z.string()).max(30), onset: z.enum(['<1h', 'today', '1-3d', 'longer']).nullable(), trend: z.enum(['worse', 'same', 'better']).nullable(), followUp: z.object({ question: z.string(), answer: z.string() }).nullable(), via: z.enum(['form', 'voice']), dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(), phone: z.string().max(40).nullable().optional() });
@@ -38,6 +39,7 @@ async function providerResult<T>(work: Promise<T>, fallback: () => T): Promise<T
   finally { clearTimeout(timer); }
 }
 export function createAppServer(options: { dataDir?: string | null; apiPort?: number; webPort?: number; readProviders?: boolean } = {}) {
+  const stations = new StationRegistry();
   const store = new RoomStore(options.dataDir === undefined ? resolve('.data') : options.dataDir);
   if (options.readProviders !== false) store.state.providers = providerStatus();
   const mjpeg = new MjpegBuffer();
@@ -167,6 +169,8 @@ export function createAppServer(options: { dataDir?: string | null; apiPort?: nu
     if (method === 'POST' && path === '/api/reset') {
       const status = store.state.providers; store.reset(); store.state.providers = status; mjpeg.reset(); orchestrator.reset(); json(response, 200, { ok: true }); return;
     }
+    if (method === 'GET' && path === '/api/stations') { json(response, 200, { stations: stations.list() }); return; }
+    if (method === 'POST' && path === '/api/stations') { json(response, 200, stations.register(await jsonBody(request))); return; }
     json(response, 404, { error: 'Route not found' });
   }
   server.on('close', () => store.flush());
