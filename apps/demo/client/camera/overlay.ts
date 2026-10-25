@@ -1,7 +1,7 @@
 import type { RoomState } from '../../shared/types.ts';
 import type { PoseSample, SignalReading } from './signals/index.ts';
 import type { FaceTrack } from './tracking.ts';
-import { vitalLabel } from './output.ts';
+import { cameraRequests, identityLabel, vitalLabel } from './output.ts';
 
 export interface RenderTrack { track: FaceTrack; reading: SignalReading; pose: PoseSample['landmarks'] | null }
 const bones = [[0, 1], [1, 2], [2, 3], [3, 7], [0, 4], [4, 5], [5, 6], [6, 8], [11, 12], [11, 13], [13, 15], [12, 14], [14, 16], [11, 23], [12, 24], [23, 24], [23, 25], [25, 27], [24, 26], [26, 28]];
@@ -12,7 +12,8 @@ function token(name: string, fallback: string): string {
 }
 
 function postureLabel(reading: SignalReading): string {
-  if (!reading.posture) return 'Posture measuring…';
+  if (!reading.posture || !reading.referenceReady) return 'Learning posture…';
+  if (reading.posture.headDropSec > 0) return `Head below shoulders · ${Math.round(reading.posture.headDropSec)} s`;
   if (reading.posture.slumpSec > 0) return `Slumped forward · ${Math.round(reading.posture.slumpSec)} s`;
   if (reading.posture.stillSec > 0) return `Still · ${Math.round(reading.posture.stillSec)} s`;
   return 'Upright';
@@ -29,15 +30,17 @@ function drawPill(ctx: CanvasRenderingContext2D, text: string, x: number, y: num
 }
 
 export function drawOverlay(ctx: CanvasRenderingContext2D, tracks: RenderTrack[], state: RoomState | null,
-  options: { cam: string; replayName: string | null; fps: number; now: number; privacy: boolean }) {
+  options: { cam: string; replayName: string | null; fps: number; now: number; privacy: boolean; debug?: boolean }) {
   const { width, height } = ctx.canvas;
   const red = token('--c-red', 'red'), amber = token('--c-amber-box', 'orange'), leaf = token('--c-leaf', 'green');
   const redText = token('--c-red-text', 'red'), amberText = token('--c-amber-text', 'orange');
   const text = token('--c-text', 'black'), surface = token('--c-surface', 'white'), muted = token('--c-text-2', 'gray');
   ctx.save();
+  const requests = cameraRequests(state);
   for (const { track, reading, pose } of tracks) {
     const box = track.face.box;
-    const level = track.match ? state?.vitals[track.match.visitId]?.level : undefined;
+    const request = track.match ? requests.find(alert => alert.visitId === track.match!.visitId) : undefined;
+    const level = request?.level ?? (track.match ? state?.vitals[track.match.visitId]?.level : undefined);
     const color = !track.match ? muted : level === 'red' ? red : level === 'amber' ? amber : surface;
     const skeleton = !track.match ? surface : level === 'red' ? red : level === 'amber' ? amber : surface;
     if (options.privacy && !track.match) {
@@ -59,14 +62,14 @@ export function drawOverlay(ctx: CanvasRenderingContext2D, tracks: RenderTrack[]
     ctx.beginPath(); ctx.roundRect(box.x, box.y, box.w, box.h, 14); ctx.stroke();
     ctx.shadowBlur = 0; ctx.setLineDash([]);
 
-    const title = track.match ? `${track.match.name} · ${Math.round(track.match.score * 100)}%` : track.identity === 'unknown' ? 'Unknown · not checked in' : 'Identifying…';
-    const subtitle = track.match ? vitalLabel(reading) : 'Camera estimates unavailable';
+    const title = `${request ? 'Check requested · ' : ''}${identityLabel(track, state)}`;
+    const subtitle = request ? request.reasons[0] ?? 'May need a check' : track.match ? vitalLabel(reading) : 'Camera estimates unavailable';
     ctx.font = '700 12px system-ui';
     const titleWidth = ctx.measureText(title).width + 18;
     const subtitleWidth = ctx.measureText(subtitle).width + 18;
     const bannerWidth = Math.min(width - 4, Math.max(titleWidth, subtitleWidth));
     const x = Math.max(2, Math.min(width - bannerWidth - 2, box.x));
-    const y = Math.max(48, box.y - 56);
+    const y = Math.max(requests.length ? 76 : 48, box.y - 56);
     ctx.fillStyle = track.match ? level === 'red' ? red : level === 'amber' ? amber : 'rgba(20,20,22,.78)' : 'rgba(60,60,64,.86)';
     ctx.beginPath(); ctx.roundRect(x, y, bannerWidth, 46, 8); ctx.fill();
     ctx.fillStyle = surface; ctx.font = '700 12px system-ui'; ctx.fillText(title, x + 9, y + 17);
@@ -91,10 +94,27 @@ export function drawOverlay(ctx: CanvasRenderingContext2D, tracks: RenderTrack[]
         ctx.fillStyle = red; ctx.font = `${14 + beat * 5}px system-ui`; ctx.fillText('♥', box.x + traceWidth + 6, traceY + 21);
       }
     }
+    if (options.debug) {
+      const posture = reading.posture;
+      const lines = [`visitId: ${track.match?.visitId ?? 'unknown'} · source: ${track.source ?? 'face'}`,
+        `slumpSec: ${(posture?.slumpSec ?? 0).toFixed(1)} · headDropSec: ${(posture?.headDropSec ?? 0).toFixed(1)}`,
+        `stillSec: ${(posture?.stillSec ?? 0).toFixed(1)} · fallSuspected: ${posture?.fallSuspected ?? false}`,
+        `referenceReady: ${reading.referenceReady ?? false}`];
+      ctx.font = '11px monospace';
+      const debugWidth = Math.min(width - 8, Math.max(...lines.map(line => ctx.measureText(line).width)) + 12);
+      const dx = Math.max(4, Math.min(width - debugWidth - 4, box.x));
+      const dy = Math.max(76, Math.min(height - 98, box.y + box.h + 70));
+      ctx.fillStyle = 'rgba(0,0,0,.86)'; ctx.fillRect(dx, dy, debugWidth, 66);
+      ctx.fillStyle = '#fff'; lines.forEach((line, i) => ctx.fillText(line, dx + 6, dy + 14 + i * 15));
+    }
   }
   ctx.fillStyle = options.replayName ? amber : 'rgba(20,20,22,.78)'; ctx.fillRect(0, 0, width, 38);
   ctx.fillStyle = surface; ctx.font = '700 13px system-ui';
   ctx.fillText(`${options.replayName ? `REPLAY · ${options.replayName}` : '● LIVE'} · Camera ${options.cam} · ${options.fps.toFixed(1)} fps`, 12, 24);
+  if (requests.length) {
+    ctx.fillStyle = red; ctx.fillRect(0, 38, width, 28); ctx.fillStyle = '#fff'; ctx.font = '700 12px system-ui';
+    ctx.fillText(`Check requested · ${requests.map(alert => `${alert.facts.name} · #${alert.facts.queueNo}`).join(', ')} · may need a check`, 12, 57);
+  }
   ctx.fillStyle = 'rgba(20,20,22,.86)'; ctx.fillRect(0, height - 30, width, 30); ctx.fillStyle = surface; ctx.font = '12px system-ui';
   ctx.fillText('Camera estimates · click a face to correct its identity', 12, height - 10);
   ctx.restore();

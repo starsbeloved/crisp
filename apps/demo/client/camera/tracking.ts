@@ -10,6 +10,7 @@ export interface FaceTrack {
   votes: (Match | null)[];
   match: Match | null;
   identity: 'identified' | 'identifying' | 'unknown';
+  source?: 'face' | 'body';
 }
 type Box = DetectedFace['box'];
 
@@ -125,4 +126,73 @@ export function poseForFace(box: Box, poses: PoseSample['landmarks'][], width: n
   candidates.sort((a, b) => Math.hypot(a[0].x * width - box.x - box.w / 2, a[0].y * height - box.y - box.h / 2) -
     Math.hypot(b[0].x * width - box.x - box.w / 2, b[0].y * height - box.y - box.h / 2));
   return candidates[0] ?? null;
+}
+
+export interface BodyTrack extends FaceTrack {
+  pose: PoseSample['landmarks'];
+  source: 'face' | 'body';
+  lastFaceAt: number;
+}
+type Torso = { x: number; y: number; size: number };
+function torso(p: PoseSample['landmarks']): Torso | null {
+  if (![11, 12, 23, 24].every(i => p[i] && Number.isFinite(p[i].x) && Number.isFinite(p[i].y) && p[i].visibility >= .3)) return null;
+  const sx = (p[11].x + p[12].x) / 2, sy = (p[11].y + p[12].y) / 2;
+  const hx = (p[23].x + p[24].x) / 2, hy = (p[23].y + p[24].y) / 2;
+  const size = Math.max(Math.hypot(p[11].x - p[12].x, p[11].y - p[12].y), Math.hypot(sx - hx, sy - hy) * .7);
+  return size >= .03 ? { x: (sx + hx) / 2, y: (sy + hy) / 2, size } : null;
+}
+
+/** Identity survives a hidden face only on an unambiguous, continuously visible torso. */
+export class BodyTracker {
+  private tracks: BodyTrack[] = [];
+  private nextId = 1;
+
+  update(poses: PoseSample['landmarks'][], faces: FaceTrack[], gallery: GalleryEntry[], now: number, width: number, height: number): void {
+    const previous = this.tracks.filter(t => now - t.lastSeen <= 1000);
+    const visible = poses.filter(p => torso(p) !== null);
+    const candidates: { track: BodyTrack; index: number; cost: number }[] = [];
+    for (const track of previous) for (const [index, p] of visible.entries()) {
+      const a = torso(track.pose)!, b = torso(p)!;
+      const ratio = b.size / a.size, cost = Math.hypot(a.x - b.x, a.y - b.y) / Math.max(a.size, b.size);
+      if (ratio >= .5 && ratio <= 2 && cost < 1.7) candidates.push({ track, index, cost });
+    }
+    const assigned = new Map<number, BodyTrack>(), used = new Set<string>();
+    for (const candidate of candidates.sort((a, b) => a.cost - b.cost)) {
+      const { track, index, cost } = candidate;
+      // Crossings and overlapping torsos must lose identity rather than exchange it.
+      if (used.has(track.id) || assigned.has(index) || candidates.some(other => other !== candidate &&
+        (other.track === track || other.index === index) && other.cost <= cost + .3)) continue;
+      assigned.set(index, track); used.add(track.id);
+    }
+    const waiting = new Set(gallery.map(entry => entry.visitId));
+    const freshFaces = faces.filter(face => now - face.lastSeen <= 700);
+    this.tracks = visible.map((p, index) => {
+      const points = [0, 11, 12, 23, 24].map(i => p[i]).filter(point => point.visibility >= .3);
+      const x = Math.min(...points.map(point => point.x)) * width, y = Math.min(...points.map(point => point.y)) * height;
+      const box = { x, y, w: Math.max(...points.map(point => point.x)) * width - x, h: Math.max(...points.map(point => point.y)) * height - y };
+      const track: BodyTrack = assigned.get(index) ?? { id: `body-${this.nextId++}`, pose: p, lastSeen: now,
+        lastFaceAt: -Infinity, face: { box, descriptor: [], landmarks: [], score: 0 }, votes: [], match: null, identity: 'identifying', source: 'body' };
+      track.pose = p; track.lastSeen = now; track.source = 'body';
+      track.face = { ...track.face, box, landmarks: [] };
+      if (now - track.lastFaceAt > 60_000 || !waiting.has(track.match?.visitId ?? '')) track.match = null;
+      const attached = freshFaces.filter(face => poseForFace(face.face.box, visible, width, height) === p);
+      if (attached.length === 1) {
+        const face = attached[0];
+        track.match = face.match && waiting.has(face.match.visitId) ? { ...face.match } : null;
+        track.face = face.face; track.source = 'face';
+        track.lastFaceAt = face.lastSeen;
+      }
+      track.identity = track.match ? 'identified' : 'identifying';
+      return track;
+    });
+    // A re-confirmed face wins over a body-only claim; one visit can never label two bodies.
+    const claims = new Map<string, BodyTrack>();
+    for (const track of [...this.tracks].sort((a, b) => Number(b.source === 'face') - Number(a.source === 'face'))) {
+      if (!track.match) continue;
+      if (claims.has(track.match.visitId)) { track.match = null; track.identity = 'identifying'; }
+      else claims.set(track.match.visitId, track);
+    }
+  }
+
+  current(now: number): BodyTrack[] { return this.tracks.filter(t => now - t.lastSeen < 700); }
 }

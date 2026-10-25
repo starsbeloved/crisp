@@ -5,14 +5,13 @@ import { api } from '../lib/api.ts';
 import { scheduleVideoFrame } from '../lib/camera.ts';
 import { detectFaces, loadFaceModels } from '../lib/face.ts';
 import { createSignalTracker, type SignalTracker, type PoseSample } from './signals/index.ts';
-import { FaceTracker } from './tracking.ts';
-import { poseForFace } from './tracking.ts';
+import { BodyTracker, FaceTracker, poseForFace } from './tracking.ts';
 import { meanCheekSample } from './sampling.ts';
 import { drawOverlay, type RenderTrack } from './overlay.ts';
 import { makeObservation } from './output.ts';
 
 export function useVision(videoRef: RefObject<HTMLVideoElement | null>, canvasRef: RefObject<HTMLCanvasElement | null>,
-  options: { ready: boolean; cam: string; replayName: string | null; state: RoomState | null; privacy: boolean }) {
+  options: { ready: boolean; cam: string; replayName: string | null; state: RoomState | null; privacy: boolean; debug?: boolean }) {
   const [models, setModels] = useState('Loading face models…');
   const [poseStatus, setPoseStatus] = useState('Loading pose model…');
   const [error, setError] = useState('');
@@ -46,7 +45,8 @@ export function useVision(videoRef: RefObject<HTMLVideoElement | null>, canvasRe
     void (async () => {
       try {
         const files = await FilesetResolver.forVisionTasks('/models/mediapipe-1.1.1/wasm');
-        const model = await PoseLandmarker.createFromOptions(files, { baseOptions: { modelAssetPath: '/models/pose/pose_landmarker_lite.task' }, numPoses: 2, runningMode: 'VIDEO' });
+        const model = await PoseLandmarker.createFromOptions(files, { baseOptions: { modelAssetPath: '/models/pose/pose_landmarker_lite.task' }, numPoses: 2,
+          minPoseDetectionConfidence: .3, minPosePresenceConfidence: .3, minTrackingConfidence: .3, runningMode: 'VIDEO' });
         if (active) { pose.current = model; setPoseStatus('Pose model ready'); } else model.close();
       } catch { if (active) setPoseStatus('Pose unavailable — face monitoring continues'); }
     })();
@@ -61,12 +61,13 @@ export function useVision(videoRef: RefObject<HTMLVideoElement | null>, canvasRe
     const sampleCtx = sampleCanvas.getContext('2d', { willReadFrequently: true }), detectorCtx = detectorCanvas.getContext('2d');
     if (!ctx || !sampleCtx || !detectorCtx) return;
     tracker.current = new FaceTracker();
+    const bodies = new BodyTracker();
     const signals = new Map<string, { visitId: string; tracker: SignalTracker }>();
     let stopped = false, detecting = false, uploading = false, reporting = false;
     let cancel = () => {};
     let lastDetector = -Infinity, lastUpload = -Infinity, lastReport = -Infinity, lastStats = performance.now(), frameCount = 0, fps = 0;
     let nextDetector: 'face' | 'pose' = 'face';
-    let poses: PoseSample['landmarks'][] = [], poseAt = -Infinity;
+    let poses: PoseSample['landmarks'][] = [], poseAt = -Infinity, appliedPoseAt = -Infinity;
     const source = options.replayName ? 'replay' : 'live';
     function frame() {
       if (stopped) return;
@@ -75,13 +76,20 @@ export function useVision(videoRef: RefObject<HTMLVideoElement | null>, canvasRe
       if (video.readyState < 2 || !video.videoWidth) return;
       const width = Math.min(640, video.videoWidth), height = Math.round(video.videoHeight * width / video.videoWidth);
       if (output.width !== width || output.height !== height) {
-        output.width = detectorCanvas.width = width; output.height = detectorCanvas.height = height;
+        output.width = width; output.height = height;
         sampleCanvas.width = Math.min(320, width); sampleCanvas.height = Math.round(height * sampleCanvas.width / width);
       }
       frameCount++;
       sampleCtx!.drawImage(video, 0, 0, sampleCanvas.width, sampleCanvas.height);
       const pixels = sampleCtx!.getImageData(0, 0, sampleCanvas.width, sampleCanvas.height);
-      const tracks = tracker.current.current(now);
+      const faces = tracker.current.current(now);
+      if (poseAt !== appliedPoseAt) {
+        bodies.update(poses, faces, gallery.current, poseAt, width, height); appliedPoseAt = poseAt;
+      }
+      const bodyTracks = bodies.current(now);
+      // A face can still be monitored when its torso is outside the image.
+      const tracks = [...bodyTracks, ...faces.filter(face => !bodyTracks.some(body =>
+        poseForFace(face.face.box, [body.pose], width, height) || face.match && body.match?.visitId === face.match.visitId))];
       const activeIds = new Set(tracks.map(track => track.id));
       for (const id of signals.keys()) if (!activeIds.has(id)) signals.delete(id);
       const rendered: RenderTrack[] = tracks.map(track => {
@@ -90,13 +98,16 @@ export function useVision(videoRef: RefObject<HTMLVideoElement | null>, canvasRe
         else if (!signal || signal.visitId !== track.match.visitId) {
           signal = { visitId: track.match.visitId, tracker: createSignalTracker() }; signals.set(track.id, signal);
         }
-        const assignedPose = now - poseAt < 500 ? poseForFace(track.face.box, poses, width, height) : null;
+        const assignedPose = 'pose' in track && now - poseAt < 700 ? track.pose as PoseSample['landmarks'] : null;
         if (signal) {
-          const sample = meanCheekSample(pixels, track.face, width, height, now, video.videoWidth);
+          const sample = track.source !== 'body' ? meanCheekSample(pixels, track.face, width, height, now, video.videoWidth) : null;
           if (sample) signal.tracker.pushFace(sample);
-          if (assignedPose) signal.tracker.pushPose({ t: now, landmarks: assignedPose });
+          // Count only fresh model results, never repeat a cached pose as evidence.
+          if (assignedPose) signal.tracker.pushPose({ t: poseAt, landmarks: assignedPose });
         }
-        const reading = signal?.tracker.read(now) ?? { hrBpm: null, hrQuality: 'none' as const, rrBpm: null, rrQuality: 'none' as const, posture: null, hint: null, hrSecondsCollected: 0, pulseTrace: null };
+        let reading = signal?.tracker.read(now) ?? { hrBpm: null, hrQuality: 'none' as const, rrBpm: null, rrQuality: 'none' as const, posture: null, hint: null, hrSecondsCollected: 0, pulseTrace: null };
+        if (track.source === 'body') reading = { ...reading, hrBpm: null, hrQuality: 'low', pulseTrace: null, hint: 'Face hidden — tracking body',
+          hrDisplay: undefined };
         return { track, pose: assignedPose, reading };
       });
       ctx!.drawImage(video, 0, 0, width, height);
@@ -128,8 +139,15 @@ export function useVision(videoRef: RefObject<HTMLVideoElement | null>, canvasRe
         const kind = nextDetector === 'face' && faceReady.current ? 'face' : pose.current ? 'pose' : 'face';
         nextDetector = kind === 'face' ? 'pose' : 'face'; lastDetector = now;
         if (kind === 'face' && faceReady.current) {
-          detecting = true; detectorCtx!.drawImage(video, 0, 0, width, height);
-          void detectFaces(detectorCanvas).then(faces => { if (!stopped) tracker.current.update(faces, gallery.current, performance.now()); })
+          detecting = true;
+          detectorCanvas.width = video.videoWidth; detectorCanvas.height = video.videoHeight;
+          detectorCtx!.drawImage(video, 0, 0);
+          const sx = width / detectorCanvas.width, sy = height / detectorCanvas.height;
+          void detectFaces(detectorCanvas).then(faces => {
+            if (!stopped) tracker.current.update(faces.map(face => ({ ...face,
+              box: { x: face.box.x * sx, y: face.box.y * sy, w: face.box.w * sx, h: face.box.h * sy },
+              landmarks: face.landmarks.map(p => ({ x: p.x * sx, y: p.y * sy })) })), gallery.current, performance.now());
+          })
             .catch(() => { if (!stopped) setModels('Face detection unavailable'); }).finally(() => { detecting = false; });
         } else if (pose.current) {
           try { poses = pose.current.detectForVideo(video, now).landmarks; poseAt = now; }
@@ -139,6 +157,6 @@ export function useVision(videoRef: RefObject<HTMLVideoElement | null>, canvasRe
     }
     cancel = scheduleVideoFrame(video, frame);
     return () => { stopped = true; cancel(); signals.clear(); };
-  }, [videoRef, canvasRef, options.ready, options.cam, options.replayName, options.privacy]);
+  }, [videoRef, canvasRef, options.ready, options.cam, options.replayName, options.privacy, options.debug]);
   return { models, poseStatus, error, stats, tracker, refreshGallery };
 }

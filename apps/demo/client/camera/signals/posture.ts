@@ -4,7 +4,7 @@ import { mean, median, resample, spectrum } from './dsp.ts';
 import { qualityForRatio } from './pulse.ts';
 
 export const POSE_THRESHOLDS = {
-  visibility: 0.7, referenceMs: 10_000, gapMs: 1000,
+  visibility: 0.4, referenceMs: 4000, gapMs: 1000,
   motionPerFrame: 0.003, headDescentWidths: 0.12, torsoAngleChangeDeg: 15,
   shoulderMotionPerFrame: 0.001,
   fallDrop: 0.25, fallHoldMs: 1500,
@@ -36,7 +36,7 @@ function geometry(s: PoseSample): Geometry | null {
 /** One reference and three continuous counters per recognized person. No browser or model state. */
 export function createPoseSignals() {
   let lastAt: number | null = null, previous: Geometry | null = null, recent: Geometry[] = [];
-  let reference: { t: number; head: number; angle: number }[] = [], baseline: { head: number; angle: number } | null = null;
+  let reference: Geometry[] = [], baseline: { head: number; angle: number; shoulderY: number; hipY: number } | null = null;
   let slumpStart: number | null = null, headStart: number | null = null, stillStart: number | null = null;
   let fallUntil = -Infinity, posture: PostureState | null = null;
   let breaths: { t: number; value: number }[] = [], rrBpm: number | null = null, rrQuality: Quality = 'none', lastEstimate = -Infinity;
@@ -56,7 +56,8 @@ export function createPoseSignals() {
       const g = geometry(s);
       if (!g) { breakContinuity(); rrQuality = 'low'; return; }
       recent = recent.filter(v => s.t - v.t <= 1000);
-      const fell = recent.some(v => {
+      const returningToSeat = baseline !== null && g.shoulderY <= baseline.shoulderY + .08 && g.hipY <= baseline.hipY + .08;
+      const fell = !returningToSeat && recent.some(v => {
         const shoulderDrop = g.shoulderY - v.shoulderY, hipDrop = g.hipY - v.hipY;
         return (shoulderDrop + hipDrop) / 2 > POSE_THRESHOLDS.fallDrop && shoulderDrop > 0.15 && hipDrop > 0.15 ||
           v.hipY < 0.98 && g.hipY >= 0.98 && shoulderDrop > 0.12;
@@ -76,9 +77,10 @@ export function createPoseSignals() {
       const stationary = motion !== null && motion < POSE_THRESHOLDS.motionPerFrame;
       if (!baseline) {
         if ((!previous || stationary) && g.head < 0 && Math.abs(g.angle) <= 20) {
-          reference.push({ t: s.t, head: g.head, angle: g.angle });
+          reference.push(g);
           if (s.t - reference[0].t >= POSE_THRESHOLDS.referenceMs) {
-            baseline = { head: median(reference.map(v => v.head)), angle: median(reference.map(v => v.angle)) };
+            baseline = { head: median(reference.map(v => v.head)), angle: median(reference.map(v => v.angle)),
+              shoulderY: median(reference.map(v => v.shoulderY)), hipY: median(reference.map(v => v.hipY)) };
             reference = [];
           }
         } else reference = [];
@@ -112,7 +114,7 @@ export function createPoseSignals() {
         rrBpm = peak.hz !== null && rrQuality !== 'low' ? peak.hz * 60 : null;
         lastEstimate = lastAt!;
       }
-      return { rrBpm: fresh ? rrBpm : null,
+      return { referenceReady: fresh && baseline !== null, rrBpm: fresh ? rrBpm : null,
         rrQuality: lastAt === null ? 'none' as const : !fresh ? 'low' as const : rrQuality,
         posture: fresh && posture ? { ...posture, fallSuspected: now <= fallUntil } : null };
     },

@@ -37,6 +37,9 @@ export function useCameraSource(videoRef: RefObject<HTMLVideoElement | null>, ca
             acquired = await openCamera();
           }
           if (disposed) { acquired.getTracks().forEach(track => track.stop()); return; }
+          // Keep distant faces at the camera's native detail before detector resizing.
+          await acquired.getVideoTracks()[0]?.applyConstraints({ width: { ideal: 1280 }, height: { ideal: 960 } }).catch(() => {});
+          if (disposed) { acquired.getTracks().forEach(track => track.stop()); return; }
           stream = acquired; video!.srcObject = stream;
           stream.getVideoTracks().forEach(track => { track.onended = () => {
             if (!disposed) { setReady(false); setMessage('Camera interrupted — reopening…'); retry = setTimeout(() => void start(), 1000); }
