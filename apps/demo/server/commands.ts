@@ -21,7 +21,9 @@ interface CommandHooks {
   shiftSummary?: () => Promise<CommandResult>;
 }
 export class StaffCommands {
-  constructor(private store: RoomStore, private hooks: CommandHooks) {}
+  private store: RoomStore;
+  private hooks: CommandHooks;
+  constructor(store: RoomStore, hooks: CommandHooks) { this.store = store; this.hooks = hooks; }
   async run(tool: string, parameters: unknown, now = Date.now()): Promise<CommandResult> {
     if (!parameters || typeof parameters !== 'object' || Array.isArray(parameters)) return { ok: false, message: 'Expected tool parameters as an object.' };
     const input = parameters as Record<string, unknown>;

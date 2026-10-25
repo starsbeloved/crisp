@@ -83,3 +83,9 @@ describe('appended staff HTTP routes', () => {
     } finally { app.server.closeAllConnections(); await new Promise<void>(resolve => app.server.close(() => resolve())); }
   });
 });
+
+it('loads staff modules in the same native Node TypeScript runtime as the server', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const result = spawnSync(process.execPath, ['--input-type=module', '-e', 'await import("./server/commands.ts"); await import("./server/proactive.ts");'], { cwd: process.cwd(), encoding: 'utf8' });
+  expect(result.stderr).toBe(''); expect(result.status).toBe(0);
+});

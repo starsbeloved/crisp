@@ -1,0 +1,13 @@
+.staff-voice { padding: 12px 0; }
+.staff-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.staff-mic { font-weight: 600; }
+.staff-toast { padding: 12px 16px; margin: 12px 0; border-left: 4px solid #365f43; background: #eef5ee; color: #23372a; border-radius: 8px; }
+.staff-error { border-color: #a64336; background: #fff0ed; color: #692c25; }
+.staff-suggestions { margin-bottom: 20px; }
+.staff-suggestions h2 { margin-bottom: 8px; }
+.staff-suggestion-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr)); gap: 12px; }
+.staff-suggestion { padding: 16px; border: 1px solid var(--border, #ded8cf); border-radius: 12px; background: var(--surface, #fffdf8); }
+.staff-suggestion p { margin: 8px 0 14px; }
+.staff-suggestion-actions { display: flex; gap: 10px; }
+.staff-suggestion small { color: #666; }
+.staff-dispositions { margin: 12px 0; }

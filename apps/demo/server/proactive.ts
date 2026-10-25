@@ -18,7 +18,9 @@ export class ProactiveAgent {
   private checked = new Set<string>();
   private dispositions: Record<string, Disposition> = {};
   private state: RoomState;
-  constructor(private store: RoomStore, private actions: { call: (visit: Visit, room: string) => CommandResult }) { this.state = store.state; }
+  private store: RoomStore;
+  private actions: { call: (visit: Visit, room: string) => CommandResult };
+  constructor(store: RoomStore, actions: { call: (visit: Visit, room: string) => CommandResult }) { this.store = store; this.actions = actions; this.state = store.state; }
   private sync() {
     if (this.state === this.store.state) return;
     this.state = this.store.state; this.entries = []; this.rooms.clear(); this.checked.clear(); this.dispositions = {};
