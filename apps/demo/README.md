@@ -2,7 +2,7 @@
 
 **Crisp is a proactive, ambient AI assistant for hospitals and clinics.** The [project README](../../README.md) describes the hospital-wide vision and the current demonstration across intake, room awareness, staff coordination, and exam-room context.
 
-Its presence is inspired by Miss Minutes: a character who appears on screens, speaks with people, and takes initiative.
+Its apple character appears across connected stations, talks with patients and staff, and offers next steps based on recorded events and room state.
 
 This directory contains the active React/TypeScript client and Node HTTP server. Requires Node.js 24 or newer. From this directory:
 

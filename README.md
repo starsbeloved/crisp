@@ -2,7 +2,7 @@
 
 **A proactive, ambient AI assistant for hospitals and clinics.**
 
-Crisp lives at the intersection of physical spaces and digital systems. Picture the presence of Miss Minutes: a character on the screen who talks with people, notices what is happening, and takes initiative. Crisp's original apple character brings that presence to a clinic's cameras, screens, speakers, and connected software. The vision is one assistant that brings relevant information together, anticipates the next task, and helps patients, nurses, doctors, and administrative staff get things done.
+Crisp works across a clinic's cameras, screens, speakers, and software. Its apple character gives people a familiar face to talk to. We are building an assistant that connects events in the physical space with patient information and staff tools, so it can notice changes, offer useful next steps, and help patients and healthcare staff throughout a visit.
 
 For **SBUHacks 2026**, we built a demonstration across patient arrival, room observation, staff coordination, and the exam room. The waiting-room workflow is the first demonstration of a much broader healthcare assistant.
 
