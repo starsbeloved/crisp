@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 
 const DEFAULT_ENV = '/Users/ducthanhnguyenpham/Coding/APPLE HEALTH DEVICE/apps/waiting-room/.local/providers.env';
 
-function providerVariables(): Record<string, string> {
+export function providerVariables(): Record<string, string> {
   let source = '';
   try { source = readFileSync(process.env.PROVIDERS_ENV || DEFAULT_ENV, 'utf8'); } catch { /* optional */ }
   const values: Record<string, string> = { ...process.env } as Record<string, string>;

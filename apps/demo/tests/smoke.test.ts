@@ -1,4 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
+// Smoke tests exercise template fallbacks; never reach real providers.
+process.env.PROVIDERS_ENV = '/nonexistent/providers.env';
+for (const key of ['GEMINI_API_KEY', 'ELEVENLABS_API_KEY', 'ELEVENLABS_AGENT_ID']) delete process.env[key];
 import { mkdtempSync, readFileSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
