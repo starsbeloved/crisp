@@ -9,7 +9,8 @@ export function Queue({ state, now, onSelect, actions, busy, talkingId, syntheti
   const visits = waitingQueue(state), order = visits.map(v => v.id).join('|');
   useLayoutEffect(() => {
     const rows = root.current?.querySelectorAll<HTMLElement>('[data-visit-id]');
-    rows?.forEach(row => { const id = row.dataset.visitId!, top = row.getBoundingClientRect().top, previous = positions.current.get(id);
+    const parentTop = root.current?.getBoundingClientRect().top ?? 0;
+    rows?.forEach(row => { const id = row.dataset.visitId!, top = row.getBoundingClientRect().top - parentTop, previous = positions.current.get(id);
       if (previous !== undefined && previous !== top && !matchMedia('(prefers-reduced-motion: reduce)').matches) row.animate([{ transform: `translateY(${previous - top}px)` }, { transform: 'translateY(0)' }], { duration: 400, easing: 'ease-out' });
       positions.current.set(id, top);
     });

@@ -6,10 +6,10 @@ export function useVoice(enabled: boolean, items: VoiceItem[]) {
   const seen = useRef(new Set<string>());
   const [talkingId, setTalkingId] = useState<string | null>(null);
   const [error, setError] = useState('');
-  const signature = items.map(i => i.key).join('|');
-  const latest = useRef(items); latest.current = items;
+  const currentKey = useRef<string | null>(null);
+  const item = items.find(i => i.key === currentKey.current) ?? items.find(i => !seen.current.has(i.key));
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !item) { currentKey.current = null; setTalkingId(null); return; }
     let cancelled = false, audio: HTMLAudioElement | null = null, utterance: SpeechSynthesisUtterance | null = null;
     let finishCurrent: (() => void) | null = null;
     async function fallback(item: VoiceItem) {
@@ -24,8 +24,8 @@ export function useVoice(enabled: boolean, items: VoiceItem[]) {
       });
     }
     async function run() {
-      for (const item of latest.current) {
-        if (cancelled || seen.current.has(item.key)) continue;
+        if (!item) return;
+        currentKey.current = item.key;
         seen.current.add(item.key); setTalkingId(item.id); setError('');
         if (item.url) {
           const played = await new Promise<boolean>(resolve => {
@@ -37,11 +37,10 @@ export function useVoice(enabled: boolean, items: VoiceItem[]) {
           });
           if (!played) await fallback(item);
         } else await fallback(item);
-        if (!cancelled) setTalkingId(null);
-      }
+        if (!cancelled) { currentKey.current = null; setTalkingId(null); }
     }
     void run();
     return () => { cancelled = true; if (audio) { audio.pause(); audio.onended = null; audio.onerror = null; } if (utterance) speechSynthesis.cancel(); finishCurrent?.(); setTalkingId(null); };
-  }, [enabled, signature]);
+  }, [enabled, item?.key]);
   return { talkingId, error };
 }

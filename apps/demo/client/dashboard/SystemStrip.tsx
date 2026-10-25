@@ -1,10 +1,10 @@
 import type { RoomState } from '../../shared/types.ts';
 
-export function SystemStrip({ state, connected, now, voice, onVoice, onReset, busy }: {
-  state: RoomState | null; connected: boolean; now: number; voice: boolean; onVoice: () => void; onReset: () => void; busy: boolean;
+export function SystemStrip({ state, connected, now, voice, onVoice, onReset, busy, synthetic = false }: {
+  state: RoomState | null; connected: boolean; now: number; voice: boolean; onVoice: () => void; onReset: () => void; busy: boolean; synthetic?: boolean;
 }) {
   return <section className="system-strip" aria-label="System status">
-    <span className={`status ${connected ? 'good' : 'low'}`}>SSE · {connected ? 'Connected' : 'Reconnecting…'}</span>
+    <span className={`status ${synthetic ? 'fair' : connected ? 'good' : 'low'}`}>{synthetic ? 'SYNTHETIC preview' : `SSE · ${connected ? 'Connected' : 'Reconnecting…'}`}</span>
     {Object.values(state?.cameras ?? {}).map(c => <span key={c.cameraId} className="camera-health">
       <span className={`status ${now - c.lastFrameAt > 2000 ? 'low' : 'good'}`}>Camera {c.cameraId} · {c.fps.toFixed(1)} fps · {Math.max(0, (now - c.lastFrameAt) / 1000).toFixed(1)} s ago{now - c.lastFrameAt > 2000 && ' · STALE'}</span>
       {!c.visible && <strong className="warning">Camera window hidden — processing may pause</strong>}

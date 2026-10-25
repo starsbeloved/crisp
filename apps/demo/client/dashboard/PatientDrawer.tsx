@@ -12,9 +12,10 @@ export function PatientDrawer({ visit, state, onClose, synthetic }: { visit: Vis
   useEffect(() => { const node = dialog.current; node?.showModal(); return () => node?.close(); }, []);
   const vitals = state.vitals[visit.id], alerts = state.alerts.filter(a => a.visitId === visit.id).sort((a, b) => b.openedAt - a.openedAt);
   const latest = alerts[0], note = state.handoffs[visit.id], mae = referenceMae(state, visit.id);
-  const stale = !vitals || Date.now() - vitals.lastSeenAt > 5000;
+  const stale = !vitals || (synthetic ? state.serverNow : Date.now()) - vitals.lastSeenAt > 5000;
+  const canPairReference = !stale && vitals?.hrBpm != null && (vitals.hrQuality === 'good' || vitals.hrQuality === 'fair');
   async function saveReference(event: FormEvent) {
-    event.preventDefault(); const n = Number(reference); if (!Number.isFinite(n) || n <= 0) return;
+    event.preventDefault(); const n = Number(reference); if (!Number.isFinite(n) || n <= 0 || !canPairReference) return;
     setBusy(true); setMessage('');
     try { await api.reference(visit.id, n); setReference(''); setMessage('Reference saved.'); }
     catch { setMessage('Could not save reference. Try again.'); } finally { setBusy(false); }
@@ -39,7 +40,8 @@ export function PatientDrawer({ visit, state, onClose, synthetic }: { visit: Vis
     <section><h3>Camera estimates</h3><p>HR: {estimate(vitals?.hrBpm, vitals?.hrQuality, stale)} · RR: {estimate(vitals?.rrBpm, vitals?.rrQuality, stale)}</p>
       <p>Signal quality · HR: {vitals?.hrQuality ?? 'none'} · RR: {vitals?.rrQuality ?? 'none'}{vitals?.hint && ` · ${vitals.hint}`}{stale && ' · reading stale'}</p>
       <VitalsChart history={history} baselineHr={vitals?.baselineHr ?? null} baselineRr={vitals?.baselineRr ?? null} />
-      <form onSubmit={saveReference}><label htmlFor="reference-hr">Reference HR · bpm</label><div className="ask-input"><input id="reference-hr" type="number" inputMode="numeric" min="1" step="any" required value={reference} onChange={e => setReference(e.target.value)} /><button disabled={busy || synthetic}>Save reference</button></div></form>
+      <form onSubmit={saveReference}><label htmlFor="reference-hr">Reference HR · bpm</label><div className="ask-input"><input id="reference-hr" type="number" inputMode="numeric" min="1" step="any" required value={reference} onChange={e => setReference(e.target.value)} /><button disabled={busy || synthetic || !canPairReference}>Save reference</button></div></form>
+      {!canPairReference && <small>Wait for a current camera estimate with fair or good signal before pairing a reference.</small>}
       <p>Mean absolute error: {mae === null ? 'Awaiting paired reference readings' : `${mae.toFixed(1)} bpm`} · {state.references.filter(r => r.visitId === visit.id && r.cameraBpm !== null).length} paired samples</p>
     </section>
     <section><h3>Request timeline</h3>{!alerts.length && <p>No requests recorded.</p>}{alerts.map(a => <article key={a.id} className={`timeline-event ${a.level}`}><strong>{a.level === 'red' ? 'Red' : 'Amber'} · {a.status}</strong><p>{a.reasons.join(' · ')}</p>

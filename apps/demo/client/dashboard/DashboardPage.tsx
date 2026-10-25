@@ -27,7 +27,13 @@ export function DashboardPage() {
     try { await work(); } catch (e) { setError(e instanceof Error ? e.message : 'Action failed. Please try again.'); } finally { setBusy(false); }
   }
   function fixtureAction(kind: 'acknowledged' | 'checked', id: string) {
-    setFixture(current => current ? { ...current, alerts: current.alerts.map(a => a.id === id ? { ...a, status: kind, updatedAt: now, ...(kind === 'checked' ? { checkedAt: now } : { acknowledgedAt: now }) } : a) } : current);
+    setFixture(current => {
+      if (!current) return current;
+      const visitId = current.alerts.find(a => a.id === id)?.visitId;
+      const vitals = visitId ? current.vitals[visitId] : undefined;
+      return { ...current, alerts: current.alerts.map(a => a.id === id ? { ...a, status: kind, updatedAt: now, ...(kind === 'checked' ? { checkedAt: now } : { acknowledgedAt: now }) } : a),
+        vitals: kind === 'checked' && vitals ? { ...current.vitals, [vitals.visitId]: { ...vitals, baselineHr: null, baselineRr: null, level: 'none' } } : current.vitals };
+    });
   }
   const actions = {
     acknowledge: (id: string) => { if (synthetic) fixtureAction('acknowledged', id); else void perform(() => api.acknowledge(id)); },
@@ -39,8 +45,8 @@ export function DashboardPage() {
   };
   const selectedVisit = state?.visits.find(v => v.id === selected);
   return <div className="dashboard"><div className="page-heading"><div><p className="eyebrow">No one waits unseen</p><h1>Nurse dashboard</h1></div><span className="estimate-label">Camera estimates · human review</span></div>
-    {fixtureAllowed && <div className="fixture-controls"><button className="secondary" onClick={() => { setFixture(synthetic ? null : demoFixture()); setSelected(null); }}>{synthetic ? 'Return to live room' : 'Load demo fixture'}</button>{synthetic && <strong className="synthetic-label">SYNTHETIC · illustrative data · actions stay in this preview</strong>}</div>}
-    <SystemStrip state={state} connected={synthetic ? false : connected} now={now} voice={voice} onVoice={() => setVoice(v => !v)} busy={busy} onReset={() => {
+    {fixtureAllowed && <div className="fixture-controls"><button className="secondary" onClick={() => { setFixture(synthetic ? null : demoFixture()); setSelected(null); }}>{synthetic ? 'Return to live room' : 'Load demo fixture'}</button>{synthetic && <><strong className="synthetic-label">SYNTHETIC · illustrative data · actions stay in this preview</strong><button className="secondary" onClick={() => setFixture(current => current ? { ...current, alerts: demoFixture(now).alerts, vitals: demoFixture(now).vitals, serverNow: now } : current)}>Trigger synthetic request</button></>}</div>}
+    <SystemStrip state={state} connected={connected} synthetic={synthetic} now={now} voice={voice} onVoice={() => setVoice(v => !v)} busy={busy} onReset={() => {
       if (!window.confirm(synthetic ? 'Reset this synthetic preview?' : 'Reset all demo visits, alerts, and camera state?')) return;
       if (synthetic) { setFixture(demoFixture()); setSelected(null); } else void perform(async () => { await api.reset(); setSelected(null); });
     }} />
