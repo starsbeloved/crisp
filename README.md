@@ -17,8 +17,6 @@ Imagine an assistant that knows a patient has arrived, remembers what they said,
 
 Crisp's longer-term role spans the hospital's authorized systems: records, scheduling, cameras, room status, displays, and communication. It would combine current observations with relevant past information and proactively offer useful actions. Hospital-wide integration and general administrative automation are future work.
 
-Read the [product vision](apps/demo/docs/product-vision.md) for the full positioning.
-
 ## What the demo implements
 
 | Area | Current prototype |
@@ -33,8 +31,6 @@ Read the [product vision](apps/demo/docs/product-vision.md) for the full positio
 | Gemini sees | An opt-in description of visible posture and scene from one alert frame, with disclosure that the frame is sent to Gemini. |
 
 Crisp notices events and proposes next steps. Staff confirm workflow suggestions and remain responsible for clinical decisions. A missing camera sighting, for example, is a prompt to verify someone's whereabouts.
-
-The [complete feature inventory](apps/demo/docs/features.md) maps each capability to its implementation. The [Devpost copy](apps/demo/docs/devpost.md) and [demo walkthrough](apps/demo/docs/demo-narration.md) explain the connected journey and the technologies behind it.
 
 ## How it works
 
@@ -57,7 +53,7 @@ Crisp is primarily software. The first version can reuse a clinic's laptops, des
 
 The goal is to lower the hardware barrier for smaller clinics and under-resourced healthcare systems. Our demo uses Vultr; the application can also be hosted on a hospital-managed server. Enabled Gemini and ElevenLabs features still use their provider APIs with either hosting arrangement.
 
-The current camera input is a browser-accessible webcam or labeled replay. Reusing security-camera streams is an expansion path requiring a compatible video bridge and suitable camera placement, resolution, and lighting. The [equipment guide](apps/demo/docs/product-vision.md#accessible-through-existing-equipment) explains the requirements.
+The current camera input is a browser-accessible webcam or labeled replay. Reusing security-camera streams is an expansion path requiring a compatible video bridge and suitable camera placement, resolution, and lighting.
 
 ## Run locally
 
@@ -129,7 +125,6 @@ Camera values are **estimates** with signal-quality labels. Unavailable readings
 | [`apps/demo`](apps/demo/) | Current application, server, tests, and deployment kit. |
 | [`apps/demo/docs`](apps/demo/docs/) | Application setup and technical notes. |
 | [`apps/demo/public/models`](apps/demo/public/models/) | Required vision models, runtime files, manifests, and licenses. |
-| [`.plans`](.plans/) | Internal build packets, research, design references, and film/submission drafts. Older names describe earlier demo framing. |
-| `apps/waiting-room`, `packages`, `server`, `tests`, `docs`, `outputs` | Preserved earlier prototypes and research. Use the commands in `apps/demo` for the current app. |
+| `apps/waiting-room`, `packages`, `server`, `tests` | Earlier application code. Use the commands in `apps/demo` for the current app. |
 
-The current development branch is **`crisp-demo`**. This README and the linked product vision define Crisp's positioning; historical project names and planning documents describe earlier scopes.
+The current development branch is **`crisp-demo`**.
