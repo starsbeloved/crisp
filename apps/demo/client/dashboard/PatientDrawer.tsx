@@ -2,15 +2,15 @@ import { useLayoutEffect, useRef, useState, type FormEvent } from 'react';
 import type { RoomState, Visit } from '../../shared/types.ts';
 import { api } from '../lib/api.ts';
 import { ReplayPlayer } from './ReplayPlayer.tsx';
+import { GeminiSees } from './GeminiSees.tsx';
 import { VitalsChart } from './VitalsChart.tsx';
 import { activeAlert, estimate, referenceMae, sourceLabel } from './presentation.ts';
 import { CallInPopover } from './CallInPopover.tsx';
 import type { QueueActions } from './QueueRow.tsx';
 
-export function PatientDrawer({ visit, state, onClose, synthetic, actions, actionBusy, geminiVision }: { visit: Visit; state: RoomState; onClose: () => void; synthetic: boolean; actions: QueueActions; actionBusy: boolean; geminiVision: boolean }) {
+export function PatientDrawer({ visit, state, onClose, synthetic, actions, actionBusy }: { visit: Visit; state: RoomState; onClose: () => void; synthetic: boolean; actions: QueueActions; actionBusy: boolean }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [reference, setReference] = useState(''), [message, setMessage] = useState(''), [busy, setBusy] = useState(false);
-  const [visionHidden, setVisionHidden] = useState(false), [description, setDescription] = useState('');
   useLayoutEffect(() => {
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const node = dialog.current; node?.showModal();
@@ -30,12 +30,6 @@ export function PatientDrawer({ visit, state, onClose, synthetic, actions, actio
     setBusy(true); setMessage('');
     try { await api.reference(visit.id, n); setReference(''); setMessage('Reference saved.'); }
     catch { setMessage('Could not save reference. Try again.'); } finally { setBusy(false); }
-  }
-  async function vision() {
-    if (!latest) return; setBusy(true); setMessage('');
-    try { const result = await api.vision(latest.id); setDescription(`${sourceLabel(result.source)} · ${result.description}`); }
-    catch (error) { if (error instanceof Error && error.message.includes('501')) { setVisionHidden(true); setMessage('Snapshot description unavailable.'); } else setMessage('Could not describe this snapshot.'); }
-    finally { setBusy(false); }
   }
   // History points carry no per-point quality in P0. Hide the affected trace when its current signal is rejected.
   const history = vitals?.history.map(p => ({ ...p, hr: vitals.hrQuality === 'low' || vitals.hrQuality === 'none' ? null : p.hr, rr: vitals.rrQuality === 'low' || vitals.rrQuality === 'none' ? null : p.rr })) ?? [];
@@ -64,8 +58,7 @@ export function PatientDrawer({ visit, state, onClose, synthetic, actions, actio
       {a.explanation && <p>{a.explanation.bubble} <span className="tag">{sourceLabel(a.explanation.source)}</span></p>}
     </article>)}
       {latest && <ReplayPlayer alert={latest} vitals={vitals} synthetic={synthetic} />}
-      {latest && !visionHidden && <><p className="privacy-note">{geminiVision ? 'Gemini sees one alert frame only; it is not stored.' : 'Enable “Gemini sees alert frame” in System to describe one alert snapshot.'}</p><button className="secondary" disabled={busy || synthetic || !geminiVision} onClick={vision}>Describe snapshot (Gemini)</button></>}
-      {description && <p><strong>Gemini sees:</strong> {description}</p>}
+      {latest && <GeminiSees alert={latest} />}
     </section>
     <section><h3>Clinician handoff {note && <span className="tag">{sourceLabel(note.source)}</span>}</h3><p className="handoff">{note?.text ?? (visit.status === 'called' ? 'Preparing handoff…' : 'Call this person in to prepare a handoff.')}</p>
       {note && <button className="secondary" onClick={() => { void navigator.clipboard.writeText(note.text).then(() => setMessage('Handoff copied.')).catch(() => setMessage('Copy unavailable. Select and copy the note above.')); }}>Copy handoff</button>}

@@ -3,6 +3,7 @@ import type { RoomState } from '../../shared/types.ts';
 import { api } from '../lib/api.ts';
 import { useRoomState } from '../lib/useRoomState.ts';
 import { SystemStrip } from './SystemStrip.tsx';
+import { GeminiSeesProvider } from './GeminiSees.tsx';
 import { AlertBanner } from './AlertBanner.tsx';
 import { IncidentDebrief } from './IncidentDebrief.tsx';
 import { VideoPanel } from './VideoPanel.tsx';
@@ -81,7 +82,7 @@ export function DashboardPage() {
   };
   const selectedVisit = state?.visits.find(v => v.id === selected);
   const latestRed = state?.alerts.filter(alert => alert.level === 'red' && alert.status !== 'checked').sort((a, b) => b.openedAt - a.openedAt)[0];
-  return <div className="dashboard"><div className="page-heading"><div><p className="eyebrow">No one waits unseen</p><h1>Crisp Command Center</h1></div></div>
+  return <GeminiSeesProvider enabled={geminiVision} alerts={openAlerts} synthetic={synthetic}><div className="dashboard"><div className="page-heading"><div><p className="eyebrow">No one waits unseen</p><h1>Crisp Command Center</h1></div></div>
     {fixtureAllowed && <div className="fixture-controls"><button className="secondary" onClick={() => { setFixture(synthetic ? null : demoFixture()); setPreviewHidden([]); setSelected(null); }}>{synthetic ? 'Return to live room' : 'Load demo fixture'}</button>{synthetic && <><strong className="synthetic-label">SYNTHETIC · illustrative data · actions stay in this preview</strong><button className="secondary" onClick={() => setFixture(current => current ? { ...current, alerts: demoFixture(now).alerts, vitals: demoFixture(now).vitals, serverNow: now } : current)}>Trigger synthetic request</button></>}</div>}
     <SystemStrip state={state} connected={connected} synthetic={synthetic} now={now} voice={voice} onVoice={monitoring.toggle} onTestSound={monitoring.test} talking={Boolean(audio.talkingId)} geminiVision={geminiVision} onGeminiVision={setGeminiVision} busy={busy} onReset={() => {
       if (!window.confirm(synthetic ? 'Reset this synthetic preview?' : 'Reset all demo visits, alerts, and camera state?')) return;
@@ -116,6 +117,6 @@ export function DashboardPage() {
       }} />
     <button type="button" className="secondary" disabled={!connected || synthetic || busy} onClick={() => { void perform(async () => { const result = await staffRequest('shift_summary', {}); confirm(result, !result.ok); window.dispatchEvent(new Event('crisp-staff-change')); }); }}>Summarize this shift</button>
     </div></div>
-    {selectedVisit && state && <PatientDrawer key={selectedVisit.id} visit={selectedVisit} state={state} onClose={() => setSelected(null)} synthetic={synthetic} actions={actions} actionBusy={busy} geminiVision={geminiVision} />}
-  </div>;
+    {selectedVisit && state && <PatientDrawer key={selectedVisit.id} visit={selectedVisit} state={state} onClose={() => setSelected(null)} synthetic={synthetic} actions={actions} actionBusy={busy} />}
+  </div></GeminiSeesProvider>;
 }
