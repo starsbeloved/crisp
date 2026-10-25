@@ -11,7 +11,6 @@ const realFetch = globalThis.fetch;
 
 vi.mock('../../lib/face.ts', () => ({ loadFaceModels: vi.fn().mockResolvedValue(undefined), detectFaces: vi.fn().mockResolvedValue([]) }));
 vi.mock('../../lib/camera.ts', async importOriginal => ({ ...await importOriginal<object>(), openCamera: vi.fn() }));
-vi.mock('../useKioskPulse.ts', () => ({ useKioskPulse: vi.fn(() => null) }));
 let current: CheckInState;
 let root: Root;
 let container: HTMLDivElement;
@@ -111,10 +110,10 @@ describe('check-in controller', () => {
     expect(current.step).toBe('face');
     await act(async () => { await vi.advanceTimersByTimeAsync(1400); });
     expect(await scanned).toEqual({ ok: true, reason: null }); expect(current.face.status).toBe('saved');
-    expect(current.step).toBe('pulse');
+    expect(current.step).toBe('face');
     expect(stop).not.toHaveBeenCalled();
     expect(openCamera).toHaveBeenCalledOnce();
-    await act(async () => { current.completePulse([], 'skipped'); fill(); current.goTo('questions'); });
+    await act(async () => { fill(); current.goTo('questions'); });
     expect(stop).toHaveBeenCalled();
     await act(async () => { await current.finish(); });
     expect(posted[0].descriptor).toEqual(Array(128).fill(0.2));
@@ -131,7 +130,7 @@ describe('check-in controller', () => {
     const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
     vi.stubGlobal('fetch', (url: string, init?: RequestInit) => realFetch(new URL(url, base), init));
     try {
-      await act(async () => { current.completePulse([], 'skipped'); fill(); await current.finish(); });
+      await act(async () => { fill(); await current.finish(); });
       expect(current).toMatchObject({ step: 'done', queueNo: 1 });
       const gallery = await (await realFetch(`${base}/api/gallery`)).json();
       expect(gallery).toHaveLength(1);
@@ -150,32 +149,18 @@ describe('check-in controller', () => {
     await act(async () => { fill(); await current.finish(); });
     expect(posted[0].descriptor).toBeNull();
   });
-  it('holds the pulse step against voice navigation and defers finish until Skip or completion', async () => {
+  it('continues directly after enrollment and submits without a pulse wait or observation upload', async () => {
     await mount();
     vi.mocked(detectFaces).mockResolvedValue([{ box: { x: 0, y: 0, w: 150, h: 180 }, score: .95, descriptor: Array(128).fill(.2), landmarks: [] }]);
     Object.defineProperty(container.querySelector('video')!, 'readyState', { value: 4 });
     await act(async () => { void current.startFaceScan(); });
     await act(async () => { await vi.advanceTimersByTimeAsync(1400); fill(); current.goTo('questions'); });
-    expect(current.step).toBe('pulse');
-    let pending!: ReturnType<typeof current.finish>;
-    await act(async () => { pending = current.finish(); });
-    expect(request).not.toHaveBeenCalled();
-    await act(async () => { current.completePulse([], 'skipped'); await pending; });
+    expect(current.step).toBe('questions');
+    await act(async () => { await current.finish(); });
     expect(current.step).toBe('done');
     expect(request).toHaveBeenCalledOnce();
-  });
-  it('posts measured samples after the visit exists, preserves timestamps and does not duplicate on upload failure', async () => {
-    await mount();
-    request.mockResolvedValueOnce(new Response(JSON.stringify({ id: 'visit-7', queueNo: 7 })));
-    request.mockRejectedValueOnce(new Error('observation offline'));
-    await act(async () => {
-      fill(); current.completePulse([{ at: 123456, bpm: 72, quality: 'good', trace: [.1, -.1], box: { x: .2, y: .1, w: .3, h: .5 } }], 'complete');
-      await current.finish();
-    });
-    expect(JSON.parse(request.mock.calls[1][1].body)).toMatchObject({ observations: [{ cameraId: 'kiosk', visitId: 'visit-7', at: 123456, hrBpm: 72, source: 'live' }] });
-    expect(current.step).toBe('done'); expect(current.pulseNotice).toContain('could not be shared');
-    await act(async () => { await current.finish(); });
-    expect(request).toHaveBeenCalledTimes(2);
+    expect(request.mock.calls[0][0]).toBe('/api/visits');
+    expect(posted[0].descriptor).toEqual(Array(128).fill(.2));
   });
   it('keeps a voice follow-up when an earlier form request returns late', async () => {
     let complete!: (response: Response) => void;
