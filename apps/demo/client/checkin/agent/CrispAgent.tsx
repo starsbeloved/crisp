@@ -19,7 +19,7 @@ function VoiceCheckIn({ controller }: { controller: CheckInController }) {
   const current = useRef(controller); current.current = controller;
   const atWelcome = controller.step === 'welcome';
   const tools = useMemo(() => createCheckInTools(() => current.current), [atWelcome]);
-  const voice = useVoiceAgent('checkin', Boolean(state?.providers.agent), tools);
+  const voice = useVoiceAgent('checkin', Boolean(state?.providers.agent), tools, "Check-in order: ask name and call set_name; ask What's your date of birth? Confirm YYYY-MM-DD; ask And a phone number we can reach you on? Call set_patient_details; use null for declined details, never guess. Ask permission and call start_face_scan; ask reason, onset, trend and call save_answers; MUST call get_follow_up_question, explain it is because of the patient's own words, ask the exact returned question and call save_follow_up; then finish_check_in. Do not invent a follow-up or a queue number. If a tool is unavailable, help the patient switch to taps. No diagnosis or interpretation.");
   const [tapping, setTapping] = useState(false);
   const { endSession } = voice;
   useEffect(() => {
@@ -44,7 +44,7 @@ function VoiceCheckIn({ controller }: { controller: CheckInController }) {
         {voice.captions.map((caption, i) => <div className="checkin-caption" data-speaker={caption.speaker} key={i}><strong>{caption.speaker}: </strong><p>{caption.text}{i === voice.captions.length - 1 && <span className="checkin-caption-caret" aria-hidden="true" />}</p></div>)}
       </div>}
       <div className="checkin-voice-actions">
-        {!active && <button type="button" className="checkin-primary checkin-voice-start" onClick={() => { controller.setVia('voice'); void voice.start(); }}><KioskIcon name="mic" />Talk to Crisp</button>}
+        {!active && <button type="button" className="checkin-primary checkin-voice-start" onClick={() => { controller.setVia('voice'); controller.goTo('name'); void voice.start(); }}><KioskIcon name="mic" />Talk to Crisp</button>}
         <button type="button" className="checkin-secondary checkin-voice-tap" onClick={() => { voice.endSession(); controller.setVia('form'); controller.goTo('name'); setTapping(true); }}>I’d rather tap</button>
       </div>
     </div>

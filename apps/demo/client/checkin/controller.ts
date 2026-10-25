@@ -6,9 +6,11 @@ import { detectFaces, loadFaceModels } from '../lib/face.ts';
 import { useVideoSource } from '../lib/useVideoSource.ts';
 import type { CheckInController, Step } from './controller-types.ts';
 import { assessFace, averageDescriptors } from './enrollment.ts';
+import { detailsError } from './details.ts';
+import { loadFollowUp } from './followup.ts';
 
 type ScanResult = { ok: boolean; reason: string | null };
-type FormState = Pick<CheckInController, 'step' | 'name' | 'answers' | 'face' | 'queueNo' | 'via'> & {
+type FormState = Pick<CheckInController, 'step' | 'name' | 'answers' | 'face' | 'queueNo' | 'via' | 'followUpPrompt'> & {
   descriptor: number[] | null; busy: boolean; error: string;
   followUpQuestion: string; followUpLoading: boolean;
 };
@@ -16,11 +18,10 @@ export type CheckInState = CheckInController & Pick<FormState, 'busy' | 'error' 
   videoRef: RefObject<HTMLVideoElement | null>; replay: string | null; cameraMessage: string;
   prepareFollowUp(): Promise<void>;
 };
-const fallbackQuestion = 'Is there anything else you would like the nurse to know?';
 function initialState(): FormState {
   return { step: 'welcome', name: '', answers: { reason: '', reasonChips: [], onset: null, trend: null, followUp: null, via: 'form' },
     face: { status: 'idle', message: 'Face scan optional' }, queueNo: null, via: 'form', descriptor: null,
-    busy: false, error: '', followUpQuestion: '', followUpLoading: false };
+    busy: false, error: '', followUpQuestion: '', followUpPrompt: null, followUpLoading: false };
 }
 let warmup: Promise<void> | null = null;
 function warmFaceModels(): Promise<void> {
@@ -131,7 +132,7 @@ export function useCheckIn(): CheckInState {
     if (submission.current) return submission.current;
     const value = latest.current;
     const reason = value.answers.reason.trim() || value.answers.reasonChips.join(', ');
-    const error = !value.name.trim() ? 'Please enter your preferred name or alias.' : !reason ? 'Please tell Crisp what brings you in today.' : '';
+    const error = !value.name.trim() ? 'Please enter your preferred name or alias.' : !reason ? 'Please tell Crisp what brings you in today.' : detailsError(value.answers);
     if (error) { update({ error }); return Promise.reject(new Error(error)); }
     settleScan({ ok: false, reason: 'Check-in submitted' });
     update({ busy: true, error: '', step: value.step === 'face' ? 'questions' : value.step,
@@ -154,34 +155,27 @@ export function useCheckIn(): CheckInState {
     if (latest.current.followUpQuestion) return Promise.resolve();
     if (followUpRequest.current) return followUpRequest.current;
     update({ followUpLoading: true });
-    const request = (async () => {
-      let question = fallbackQuestion;
-      const abort = new AbortController();
-      const timer = setTimeout(() => abort.abort(), 6500);
-      try {
-        const response = await fetch('/api/checkin/follow-up', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ answers: latest.current.answers }), signal: abort.signal });
-        if (response.ok) {
-          const result = await response.json() as { question?: unknown };
-          if (typeof result.question === 'string' && result.question.trim()) question = result.question;
-        }
-      } catch { /* A short, optional template question keeps check-in working. */ }
-      finally { clearTimeout(timer); }
-      return question;
-    })().then(question => {
-      if (followUpRequest.current === request) update({ followUpQuestion: question, followUpLoading: false });
+    const request = loadFollowUp(latest.current.answers).then(prompt => {
+      if (followUpRequest.current === request) update({ followUpQuestion: prompt.question, followUpPrompt: prompt, followUpLoading: false });
     });
     followUpRequest.current = request;
     return request;
   }, [goTo, update]);
   return { ...state, videoRef, replay, cameraMessage, reset, goTo, startFaceScan, skipFace, finish, prepareFollowUp,
+    // Tool calls can arrive back to back, before React commits the next render.
+    get name() { return latest.current.name; },
+    get answers() { return latest.current.answers; },
     setVia(via) { update({ via, answers: { ...latest.current.answers, via } }); },
     setName(name) { update({ name }); },
     setAnswers(patch: Partial<CheckInAnswers>) {
       const changesComplaint = ['reason', 'reasonChips', 'onset', 'trend'].some(key => key in patch);
       const answers = { ...latest.current.answers, ...(changesComplaint ? { followUp: null } : {}), ...patch };
       if (changesComplaint) followUpRequest.current = null;
-      update({ answers, via: answers.via, ...(changesComplaint ? { followUpQuestion: '', followUpLoading: false } : {}) });
+      update({ answers, via: answers.via, ...(changesComplaint ? { followUpQuestion: '', followUpPrompt: null, followUpLoading: false } : {}) });
+    },
+    setFollowUpPrompt(prompt) {
+      followUpRequest.current = null;
+      update({ followUpPrompt: prompt, followUpQuestion: prompt.question, followUpLoading: false });
     },
     setFollowUp(question, answer) {
       followUpRequest.current = null;

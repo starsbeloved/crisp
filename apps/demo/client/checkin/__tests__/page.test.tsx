@@ -18,6 +18,9 @@ it('starts with an empty preferred name and keeps help and Back available', asyn
     expect(container.querySelectorAll('svg.crisp-character')).toHaveLength(1);
     await act(async () => button('I’d rather tap')!.click());
     expect(container.querySelector('input')?.value).toBe('');
+    expect(container.querySelector('input[name=phone]')).not.toBeNull();
+    expect(container.querySelector('input[name=dateOfBirth]')).not.toBeNull();
+    expect(container.textContent).toContain('only to staff');
     expect(container.querySelectorAll('h1')).toHaveLength(1);
     await act(async () => button('I need help')!.click());
     expect(container.textContent).toContain('ask a staff member');

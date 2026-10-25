@@ -3,7 +3,7 @@ import { useConversation, type ClientToolsConfig } from '@elevenlabs/react';
 import type { CrispState } from '../../ui/Crisp.tsx';
 import { stripCaptionTags } from './captions.ts';
 
-export function useVoiceAgent(mode: 'checkin' | 'nurse', enabled: boolean, tools: ClientToolsConfig['clientTools']) {
+export function useVoiceAgent(mode: 'checkin' | 'nurse', enabled: boolean, tools: ClientToolsConfig['clientTools'], context?: string) {
   const [available, setAvailable] = useState(false);
   const [captions, setCaptions] = useState<{ speaker: string; text: string }[]>([]);
   const [thinking, setThinking] = useState(false);
@@ -14,7 +14,10 @@ export function useVoiceAgent(mode: 'checkin' | 'nurse', enabled: boolean, tools
     onError: () => { setAvailable(false); signed.current = null; endSession(); },
     onMessage: message => setCaptions(items => [...items.slice(-11), { speaker: message.role === 'user' || message.source === 'user' ? 'You' : 'Crisp', text: stripCaptionTags(message.message) }]),
   });
-  const { endSession, getOutputVolume, status, isSpeaking } = conversation;
+  const { endSession, getOutputVolume, status, isSpeaking, sendContextualUpdate } = conversation;
+  useEffect(() => {
+    if (status === 'connected' && context) sendContextualUpdate(context);
+  }, [status, context, sendContextualUpdate]);
   useEffect(() => {
     if (!enabled) { setAvailable(false); return; }
     const abort = new AbortController();
@@ -48,7 +51,7 @@ export function useVoiceAgent(mode: 'checkin' | 'nurse', enabled: boolean, tools
         try { return await currentTools.current[name](parameters); }
         finally { setThinking(false); }
       }]));
-      conversation.startSession({ signedUrl: url, connectionType: 'websocket', clientTools });
+      await conversation.startSession({ signedUrl: url, connectionType: 'websocket', clientTools });
     } catch { setAvailable(false); endSession(); }
   }
   const mascotState: CrispState = thinking || status === 'connecting' ? 'thinking' : isSpeaking ? 'talking' : status === 'connected' ? 'listening' : 'idle';
