@@ -43,6 +43,7 @@ final report lists: what works, what you verified and how, what is not done, req
 - **Commit and `git push` after every working step** (at least every ~30 min), small commits, message
   `pN: <what works now>`. Never force-push, never push to `main`, never rewrite history.
 - Merging packet branches into `crisp-demo` is done by the integrator (P8 / Claude audit), not by packet sessions.
+- Known-good checkpoint: tag `checkpoint-p9` and branch `crisp-demo-stable`. Never move, delete or force-push them.
 
 ## Safety
 
