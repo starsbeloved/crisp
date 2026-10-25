@@ -6,9 +6,10 @@ import { Card } from '../ui/Card.tsx';
 import { Chip } from '../ui/Chip.tsx';
 import { useCameraSource } from './useCameraSource.ts';
 import { useVision } from './useVision.ts';
+import { RoomView } from '../room/RoomView.tsx';
 import './camera.css';
 
-export function CameraPage() {
+export function CameraPage({ roomView = false }: { roomView?: boolean }) {
   const { connected, state } = useRoomState();
   const video = useRef<HTMLVideoElement>(null), canvas = useRef<HTMLCanvasElement>(null);
   const [replay, setReplay] = useState<string | null>(replaySource);
@@ -19,10 +20,18 @@ export function CameraPage() {
   const [selectedTrack, setSelectedTrack] = useState<string | null>(null);
   const [correctionError, setCorrectionError] = useState('');
   const [saving, setSaving] = useState(false);
-  const [demoView, setDemoView] = useState(() => new URLSearchParams(location.search).get('demo') === '1');
+  const [demoView, setDemoView] = useState(() => !roomView && new URLSearchParams(location.search).get('demo') === '1');
   const [settings, setSettings] = useState(false);
   const demoButton = useRef<HTMLButtonElement>(null);
   const settingsButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!roomView || !settings) return;
+    function escape(event: KeyboardEvent) {
+      if (event.key === 'Escape') { setSettings(false); settingsButton.current?.focus(); }
+    }
+    window.addEventListener('keydown', escape);
+    return () => window.removeEventListener('keydown', escape);
+  }, [roomView, settings]);
   useEffect(() => {
     if (!demoView) return;
     const previous = document.body.style.overflow;
@@ -53,7 +62,8 @@ export function CameraPage() {
     } catch { setCorrectionError('Could not save correction. Try again.'); }
     finally { setSaving(false); }
   }
-  return <div className={`camera-page${demoView ? ' camera-demo-view' : ''}`}><div className="camera-page-heading"><div><p className="camera-eyebrow">Crisp · room camera</p><h1>Room camera <span className="camera-id">{cam}</span></h1><p>{connected ? 'Connected to the waiting room' : 'Connecting to the waiting room…'}</p></div><div className="camera-view-actions"><Chip className={replay ? 'camera-replay-chip' : 'camera-live-chip'}>{replay ? 'REPLAY' : 'LIVE'}</Chip><button ref={demoButton} className="secondary" aria-pressed={demoView} onClick={() => { setDemoView(value => !value); setSettings(false); }}>{demoView ? 'Exit demo view' : 'Demo view'}</button><button ref={settingsButton} className="secondary camera-settings-toggle" aria-label="Camera settings" aria-expanded={settings} aria-controls="camera-settings" onClick={() => setSettings(value => !value)}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="m9 3-1 3-3 1-2 3 2 2-1 3 3 3 3-1 2 2 3-1 1-3 3-1 1-3-2-2 1-3-3-2-3 1-2-2Z" /><circle cx="12" cy="11" r="3" /></svg></button></div></div><Card className="camera-card">
+  const Heading = roomView ? 'h2' : 'h1';
+  const camera = <div className={`camera-page${demoView ? ' camera-demo-view' : ''}`}><div className="camera-page-heading"><div><p className="camera-eyebrow">Crisp · room camera</p><Heading>Room camera <span className="camera-id">{cam}</span></Heading><p>{connected ? 'Connected to the waiting room' : 'Connecting to the waiting room…'}</p></div><div className="camera-view-actions"><Chip className={replay ? 'camera-replay-chip' : 'camera-live-chip'}>{replay ? 'REPLAY' : 'LIVE'}</Chip>{!roomView && <button ref={demoButton} className="secondary" aria-pressed={demoView} onClick={() => { setDemoView(value => !value); setSettings(false); }}>{demoView ? 'Exit demo view' : 'Demo view'}</button>}{!roomView && <a href="/room">Room view</a>}<button ref={settingsButton} className="secondary camera-settings-toggle" aria-label="Camera settings" aria-expanded={settings} aria-controls="camera-settings" onClick={() => setSettings(value => !value)}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="m9 3-1 3-3 1-2 3 2 2-1 3 3 3 3-1 2 2 3-1 1-3 3-1 1-3-2-2 1-3-3-2-3 1-2-2Z" /><circle cx="12" cy="11" r="3" /></svg></button></div></div><Card className="camera-card">
     <div id="camera-settings" className="camera-settings" hidden={!settings}>
       <h2>Camera settings</h2>
     <div className="camera-controls">
@@ -90,4 +100,5 @@ export function CameraPage() {
     {vision.error && <p role="alert">{vision.error}</p>}
     <p className="camera-footnote">{state?.cameras[cam] ? `Streaming · ${state.cameras[cam].fps.toFixed(1)} fps` : 'Waiting for frames'} · Heart and breathing readings are camera estimates.</p>
   </Card></div>;
+  return roomView ? <RoomView call={state?.nowCalling ?? null} connected={connected}>{camera}</RoomView> : camera;
 }
