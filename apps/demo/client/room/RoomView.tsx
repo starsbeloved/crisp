@@ -46,7 +46,7 @@ export function RoomView({ call, connected, children, alerts = [], replayVisitId
       <div><p className="room-eyebrow">Crisp · waiting room companion</p><h1 ref={heading} tabIndex={-1}>Room view</h1></div>
       <div className="room-toolbar-actions"><button aria-pressed={monitoring.enabled} onClick={monitoring.toggle}>{monitoring.enabled ? 'Monitoring · sound on' : 'Start monitoring (sound on)'}</button><a className="room-stations-link" href="/station?choose=1" title="Stations · Shift+S">Stations</a><a href="/camera">Camera only</a><button className="secondary" aria-pressed={fullscreen} onClick={() => void toggleFullscreen()}>{fullscreen ? 'Exit fullscreen' : 'Fullscreen'}</button></div>
     </div>
-    {error && <p className="room-fullscreen-error" role="status">{error}</p>}
+    {error && <p className="room-fullscreen-error" role="status">{error}</p>}{voice.talkingId && <p role="status">🔊 speaking</p>}
     {voice.error && <p role="status">{voice.error}</p>}
     <div className="room-layout"><section className="room-camera" aria-label="This computer’s room camera">{children}</section><NowCallingPanel call={call} connected={connected} soundEnabled={monitoring.enabled} /></div>
   </div>;
