@@ -168,7 +168,7 @@ export function useCheckIn(): CheckInState {
     setVia(via) { update({ via, answers: { ...latest.current.answers, via } }); },
     setName(name) { update({ name }); },
     setAnswers(patch: Partial<CheckInAnswers>) {
-      const changesComplaint = ['reason', 'reasonChips', 'onset', 'trend'].some(key => key in patch);
+      const changesComplaint = (['reason', 'reasonChips', 'onset', 'trend'] as const).some(key => key in patch && JSON.stringify(patch[key]) !== JSON.stringify(latest.current.answers[key]));
       const answers = { ...latest.current.answers, ...(changesComplaint ? { followUp: null } : {}), ...patch };
       if (changesComplaint) followUpRequest.current = null;
       update({ answers, via: answers.via, ...(changesComplaint ? { followUpQuestion: '', followUpPrompt: null, followUpLoading: false } : {}) });

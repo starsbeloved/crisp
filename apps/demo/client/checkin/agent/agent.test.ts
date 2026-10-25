@@ -73,9 +73,21 @@ function mockController(): CheckInController {
 }
 
 describe('check-in client tools', () => {
+  it('continues a conversation with only their own words and never requires unstated onset or trend', async () => {
+    const c = mockController(); c.name = 'Anna';
+    const tools = createCheckInTools(() => c, vi.fn().mockResolvedValue(new Response('{"question":"Where is the tightness?","source":"gemini"}')));
+    const saved = await tools.save_answers({ reason: 'My chest feels tight' });
+    expect(saved).not.toMatch(/all three|onset|trend/);
+    expect(await tools.get_follow_up_question()).toContain('Where is the tightness?');
+    await tools.save_follow_up({ question: 'Where is the tightness?', answer: 'In the middle' });
+    expect(await tools.get_follow_up_question()).toMatch(/wrap up|finish_check_in/i);
+    await tools.finish_check_in();
+    expect(c.finish).toHaveBeenCalledOnce();
+    expect(c.answers).toMatchObject({ reason: 'My chest feels tight', onset: null, trend: null });
+  });
   it('fills the shared controller, scans, asks one follow-up and returns the actual queue number', async () => {
     const controller = mockController();
-    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response('{"question":"What would you like the nurse to know?","source":"gemini"}'));
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response('{"question":"Where is the tightness?","source":"gemini"}'));
     const tools = createCheckInTools(() => controller, fetcher);
     expect(await tools.set_name({ name: ' Ama ' })).toContain('Ama');
     expect(controller.setName).toHaveBeenCalledWith('Ama');
@@ -83,10 +95,10 @@ describe('check-in client tools', () => {
     expect(controller.startFaceScan).toHaveBeenCalledOnce();
     expect(await tools.save_answers({ reason: 'My chest feels tight', onset: 'since this morning', trend: 'getting worse' })).toContain('saved');
     expect(controller.answers).toMatchObject({ reason: 'My chest feels tight', onset: 'today', trend: 'worse', via: 'voice' });
-    expect(await tools.get_follow_up_question()).toContain('What would you like the nurse to know?');
+    expect(await tools.get_follow_up_question()).toContain('Where is the tightness?');
     expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toMatchObject({ answers: { reason: 'My chest feels tight', via: 'voice' } });
-    expect(await tools.save_follow_up({ question: 'What would you like the nurse to know?', answer: 'Nothing else' })).toContain('saved');
-    expect(controller.setFollowUp).toHaveBeenCalledWith('What would you like the nurse to know?', 'Nothing else');
+    expect(await tools.save_follow_up({ question: 'Where is the tightness?', answer: 'Nothing else' })).toContain('saved');
+    expect(controller.setFollowUp).toHaveBeenCalledWith('Where is the tightness?', 'Nothing else');
     expect(await tools.finish_check_in()).toMatch(/^Queue number 3\. Please take a seat — Crisp will call you\. Next:/);
     expect(controller.finish).toHaveBeenCalledOnce();
   });
@@ -165,7 +177,7 @@ describe('check-in client tools', () => {
   it('returns a usable follow-up on an offline provider and a recoverable finish failure', async () => {
     const controller = mockController(); controller.name = 'Ama'; controller.answers.reason = 'Headache'; controller.answers.onset = 'today'; controller.answers.trend = 'same';
     const tools = createCheckInTools(() => controller, vi.fn().mockRejectedValue(new Error('offline')));
-    expect(await tools.get_follow_up_question()).toContain('nurse');
+    expect(await tools.get_follow_up_question()).toContain('headache');
     vi.mocked(controller.finish).mockRejectedValueOnce(new Error('offline'));
     expect(await tools.finish_check_in()).toContain('try');
   });

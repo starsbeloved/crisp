@@ -11,6 +11,7 @@ import { KioskProgress } from './ui/KioskProgress.tsx';
 import { ResetCountdown } from './ui/ResetCountdown.tsx';
 import { detailsError, localToday } from './details.ts';
 import { FollowUpContext } from './ui/FollowUpContext.tsx';
+import { complaintQuestion } from './followup-policy.ts';
 import './checkin.css';
 
 const reasons = ['chest pain', 'trouble breathing', 'dizziness or fainting', 'headache', 'fever', 'stomach pain', 'injury', 'nausea', 'allergic reaction', 'other'];
@@ -38,13 +39,12 @@ export function CheckInPage() {
       void c.startFaceScan();
     } else if (c.step === 'questions') {
       if (!c.answers.reason.trim() && !c.answers.reasonChips.length) { setValidation('Please tell Crisp what brings you in, or choose a chip.'); return; }
-      if (!c.answers.onset || !c.answers.trend) { setValidation('Please choose when it started and how it has changed.'); return; }
       void c.prepareFollowUp();
     } else if (c.step === 'followup') { void c.finish().catch(() => {}); }
   }
-  const reasonText = c.answers.reason || c.answers.reasonChips.join(', ');
+  const reasonText = c.answers.reason;
   return <CheckInContext.Provider value={c}><section className="checkin" data-step={c.step} aria-label="Check in with Crisp">
-    <div className="checkin-top"><div className="checkin-brand"><KioskIcon name="apple" /><span>{c.step === 'welcome' ? 'Crisp check-in' : c.step === 'done' ? 'All done' : c.step === 'face' ? 'Face scan' : c.step === 'questions' ? 'Three quick questions' : c.step === 'followup' ? 'One more thing' : 'Your name'}</span></div><div className="checkin-navigation"><Button className="checkin-secondary" type="button" disabled={c.busy || c.step === 'welcome' || c.step === 'done'} onClick={() => c.goTo(steps[Math.max(0, stepIndex - 1)])}>Back</Button><Button className="checkin-secondary" type="button" disabled={helpBusy} onClick={() => {
+    <div className="checkin-top"><div className="checkin-brand"><KioskIcon name="apple" /><span>{c.step === 'welcome' ? 'Crisp check-in' : c.step === 'done' ? 'All done' : c.step === 'face' ? 'Face scan' : c.step === 'questions' ? 'In your own words' : c.step === 'followup' ? 'One more thing' : 'Your name'}</span></div><div className="checkin-navigation"><Button className="checkin-secondary" type="button" disabled={c.busy || c.step === 'welcome' || c.step === 'done'} onClick={() => c.goTo(steps[Math.max(0, stepIndex - 1)])}>Back</Button><Button className="checkin-secondary" type="button" disabled={helpBusy} onClick={() => {
       setHelpBusy(true);
       void fetch('/api/checkin/help', { method: 'POST', signal: AbortSignal.timeout(4000) }).then(response => {
         if (!response.ok) throw new Error();
@@ -97,14 +97,14 @@ export function CheckInPage() {
           <section className="checkin-question-panel"><label className="checkin-question-title" htmlFor="checkin-reason">1. What brings you in today?</label>
           <textarea id="checkin-reason" rows={3} maxLength={4000} value={reasonText} placeholder="Tell me in your own words, or choose below" onChange={event => c.setAnswers({ reason: event.target.value })} />
           <div className="checkin-chips checkin-reasons" role="group" aria-label="Common reasons">{reasons.map(reason => <Button type="button" className="checkin-choice" key={reason} aria-pressed={c.answers.reasonChips.includes(reason)} onClick={() => c.setAnswers({ reasonChips: c.answers.reasonChips.includes(reason) ? c.answers.reasonChips.filter(item => item !== reason) : [...c.answers.reasonChips, reason] })}>{reason}</Button>)}</div></section>
-          <fieldset className="checkin-question-panel"><legend>When did it start?</legend><div className="checkin-question-title" aria-hidden="true">2. When did it start?</div><div className="checkin-chips checkin-onsets">{onsets.map(([value, label]) => <Button type="button" className="checkin-choice" key={value} aria-pressed={c.answers.onset === value} onClick={() => c.setAnswers({ onset: value })}>{label}</Button>)}</div></fieldset>
-          <fieldset className="checkin-question-panel"><legend>How has it changed?</legend><div className="checkin-question-title" aria-hidden="true">3. How has it changed?</div><div className="checkin-chips checkin-trends">{trends.map(([value, label]) => <Button type="button" className="checkin-choice" key={value} aria-pressed={c.answers.trend === value} onClick={() => c.setAnswers({ trend: value })}>{label}</Button>)}</div></fieldset>
+          <fieldset className="checkin-question-panel"><legend>When did it start?</legend><div className="checkin-question-title" aria-hidden="true">2. When did it start? (optional)</div><div className="checkin-chips checkin-onsets">{onsets.map(([value, label]) => <Button type="button" className="checkin-choice" key={value} aria-pressed={c.answers.onset === value} onClick={() => c.setAnswers({ onset: value })}>{label}</Button>)}</div></fieldset>
+          <fieldset className="checkin-question-panel"><legend>How has it changed?</legend><div className="checkin-question-title" aria-hidden="true">3. How has it changed? (optional)</div><div className="checkin-chips checkin-trends">{trends.map(([value, label]) => <Button type="button" className="checkin-choice" key={value} aria-pressed={c.answers.trend === value} onClick={() => c.setAnswers({ trend: value })}>{label}</Button>)}</div></fieldset>
           <div className="checkin-form-submit"><p>Your own words are kept exactly as you wrote them.</p><Button className="checkin-primary" type="submit">Continue</Button></div>
         </>}
         {c.step === 'followup' && <section className="checkin-followup-panel">
-          <div className="checkin-review"><p><strong>{c.name || 'Your name'}</strong> · {c.face.status === 'saved' ? 'Face saved' : 'Staff can help with your face scan'}</p><p>{reasonText}</p><Button type="button" className="checkin-secondary" onClick={() => c.goTo('questions')} disabled={c.busy}>Edit answers</Button></div>
+          <div className="checkin-review"><p><strong>{c.name || 'Your name'}</strong> · {c.face.status === 'saved' ? 'Face saved' : 'Staff can help with your face scan'}</p><p>{reasonText || c.answers.reasonChips.join(', ')}</p><Button type="button" className="checkin-secondary" onClick={() => c.goTo('questions')} disabled={c.busy}>Edit answers</Button></div>
           <FollowUpContext prompt={c.followUpPrompt} />
-          {c.followUpLoading ? <p role="status">Crisp is thinking… You can skip this question.</p> : <><label htmlFor="checkin-followup">{c.followUpQuestion || 'Is there anything else you would like the nurse to know?'}</label><textarea id="checkin-followup" rows={2} maxLength={4000} value={c.answers.followUp?.answer ?? ''} onChange={event => c.setFollowUp(c.followUpQuestion || 'Is there anything else you would like the nurse to know?', event.target.value)} disabled={c.busy} /></>}
+          {c.followUpLoading ? <p role="status">Crisp is thinking… You can skip this question.</p> : <><label htmlFor="checkin-followup">{c.followUpQuestion || complaintQuestion(c.answers)}</label><textarea id="checkin-followup" rows={2} maxLength={4000} value={c.answers.followUp?.answer ?? ''} onChange={event => c.setFollowUp(c.followUpQuestion || complaintQuestion(c.answers), event.target.value)} disabled={c.busy} /></>}
           <Button className="checkin-primary" type="submit" disabled={c.busy || c.followUpLoading}>{c.busy ? 'Saving check-in…' : c.error ? 'Retry check-in' : 'Finish check-in'}</Button>
           <Button className="checkin-secondary checkin-skip" type="button" disabled={c.busy} onClick={() => { c.setAnswers({ followUp: null }); void c.finish().catch(() => {}); }}>Skip question and check in</Button>
         </section>}
