@@ -144,7 +144,7 @@ main:has(> .checkin){max-width:none;margin:0;padding:0}
 .checkin-understood-field{padding:12px 14px;border-radius:var(--r-row);background:var(--c-canvas);min-width:0}
 .checkin-understood-field>span{display:block;font-size:14px;color:var(--c-text-2);margin-bottom:4px}
 .checkin-understood-field>strong{font-size:21px;line-height:1.35;font-weight:600;overflow-wrap:anywhere}
-.checkin-understood-field[data-filled=true]{background:var(--c-surface);box-shadow:inset 0 0 0 2px var(--c-leaf);animation:checkin-filled 1.4s ease-out}
+.checkin-understood-field[data-filled=true]{background:var(--c-surface);box-shadow:inset 0 0 0 2px var(--c-leaf);animation:checkin-filled .28s ease-out}
 .checkin-understood-field[data-filled=true]>span{color:var(--c-leaf-hover)}
 .checkin-understood-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .checkin-understood-chips span{display:inline-flex;align-items:center;min-height:44px;padding:8px 14px;border:1.5px solid var(--c-border);border-radius:var(--r-pill);font-size:16px}

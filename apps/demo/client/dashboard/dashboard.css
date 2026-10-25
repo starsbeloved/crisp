@@ -111,9 +111,9 @@
 
 .dashboard .bubble-slot { min-height: 126px; margin-top: 2px; overflow: visible; }
 .dashboard .crisp-bubble { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 10px; min-height: 112px; padding: 12px; border: 1px solid var(--c-hairline); border-radius: var(--r-panel); background: var(--c-surface); box-shadow: var(--shadow-bubble); }
-.dashboard .crisp-bubble > div { position: relative; min-width: 0; padding: 2px 30px 0 0; }
+.dashboard .crisp-bubble > div { position: relative; min-width: 0; padding: 2px 44px 0 0; }
 .dashboard .crisp-bubble p { margin: 0 0 7px; color: var(--c-text); font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; }
-.dashboard .crisp-bubble .dismiss { position: absolute; top: -2px; right: -2px; width: 32px; min-width: 32px; height: 32px; min-height: 32px; padding: 0; border: 0; background: var(--c-bubble-gray); font-size: 20px; font-weight: 400; }
+.dashboard .crisp-bubble .dismiss { position: absolute; top: -2px; right: -2px; width: 44px; min-width: 44px; height: 44px; min-height: 44px; padding: 0; border: 0; background: var(--c-bubble-gray); font-size: 20px; font-weight: 400; }
 .dashboard .crisp-bubble .dismiss:hover { background: var(--c-canvas); }
 .dashboard .crisp-bubble details { margin-top: 8px; color: var(--c-leaf); font-size: 12px; }
 .dashboard summary { min-height: 30px; padding: 6px 0; cursor: pointer; }
@@ -221,7 +221,7 @@
 .dashboard .empty-action:hover { background: var(--c-leaf-hover); }
 
 .dashboard .camera-segments { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--c-hairline); border-radius: var(--r-control); background: var(--c-canvas); }
-.dashboard .camera-segments button { min-height: 38px; padding: 7px 14px; border: 0; border-radius: 9px; background: transparent; color: var(--c-text-2); font-size: 14px; font-weight: 600; white-space: nowrap; }
+.dashboard .camera-segments button { min-height: 44px; padding: 7px 14px; border: 0; border-radius: var(--r-control); background: transparent; color: var(--c-text-2); font-size: 14px; font-weight: 600; white-space: nowrap; }
 .dashboard .camera-segments button[aria-pressed=true] { background: var(--c-surface); color: var(--c-text); box-shadow: var(--shadow-card); }
 .dashboard .camera-segments button:hover { color: var(--c-leaf-hover); }
 .dashboard .stream-options { margin-top: 12px; color: var(--c-text-2); font-size: 13px; }

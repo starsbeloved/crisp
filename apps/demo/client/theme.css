@@ -91,3 +91,9 @@ video[hidden] { display: none; }
   --c-crisp-ink: var(--c-text);
   --c-crisp-cream: var(--c-surface);
 }
+
+/* Keep state feedback still when the user requests reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  button:active:not(:disabled), .launcher-card:hover { transform: none; }
+}
