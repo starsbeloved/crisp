@@ -69,10 +69,13 @@ describe('body continuity identity', () => {
     bodies.update([pose()], identified().current(200), gallery, 200, 640, 480);
     bodies.update([pose()], [], gallery, 1800, 640, 480);
     expect(bodies.current(1800)[0].match).toBeNull();
-    bodies.update([pose(.3), pose(.7)], identified().current(200), gallery, 2000, 640, 480);
+    const facesAt = (t: number) => identified().current(200).map(face => ({ ...face, lastSeen: t }));
+    bodies.update([pose(.3), pose(.7)], facesAt(2000), gallery, 2000, 640, 480);
+    expect(bodies.current(2000).map(t => t.match?.visitId)).toEqual(['jason-3', 'jason-4']);
     bodies.update([pose(.49), pose(.51)], [], gallery, 2200, 640, 480);
     expect(bodies.current(2200).filter(t => t.match)).toEqual([]);
-    bodies.update([pose()], identified().current(200), gallery, 2400, 640, 480);
+    bodies.update([pose()], facesAt(2400), gallery, 2400, 640, 480);
+    expect(bodies.current(2400)[0].match?.visitId).toBe('jason-3');
     bodies.update([pose()], [], [], 2600, 640, 480);
     expect(bodies.current(2600).filter(t => t.match)).toEqual([]);
   });

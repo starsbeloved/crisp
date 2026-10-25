@@ -20,7 +20,7 @@
 
 ## What is not done
 
-- Physical webcam acceptance at 1.5–2 m, real two-person recognition, and ≥8 fps are unverified. Chrome remained on “Opening camera…” awaiting camera access; native Chrome control was not approved. Synthetic verification does not establish optical accuracy or real performance.
+- Physical webcam acceptance at 1.5–2 m, real two-person recognition, and ≥8 fps are unverified. Chrome initially stayed on “Opening camera…” and ultimately reported **Permission denied**; native Chrome control was not approved. Synthetic verification does not establish optical accuracy or real performance.
 - The full pose model was not added: poor lite-model accuracy could not be established without live input, and model assets are outside P15a's owned paths.
 - `npm run dev` hit `EMFILE` on this machine. API and Vite were run separately; Vite needed restarting to serve edited modules reliably.
 
@@ -49,10 +49,10 @@ If Node watch itself hits EMFILE, use this API command instead:
 API_PORT=8811 WEB_PORT=5211 node server/main.ts
 ```
 
-The verification session used a memory-only API with providers disabled. Stop that verification process before starting the regular API. Refresh Chrome after restarting Vite if edits appear stale.
+The memory-only verification process was stopped after testing; the regular API and Vite were left running on 8811/5211. Synthetic visits were never written to the regular store. Stop these existing processes before starting another server on those ports. Refresh Chrome after restarting Vite if edits appear stale.
 
 1. Open `http://127.0.0.1:5211/check-in`. Enroll volunteer A alone, named **Jason**, and record their queue number. Enroll volunteer B alone, also named **Jason**, and record the second queue number. Each uses their own real face scan. Close the check-in tab after both finish.
-2. Open `http://127.0.0.1:5211/room?debug=1` and allow camera access. Open `http://127.0.0.1:5211/dashboard` in the second window. Camera settings must say **Face models ready · Pose model ready**.
+2. Open `http://127.0.0.1:5211/room?debug=1` and allow camera access. The verification ended with **Permission denied**: if necessary, use Chrome's site controls beside the address to allow Camera for this local origin, then reload. Open `http://127.0.0.1:5211/dashboard` in the second window. Camera settings must say **Face models ready · Pose model ready**.
 3. Place two chairs **1.5 m from the lens**, about **0.8 m apart**, centered left and right in the image. Use bright frontal light. Frame both faces, shoulders, and hips. Keep bodies separated in the image. Do not judge HR range from identity range: distant skin can honestly show measuring/low signal.
 
 ### Episode 1: range and head drop
