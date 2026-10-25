@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Alert } from '../../shared/types.ts';
-export interface VoiceItem { key: string; id: string; url: string | null; speech: string; priority?: boolean; interrupt?: boolean }
+import { api } from '../lib/api.ts';
+export interface VoiceItem { key: string; id: string; url: string | null; speech: string; priority?: boolean; interrupt?: boolean; fallback?: boolean; expiresAt?: number }
 
 const soundKey = 'crisp-monitoring-sound';
 /** sessionStorage remembers the explicit sound gesture within this tab. */
@@ -12,21 +13,28 @@ export function useMonitoringSound() {
     const next = !enabled;
     if (next && typeof speechSynthesis !== 'undefined') {
       speechSynthesis.resume?.();
-      const confirmation = new SpeechSynthesisUtterance('Monitoring sound is on.');
-      speechSynthesis.speak(confirmation);
+      speakText('Monitoring sound is on.');
     }
     try { sessionStorage.setItem(soundKey, next ? 'on' : 'off'); } catch { /* Sound remains usable without storage. */ }
     setEnabled(next);
   }
-  return { enabled, toggle };
+  function speakText(text: string) {
+    if (typeof speechSynthesis === 'undefined') return;
+    speechSynthesis.resume?.();
+    speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+  }
+  return { enabled, toggle, test: () => speakText('Test alert sound. Crisp audio is working.') };
 }
 
 export function alertVoiceItems(alerts: Alert[], replayVisitIds: string[] = []): VoiceItem[] {
-  return alerts.filter(alert => alert.status !== 'checked').map(alert => {
+  return alerts.filter(alert => alert.status !== 'checked').flatMap(alert => {
     const cue = alert.facts.postureEvents.some(event => event.kind === 'fall') ? 'Fall-like movement detected. ' :
       alert.facts.postureEvents.some(event => event.kind === 'headDrop') ? 'Head below shoulders. ' : '';
-    return { key: `alert:${alert.id}:${alert.level}`, id: alert.id, url: null, priority: true, interrupt: alert.level === 'red',
-      speech: `${replayVisitIds.includes(alert.visitId) ? 'Replay. ' : ''}${cue}${alert.facts.name}, number ${alert.facts.queueNo}, may need a check.` };
+    const speech = `${replayVisitIds.includes(alert.visitId) ? 'Replay. ' : ''}${cue}${alert.facts.name}, number ${alert.facts.queueNo}, may need a check.`;
+    const browser = { key: `alert:${alert.id}:${alert.level}:browser`, id: alert.id, url: null, priority: true, interrupt: alert.level === 'red', speech };
+    const provider = alert.level === 'red' && alert.audio === 'ready' ? [{ key: `alert:${alert.id}:${alert.level}:provider`, id: alert.id,
+      url: api.alertAudioUrl(alert.id), speech: alert.explanation?.speech ?? speech, priority: true, fallback: false, expiresAt: alert.openedAt + 5000 }] : [];
+    return [browser, ...provider];
   });
 }
 
@@ -62,22 +70,28 @@ export function useVoice(enabled: boolean, items: VoiceItem[]) {
     }
     async function run() {
         if (!item) return;
+        if (item.expiresAt !== undefined && item.expiresAt <= Date.now()) { seen.current.add(item.key); currentKey.current = null; setTalkingId(null); return; }
         currentKey.current = item.key;
         seen.current.add(item.key); setTalkingId(item.id); setError('');
         if (item.url) {
           const played = await new Promise<boolean>(resolve => {
+            let timeout: ReturnType<typeof setTimeout> | undefined;
+            const finish = (result: boolean) => { clearTimeout(timeout); resolve(result); };
             finishCurrent = () => resolve(false);
             audio = new Audio(item.url!);
-            audio.onended = () => resolve(true);
-            audio.onerror = () => resolve(false);
-            void audio.play().catch(() => resolve(false));
+            audio.preload = 'auto';
+            if (typeof audio.setAttribute === 'function') { audio.setAttribute('aria-hidden', 'true'); audio.style.display = 'none'; document.body?.appendChild(audio); }
+            audio.onended = () => finish(true);
+            audio.onerror = () => finish(false);
+            timeout = setTimeout(() => finish(false), item.fallback === false ? 2500 : 5000);
+            void audio.play().catch(() => finish(false));
           });
-          if (!played) await fallback(item);
+          if (!played && item.fallback !== false) await fallback(item);
         } else await fallback(item);
         if (!cancelled) { currentKey.current = null; setTalkingId(null); setCompletedKey(item.key); }
     }
     void run();
-    return () => { cancelled = true; if (audio) { audio.pause(); audio.onended = null; audio.onerror = null; } if (utterance) speechSynthesis.cancel(); finishCurrent?.(); setTalkingId(null); };
+    return () => { cancelled = true; if (audio) { audio.pause(); audio.onended = null; audio.onerror = null; audio.parentNode?.removeChild(audio); } if (utterance) speechSynthesis.cancel(); finishCurrent?.(); setTalkingId(null); };
   }, [enabled, item?.key]);
   return { talkingId, error };
 }

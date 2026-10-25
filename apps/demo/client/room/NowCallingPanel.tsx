@@ -26,7 +26,7 @@ export function NowCallingPanel({ call, connected, soundEnabled }: { call: NowCa
     <div className="room-call-mascot"><Crisp size={260} state={voice.talkingId ? 'talking' : call ? 'pointing' : 'idle'} /></div>
     {call && <p className="room-call-caption">“{speech}”</p>}
     {soundEnabled === undefined && <button className="secondary room-sound" aria-pressed={sound} onClick={() => setSound(value => !value)}>{sound ? 'Disable sound' : 'Enable sound'}</button>}
-    <p className="room-call-status" role="status">{voice.error || (!connected ? 'Reconnecting to the waiting room…' : sound ? 'Call-outs play once.' : 'Enable sound to hear call-outs.')}</p>
+    <p className="room-call-status" role="status">{voice.error || (voice.talkingId ? '🔊 speaking' : !connected ? 'Reconnecting to the waiting room…' : sound ? 'Call-outs play once.' : 'Enable sound to hear call-outs.')}</p>
     <HallwayCheckBack />
     <p className="room-hallway-note">Feeling worse? Please tell the front desk.</p>
   </aside>;

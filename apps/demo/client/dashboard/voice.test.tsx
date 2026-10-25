@@ -6,7 +6,7 @@ import { alertVoiceItems, useAlertVoice, useMonitoringSound, useVoice, type Voic
 import type { Alert } from '../../shared/types.ts';
 
 let root: Root | undefined;
-const players: { onended: (() => void) | null; onerror: (() => void) | null; pause: ReturnType<typeof vi.fn> }[] = [];
+const players: { url: string; onended: (() => void) | null; onerror: (() => void) | null; pause: ReturnType<typeof vi.fn> }[] = [];
 function Harness({ enabled, items }: { enabled: boolean; items: VoiceItem[] }) {
   const voice = useVoice(enabled, items); return <span>{voice.talkingId ?? 'idle'}{voice.error}</span>;
 }
@@ -15,7 +15,7 @@ function setup() {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
   vi.stubGlobal('Audio', class {
     onended = null; onerror = null; pause = vi.fn();
-    constructor() { players.push(this); }
+    constructor(public url: string) { players.push(this); }
     play() { return Promise.resolve(); }
   });
   root = createRoot(document.createElement('div'));
@@ -97,6 +97,49 @@ it('speaks a new alert immediately once and speaks a red upgrade once', async ()
     explanation: { bubble: 'Ama may need a check.', speech: 'Provider version.', source: 'gemini' } }]} />));
   expect(speak).toHaveBeenCalledTimes(2);
   expect(players).toHaveLength(0);
+});
+
+it('speaks a red request immediately, then plays its provider clip once when it arrives within five seconds', async () => {
+  setup();
+  const speak = vi.fn((u: SpeechSynthesisUtterance) => u.onend?.(new Event('end') as SpeechSynthesisEvent));
+  vi.stubGlobal('SpeechSynthesisUtterance', class { onend = null; onerror = null; constructor(public text: string) {} });
+  vi.stubGlobal('speechSynthesis', { speak, cancel: vi.fn() });
+  const openedAt = Date.now();
+  await act(() => root!.render(<AlertHarness enabled items={[{ ...alert('red-provider'), openedAt, audio: null }]} />));
+  expect(speak).toHaveBeenCalledOnce();
+  await act(() => root!.render(<AlertHarness enabled items={[{ ...alert('red-provider'), openedAt, audio: 'ready',
+    explanation: { bubble: 'Ama may need a check.', speech: 'Provider version.', source: 'gemini' } }]} />));
+  expect(players.map(player => player.url)).toEqual(['/api/alerts/red-provider/audio']);
+  await act(() => players[0].onended?.());
+  await act(() => root!.render(<AlertHarness enabled items={[{ ...alert('red-provider'), openedAt, audio: 'ready', updatedAt: 3,
+    explanation: { bubble: 'Ama may need a check.', speech: 'Provider version.', source: 'gemini' } }]} />));
+  expect(players).toHaveLength(1);
+});
+
+it('does not start a provider clip after the five-second alert window', async () => {
+  setup();
+  const speak = vi.fn((u: SpeechSynthesisUtterance) => u.onend?.(new Event('end') as SpeechSynthesisEvent));
+  vi.stubGlobal('SpeechSynthesisUtterance', class { onend = null; onerror = null; constructor(public text: string) {} });
+  vi.stubGlobal('speechSynthesis', { speak, cancel: vi.fn() });
+  const openedAt = Date.now() - 5001;
+  await act(() => root!.render(<AlertHarness enabled items={[{ ...alert('expired-provider'), openedAt, audio: 'ready',
+    explanation: { bubble: 'Ama may need a check.', speech: 'Provider version.', source: 'gemini' } }]} />));
+  expect(speak).toHaveBeenCalledOnce();
+  expect(players).toHaveLength(0);
+});
+
+it('provides an explicit test alert sound action', async () => {
+  setup();
+  const speak = vi.fn();
+  vi.stubGlobal('SpeechSynthesisUtterance', class { constructor(public text: string) {} });
+  vi.stubGlobal('speechSynthesis', { speak, resume: vi.fn() });
+  const container = document.createElement('div');
+  await act(() => root!.unmount()); root = createRoot(container);
+  function Sound() { const sound = useMonitoringSound(); return <button onClick={sound.test}>Test alert sound</button>; }
+  await act(() => root!.render(<Sound />));
+  await act(() => container.querySelector('button')!.click());
+  expect(speak).toHaveBeenCalledOnce();
+  expect(speak.mock.calls[0][0].text).toContain('Test alert sound');
 });
 
 it('labels replay speech and skips checked requests', () => {

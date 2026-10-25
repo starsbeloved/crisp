@@ -42,6 +42,6 @@ export function LobbyPage() {
       <WaitTimeBoard refreshKey={queueKey} />
       </div>
     </div>
-    <footer className="lobby-footer"><span className="lobby-info" aria-hidden="true">i</span><span>{voice.error || (connected ? 'Feeling worse while you wait? Please tell the front desk.' : 'Reconnecting to the waiting room…')}</span></footer>
+    <footer className="lobby-footer"><span className="lobby-info" aria-hidden="true">i</span><span>{voice.error || (voice.talkingId ? '🔊 speaking' : connected ? 'Feeling worse while you wait? Please tell the front desk.' : 'Reconnecting to the waiting room…')}</span></footer>
   </div>;
 }

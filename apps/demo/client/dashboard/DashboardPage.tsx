@@ -80,7 +80,7 @@ export function DashboardPage() {
   const selectedVisit = state?.visits.find(v => v.id === selected);
   return <div className="dashboard"><div className="page-heading"><div><p className="eyebrow">No one waits unseen</p><h1>Crisp Command Center</h1></div></div>
     {fixtureAllowed && <div className="fixture-controls"><button className="secondary" onClick={() => { setFixture(synthetic ? null : demoFixture()); setPreviewHidden([]); setSelected(null); }}>{synthetic ? 'Return to live room' : 'Load demo fixture'}</button>{synthetic && <><strong className="synthetic-label">SYNTHETIC · illustrative data · actions stay in this preview</strong><button className="secondary" onClick={() => setFixture(current => current ? { ...current, alerts: demoFixture(now).alerts, vitals: demoFixture(now).vitals, serverNow: now } : current)}>Trigger synthetic request</button></>}</div>}
-    <SystemStrip state={state} connected={connected} synthetic={synthetic} now={now} voice={voice} onVoice={monitoring.toggle} busy={busy} onReset={() => {
+    <SystemStrip state={state} connected={connected} synthetic={synthetic} now={now} voice={voice} onVoice={monitoring.toggle} onTestSound={monitoring.test} talking={Boolean(audio.talkingId)} busy={busy} onReset={() => {
       if (!window.confirm(synthetic ? 'Reset this synthetic preview?' : 'Reset all demo visits, alerts, and camera state?')) return;
       if (synthetic) { setFixture(demoFixture()); setSelected(null); confirm({ ok: true, message: 'Reset done · synthetic preview' }, false); }
       else void perform(async () => {
