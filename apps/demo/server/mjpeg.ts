@@ -38,6 +38,10 @@ export class MjpegBuffer {
     return frames.length;
   }
 
+  latestFrame(cameraId: string | null): Uint8Array | null {
+    return cameraId ? this.latest.get(cameraId)?.bytes ?? null : null;
+  }
+
   replay(alertId: string, index: number): Uint8Array | null {
     return this.replays.get(alertId)?.[index]?.bytes ?? null;
   }

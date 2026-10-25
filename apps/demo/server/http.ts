@@ -112,7 +112,14 @@ export function createAppServer(options: { dataDir?: string | null; apiPort?: nu
       response.writeHead(200, { 'Content-Type': 'image/jpeg', 'Cache-Control': 'no-store' }); response.end(frame); return;
     }
     const vision = path.match(/^\/api\/alerts\/([^/]+)\/vision$/);
-    if (method === 'POST' && vision) { json(response, 501, { error: 'Vision description is not implemented in P0' }); return; }
+    if (method === 'POST' && vision) {
+      const alert = store.state.alerts.find(item => item.id === vision[1]);
+      if (!alert) { json(response, 404, { error: 'Alert not found' }); return; }
+      // The frame at the moment the request opened, else the camera's current frame.
+      const frame = mjpeg.replay(alert.id, alert.replayFrames - 1) ?? mjpeg.latestFrame(alert.cameraId);
+      const result = frame ? await providerResult(providers.describeSnapshot(alert, frame), () => null) : null;
+      json(response, result ? 200 : 501, result ?? { error: 'Snapshot description unavailable' }); return;
+    }
     const alertAction = path.match(/^\/api\/alerts\/([^/]+)\/(acknowledge|checked)$/);
     if (method === 'POST' && alertAction) {
       const alert = store.state.alerts.find(item => item.id === alertAction[1]);

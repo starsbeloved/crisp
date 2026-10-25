@@ -21,6 +21,11 @@ export async function followUpQuestion(_answers: CheckInAnswers): Promise<{ ques
   return { question: 'Is there anything else you would like the nurse to know?', source: 'template' };
 }
 
+/** Opt-in: describe observed posture in one alert frame. Null means unavailable (route answers 501). */
+export async function describeSnapshot(_alert: Alert, _jpeg: Uint8Array): Promise<{ description: string; source: ProviderSource } | null> {
+  return null;
+}
+
 export async function ask(_question: string, _state: RoomState): Promise<{ answer: string; source: ProviderSource }> {
   return { answer: 'Please review the recorded check-in and camera estimates, then check on the person if needed.', source: 'template' };
 }
