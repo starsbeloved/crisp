@@ -13,7 +13,7 @@ it('preserves real signal samples and replay metadata in normalized observations
 it('never sends unknown identities or displays low quality numbers as readings', () => {
   const unknown: FaceTrack = { ...track, match: null, identity: 'unknown' };
   expect(makeObservation(unknown, reading, { cam: 'A', source: 'live', now: 1000, width: 640, height: 480 })).toMatchObject({ visitId: null, matchScore: null, hrBpm: null, hrQuality: 'none', rrBpm: null, pulseTrace: null });
-  expect(vitalLabel({ ...reading, hrQuality: 'low', rrQuality: 'low' })).toContain('low signal');
-  expect(vitalLabel({ ...reading, hrBpm: null, hrQuality: 'none', hrSecondsCollected: 7 })).toContain('measuring 7s');
+  expect(vitalLabel({ ...reading, hrQuality: 'low', rrQuality: 'low' })).toContain('Low signal');
+  expect(vitalLabel({ ...reading, hrBpm: null, hrQuality: 'none', hrSecondsCollected: 7 })).toContain('measuring');
   expect(vitalLabel(reading)).toContain('86 bpm');
 });

@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { ENGINE_THRESHOLDS as T } from './config.ts';
 import type { Alert, AlertFacts, Observation, Quality, RoomState, Visit, Vitals } from '../../shared/types.ts';
 
 export interface EngineResult { opened: Alert[]; updated: Alert[] }
@@ -64,8 +65,8 @@ function rrReason(vitals: Vitals): AlertFacts['rrReason'] {
 }
 
 function sustain(previous: AbnormalRun | null, reason: AlertFacts['hrReason'], available: boolean, now: number): AbnormalRun | null {
-  if (reason === null) return !available && previous && now - previous.lastAt <= 3000 ? previous : null;
-  return previous && now - previous.lastAt <= 3000 ?
+  if (reason === null) return !available && previous && now - previous.lastAt <= T.evidenceGapMs ? previous : null;
+  return previous && now - previous.lastAt <= T.evidenceGapMs ?
     { since: previous.since, lastAt: now } : { since: now, lastAt: now };
 }
 
@@ -73,11 +74,11 @@ function evaluate(vitals: EngineVitals, now: number): { hr: AlertFacts['hrReason
   const data = memory(vitals, now), heart = hrReason(vitals), breathing = rrReason(vitals);
   data.hrRun = sustain(data.hrRun, heart, usable(vitals.hrBpm, vitals.hrQuality), now);
   data.rrRun = sustain(data.rrRun, breathing, usable(vitals.rrBpm, vitals.rrQuality), now);
-  const hr = heart && data.hrRun && now - data.hrRun.since >= 20_000 ? heart : null;
-  const rr = breathing && data.rrRun && now - data.rrRun.since >= 20_000 ? breathing : null;
+  const hr = heart && data.hrRun && now - data.hrRun.since >= T.abnormalMs ? heart : null;
+  const rr = breathing && data.rrRun && now - data.rrRun.since >= T.abnormalMs ? breathing : null;
   const pose = vitals.posture;
-  const resting = pose && (pose.slumpSec >= 10 || pose.stillSec >= 30);
-  vitals.level = pose?.fallSuspected || (pose?.headDropSec ?? 0) >= 5 || (resting && (hr || rr)) ? 'red' :
+  const resting = pose && (pose.slumpSec >= T.slumpSec || pose.stillSec >= T.stillSec);
+  vitals.level = pose?.fallSuspected || (pose?.headDropSec ?? 0) >= T.headDropSec || (resting && (hr || rr)) ? 'red' :
     resting || hr || rr ? 'amber' : 'none';
   return { hr, rr };
 }
@@ -91,13 +92,13 @@ function evidence(visit: Visit, vitals: EngineVitals, hr: AlertFacts['hrReason']
   const resting = !hrReason(vitals) && !rrReason(vitals) && usable(vitals.hrBpm, vitals.hrQuality);
   const restHint = resting ? '; heart rate normal — may be resting' : '';
   if (pose?.fallSuspected) { postureEvents.push({ kind: 'fall', seconds: 0 }); reasons.push('Fall-like movement detected'); }
-  if ((pose?.headDropSec ?? 0) >= 5) {
+  if ((pose?.headDropSec ?? 0) >= T.headDropSec) {
     postureEvents.push({ kind: 'headDrop', seconds: pose!.headDropSec }); reasons.push(`Head below shoulders ${pose!.headDropSec} s`);
   }
-  if ((pose?.slumpSec ?? 0) >= 10) {
+  if ((pose?.slumpSec ?? 0) >= T.slumpSec) {
     postureEvents.push({ kind: 'slump', seconds: pose!.slumpSec }); reasons.push(`Slumped forward ${pose!.slumpSec} s${restHint}`);
   }
-  if ((pose?.stillSec ?? 0) >= 30) {
+  if ((pose?.stillSec ?? 0) >= T.stillSec) {
     postureEvents.push({ kind: 'still', seconds: pose!.stillSec }); reasons.push(`Still for ${pose!.stillSec} s${restHint}`);
   }
   if (postureEvents.length) {
