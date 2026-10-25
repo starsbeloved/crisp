@@ -2,6 +2,8 @@
 
 **Crisp is a proactive AI assistant for hospitals and clinics.** The [project README](../../README.md) describes the hospital-wide vision and the current demonstration across intake, room awareness, staff coordination, and exam-room context.
 
+Its presence is inspired by Miss Minutes: a character who appears on screens, speaks with people, and takes initiative. See the [product vision](docs/product-vision.md), [complete feature inventory](docs/features.md), [Devpost copy](docs/devpost.md), and [demo walkthrough](docs/demo-narration.md).
+
 This directory contains the active React/TypeScript client and Node HTTP server. Requires Node.js 24 or newer. From this directory:
 
 ```sh
@@ -15,13 +17,15 @@ Vision assets are in [`public/models`](public/models/). See [model locations and
 
 ## Deploy
 
+The team uses Vultr to host the shared demo application so separate computers can act as connected stations. The application can also run on a hospital-managed server; browser vision runs on the camera device, while enabled Gemini and ElevenLabs features use external APIs.
+
 The [Vultr deployment guide](docs/deploy-vultr.md) contains the human-run Ubuntu,
 Docker Compose and HTTPS steps. The kit in [deploy/](deploy/) builds the client,
 runs the existing Node API, and serves both on one HTTPS origin through Caddy.
 Provider keys are mounted only into the API container; room state and certificates
 use persistent volumes. There is no Vite development or preview server in the kit.
 
-No account, VPS or deployment is created by these files. After the owner deploys,
+These deployment files do not provision an account or VPS. To check an existing deployment,
 run the read-only smoke check from `apps/demo/` with Node 24 or newer:
 
 ```sh

@@ -2,7 +2,7 @@
 
 **A proactive AI assistant for hospitals and clinics.**
 
-Crisp is a JARVIS-inspired assistant with a personality: a friendly apple that lives across a clinic's cameras, screens, speakers, and connected software. The vision is one assistant that understands what is happening around it, brings relevant information together, anticipates the next task, and helps patients, nurses, doctors, and administrative staff get things done.
+Crisp lives at the intersection of physical spaces and digital systems. Picture the presence of Miss Minutes: a character on the screen who talks with people, notices what is happening, and takes initiative. Crisp's original apple character brings that presence to a clinic's cameras, screens, speakers, and connected software. The vision is one assistant that brings relevant information together, anticipates the next task, and helps patients, nurses, doctors, and administrative staff get things done.
 
 For **SBUHacks 2026**, we built a demonstration across patient arrival, room observation, staff coordination, and the exam room. The waiting-room workflow is the first demonstration of a much broader healthcare assistant.
 
@@ -17,7 +17,7 @@ Imagine an assistant that knows a patient has arrived, remembers what they said,
 
 Crisp's longer-term role spans the hospital's authorized systems: records, scheduling, cameras, room status, displays, and communication. It would combine current observations with relevant past information and proactively offer useful actions. Hospital-wide integration and general administrative automation are future work.
 
-Read the [product vision](.plans/content/CRISP-VISION.md) for the full positioning.
+Read the [product vision](apps/demo/docs/product-vision.md) for the full positioning.
 
 ## What the demo implements
 
@@ -34,6 +34,8 @@ Read the [product vision](.plans/content/CRISP-VISION.md) for the full positioni
 
 Crisp notices events and proposes next steps. Staff confirm workflow suggestions and remain responsible for clinical decisions. A missing camera sighting, for example, is a prompt to verify someone's whereabouts.
 
+The [complete feature inventory](apps/demo/docs/features.md) maps each capability to its implementation. The [Devpost copy](apps/demo/docs/devpost.md) and [demo walkthrough](apps/demo/docs/demo-narration.md) explain the connected journey and the technologies behind it.
+
 ## How it works
 
 The active application is **[`apps/demo`](apps/demo/)**.
@@ -45,8 +47,17 @@ The active application is **[`apps/demo`](apps/demo/)**.
 - **Server-Sent Events** update the connected screens. **MJPEG** carries the overlaid room video to the Command Center.
 - **Gemini** supports follow-up questions, summaries, explanations, handoffs, grounded Q&A, and opt-in image descriptions.
 - **ElevenLabs Agents and text to speech** give Crisp conversational interactions and spoken announcements.
+- **Vultr** hosts the shared application connecting separate demo devices. Intake, room observation, staff, lobby, and exam-room screens share visits, call-outs, actions, and room state through the same backend.
 
 The current prototype retrieves recorded visit context and fictional histories. Real EHR/FHIR connections and hospital-wide data access remain part of the roadmap.
+
+## Built around existing equipment
+
+Crisp is primarily software. The first version can reuse a clinic's laptops, desktop PCs, displays, microphones, speakers, and compatible cameras. Staff open their station in a browser. A touchscreen connected to a computer can become a check-in kiosk, with a microphone and speaker for conversation and a camera for enrollment and optional pulse estimation.
+
+The goal is to lower the hardware barrier for smaller clinics and under-resourced healthcare systems. Our demo uses Vultr; the application can also be hosted on a hospital-managed server. Enabled Gemini and ElevenLabs features still use their provider APIs with either hosting arrangement.
+
+The current camera input is a browser-accessible webcam or labeled replay. Reusing security-camera streams is an expansion path requiring a compatible video bridge and suitable camera placement, resolution, and lighting. The [equipment guide](apps/demo/docs/product-vision.md#accessible-through-existing-equipment) explains the requirements.
 
 ## Run locally
 
