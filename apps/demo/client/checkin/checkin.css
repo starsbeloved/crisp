@@ -321,7 +321,7 @@ main:has(> .checkin){max-width:none;margin:0;padding:0}
   .checkin-pulse-clock { flex-basis:72px; width:72px; height:72px; }
 }
 
-.checkin .checkin-navigation .checkin-help-button { min-height:60px; padding:.75rem 1.25rem; border:1px solid var(--c-red); border-radius:var(--r-control); background:var(--c-red); color:var(--c-surface); font-size:1.125rem; font-weight:650; white-space:normal; }
-.checkin .checkin-navigation .checkin-help-button:hover:not(:disabled) { background:var(--c-red-text); }
+.checkin .checkin-navigation .checkin-help-button { min-height:60px; padding:.75rem 1.25rem; border:1px solid #e6a3c0; border-radius:var(--r-control); background:#f8d7e6; color:#7d244e; font-size:1.125rem; font-weight:650; white-space:normal; }
+.checkin .checkin-navigation .checkin-help-button:hover:not(:disabled) { background:#f2bfd6; }
 .checkin-help-button svg { width:1.5rem; height:1.5rem; flex:none; }
 .checkin-help-button span { min-width:0; overflow-wrap:anywhere; }
