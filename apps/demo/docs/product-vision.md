@@ -1,8 +1,10 @@
 # Crisp — product vision
 
-**Crisp is a proactive AI assistant for hospitals and clinics, living at the intersection of physical spaces and digital systems.**
+**Crisp is a proactive, ambient AI assistant for hospitals and clinics, living at the intersection of physical spaces and digital systems.**
 
 The simplest character reference is Miss Minutes: a recognizable presence that appears on screens, speaks with people, and has a personality. Crisp's original apple character gives that presence a face. The assistant's ambition is to understand its environment, retrieve relevant information, anticipate useful next steps, and help people act through connected tools.
+
+**Ambient** describes Crisp’s presence throughout the environment: available across connected screens and devices, aware of supported events, and ready to help in the flow of work. **Proactive** describes its initiative: bringing relevant context and useful next steps to people.
 
 ## One assistant throughout the clinic
 
@@ -35,6 +37,6 @@ Vision inference runs in the browser. Gemini and ElevenLabs features use externa
 
 ## Product language
 
-Use **“a proactive AI assistant for hospitals and clinics”** as the public description. Explain its presence across physical spaces and digital systems in the introduction. Miss Minutes is a useful inspiration reference; the product name is Crisp.
+Use **“a proactive, ambient AI assistant for hospitals and clinics”** as the public description. Explain its presence across physical spaces and digital systems in the introduction. Miss Minutes is a useful inspiration reference; the product name is Crisp.
 
 Explain Vultr, Gemini, ElevenLabs, and the sensing stack in the implementation sections. Lead with the assistant, its personality, initiative, and usefulness to patients and staff.

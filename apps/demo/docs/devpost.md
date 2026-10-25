@@ -4,7 +4,7 @@
 
 **Project name:** Crisp
 
-**Elevator pitch:** A proactive AI assistant for hospitals and clinics, bridging physical spaces and digital systems to help patients and healthcare staff.
+**Elevator pitch:** A proactive, ambient AI assistant for hospitals and clinics, bridging physical spaces and digital systems to help patients and healthcare staff.
 
 **Built with:** TypeScript, React, Vite, Node.js, Vultr, Google Gemini API, ElevenLabs Agents, ElevenLabs Text to Speech, MediaPipe, face-api.js, rPPG, Server-Sent Events, MJPEG, SVG, Vitest, Playwright, OpenAI Codex, Claude.
 

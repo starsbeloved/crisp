@@ -2,7 +2,7 @@
 
 ## What we are building tonight
 
-**Crisp — a proactive AI assistant for hospitals and clinics** (SBUHacks 2026, due 2026-10-25 21:00).
+**Crisp — a proactive, ambient AI assistant for hospitals and clinics** (SBUHacks 2026, due 2026-10-25 21:00).
 Read the [current product vision](apps/demo/docs/product-vision.md): a Miss Minutes-inspired presence at the intersection of physical spaces and digital systems, helping patients and healthcare staff. The patient journey is the current demo of that broader vision. Explain Vultr hosting, Gemini, and ElevenLabs in implementation sections; keep the product description focused on the assistant.
 
 Historical implementation spec:

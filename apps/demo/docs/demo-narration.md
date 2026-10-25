@@ -6,7 +6,7 @@ English narration and production notes for judges. This is a proposed walkthroug
 
 **Show:** a real kiosk, staff computer and room camera; Crisp on their screens. Label wider unimplemented connections “Vision”.
 
-“Meet Crisp, a proactive AI assistant for hospitals and clinics. Picture a character with the presence of Miss Minutes, living across screens and speaking with people. Crisp connects what happens in the physical room with information and actions in the digital system, helping patients and healthcare staff get things done.”
+“Meet Crisp, a proactive, ambient AI assistant for hospitals and clinics. Picture a character with the presence of Miss Minutes, living across screens and speaking with people. Crisp connects what happens in the physical room with information and actions in the digital system, helping patients and healthcare staff get things done.”
 
 ## Patient arrival
 

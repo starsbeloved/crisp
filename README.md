@@ -1,6 +1,6 @@
 # Crisp
 
-**A proactive AI assistant for hospitals and clinics.**
+**A proactive, ambient AI assistant for hospitals and clinics.**
 
 Crisp lives at the intersection of physical spaces and digital systems. Picture the presence of Miss Minutes: a character on the screen who talks with people, notices what is happening, and takes initiative. Crisp's original apple character brings that presence to a clinic's cameras, screens, speakers, and connected software. The vision is one assistant that brings relevant information together, anticipates the next task, and helps patients, nurses, doctors, and administrative staff get things done.
 

@@ -1,6 +1,6 @@
 # Crisp demo application
 
-**Crisp is a proactive AI assistant for hospitals and clinics.** The [project README](../../README.md) describes the hospital-wide vision and the current demonstration across intake, room awareness, staff coordination, and exam-room context.
+**Crisp is a proactive, ambient AI assistant for hospitals and clinics.** The [project README](../../README.md) describes the hospital-wide vision and the current demonstration across intake, room awareness, staff coordination, and exam-room context.
 
 Its presence is inspired by Miss Minutes: a character who appears on screens, speaks with people, and takes initiative. See the [product vision](docs/product-vision.md), [complete feature inventory](docs/features.md), [Devpost copy](docs/devpost.md), and [demo walkthrough](docs/demo-narration.md).
 
