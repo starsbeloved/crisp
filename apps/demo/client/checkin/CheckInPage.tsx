@@ -52,7 +52,7 @@ export function CheckInPage() {
       </div>
       </div>
       {c.step !== 'done' && <div className="checkin-agent"><CrispAgentSlot /></div>}
-      {c.step === 'welcome' && <div className="checkin-welcome-actions"><Button className="checkin-primary checkin-start" onClick={() => c.goTo('name')}>Start</Button><ol className="checkin-how"><li>Tell Crisp your name</li><li>Look at the camera for two seconds</li><li>Say what brings you in, in your own words</li></ol></div>}
+      {c.step === 'welcome' && <div className="checkin-welcome-actions"><ol className="checkin-how"><li>Tell Crisp your name</li><li>Look at the camera for two seconds</li><li>Say what brings you in, in your own words</li></ol></div>}
       <form className="checkin-form" onSubmit={submit} aria-busy={c.busy}>
         {c.step === 'name' && <div className="checkin-name-panel"><label htmlFor="checkin-name">Your name</label><input id="checkin-name" name="name" autoComplete="given-name" maxLength={120} value={c.name} onChange={event => c.setName(event.target.value)} aria-describedby={validation ? 'checkin-error' : undefined} /><Button className="checkin-primary" type="submit">Continue</Button></div>}
         <div className="checkin-face-layout" hidden={c.step !== 'face'}>

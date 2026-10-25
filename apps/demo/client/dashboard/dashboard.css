@@ -21,16 +21,17 @@
 .dashboard .synthetic-label { display: inline-flex; align-items: center; min-height: 30px; padding: 0 10px; border-radius: var(--r-control); background: var(--c-amber-tint); color: var(--c-amber-text); font-size: 12px; font-weight: 700; }
 
 .dashboard .system-strip { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 12px; padding: 10px 0; border-block: 1px solid var(--dashboard-line); color: var(--dashboard-muted); font-size: 13px; }
-.dashboard .system-strip > span:not(.camera-health) { display: inline-flex; align-items: center; min-height: 30px; padding: 0 10px; border-radius: var(--r-pill); background: var(--c-canvas); white-space: nowrap; }
-.dashboard .system-strip .status { color: var(--c-text); font-weight: 600; }
-.dashboard .status::before { content: ''; width: 8px; height: 8px; margin-right: 7px; border: 1.5px solid var(--c-text-2); border-radius: 50%; background: transparent; }
-.dashboard .status.good::before { border-color: var(--c-leaf); background: var(--c-leaf); }
-.dashboard .status.fair::before { border-color: var(--c-amber-text); }
-.dashboard .status.low::before { border-color: var(--c-red-text); }
-.dashboard .camera-health { display: inline-flex; align-items: center; gap: 8px; }
-.dashboard .camera-health .status { white-space: nowrap; }
-.dashboard .warning { color: var(--c-amber-text); font-weight: 600; }
+.dashboard .system-summary { display: inline-flex; align-items: center; min-height: 30px; color: var(--c-text); font-weight: 600; white-space: nowrap; }
+.dashboard .system-summary i { width: 8px; height: 8px; margin-right: 7px; border: 1.5px solid var(--c-leaf); border-radius: 50%; background: var(--c-leaf); }
+.dashboard .system-summary.paused i { border-color: var(--c-amber-text); background: transparent; }
+.dashboard .camera-warning { color: var(--c-amber-text); font-weight: 600; }
 .dashboard .strip-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.dashboard .system-details { position: relative; }
+.dashboard .system-details summary { display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px; border: 1px solid var(--c-border); border-radius: var(--r-control); background: var(--c-surface); color: var(--c-text); font-size: 15px; font-weight: 600; list-style: none; cursor: pointer; }
+.dashboard .system-details summary::-webkit-details-marker { display: none; }
+.dashboard .system-details summary:hover { background: var(--c-canvas); }
+.dashboard .system-popover { position: absolute; z-index: 10; top: calc(100% + 8px); right: 0; display: grid; width: min(420px, calc(100vw - 48px)); gap: 8px; padding: 14px; border: 1px solid var(--c-hairline); border-radius: var(--r-panel); background: var(--c-surface); box-shadow: var(--shadow-bubble); color: var(--c-text-2); font-size: 12px; }
+.dashboard .system-popover span { display: block; padding: 4px 0; }
 .dashboard .strip-actions button { min-height: 44px; }
 
 .dashboard .alert-banner { display: flex; align-items: center; gap: var(--s-3); min-height: 92px; margin: var(--s-3) 0; padding: 16px 20px 16px 16px; border: 0; border-radius: var(--r-panel); background: var(--c-leaf-tint); color: var(--c-text); }

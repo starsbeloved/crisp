@@ -30,7 +30,7 @@ function VoiceCheckIn({ controller }: { controller: CheckInController }) {
     const timer = setTimeout(endSession, 8000);
     return () => { clearTimeout(timer); endSession(); };
   }, [controller.step, endSession]);
-  if (!voice.available || tapping || controller.step === 'done') return null;
+  if (tapping || controller.step === 'done') return null;
   const active = voice.status !== 'disconnected';
   return <section aria-label="Talk to Crisp" className={active ? 'checkin-voice-active' : 'checkin-voice-launch'}>
     <div className="checkin-conversation">
@@ -43,7 +43,7 @@ function VoiceCheckIn({ controller }: { controller: CheckInController }) {
       </div>
       <div className="checkin-voice-actions">
         {!active && <button type="button" className="checkin-primary checkin-voice-start" onClick={() => { controller.setVia('voice'); void voice.start(); }}><KioskIcon name="mic" />Talk to Crisp</button>}
-        <button type="button" className="checkin-secondary checkin-voice-tap" onClick={() => { voice.endSession(); controller.setVia('form'); setTapping(true); }}>I’d rather tap</button>
+        <button type="button" className="checkin-secondary checkin-voice-tap" onClick={() => { voice.endSession(); controller.setVia('form'); controller.goTo('name'); setTapping(true); }}>I’d rather tap</button>
       </div>
     </div>
     {active && <Understood controller={controller} />}
