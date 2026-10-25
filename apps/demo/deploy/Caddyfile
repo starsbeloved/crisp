@@ -1,0 +1,28 @@
+{$CRISP_HOST} {
+	header X-Content-Type-Options nosniff
+
+	# Preserve /api; handle_path would strip it and break the existing routes.
+	handle /api/* {
+		reverse_proxy api:8787 {
+			# SSE and unknown-length MJPEG flush immediately; bound other buffering.
+			# A positive interval also preserves cancellation when a tab disconnects.
+			flush_interval 100ms
+		}
+	}
+
+	# Missing models/WASM/modules must return 404, never the SPA HTML.
+	@static path /assets/* /models/* /sounds/*
+	handle @static {
+		root * /srv
+		encode zstd gzip
+		file_server
+	}
+
+	# Direct navigation and refresh work on every client route.
+	handle {
+		root * /srv
+		encode zstd gzip
+		try_files {path} /index.html
+		file_server
+	}
+}

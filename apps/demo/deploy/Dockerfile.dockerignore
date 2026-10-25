@@ -1,0 +1,26 @@
+# Allow only the source required by the two image targets.
+**
+!package.json
+!package-lock.json
+!index.html
+!vite.config.ts
+!tsconfig.json
+!client/
+!client/**
+!shared/
+!shared/**
+!server/
+!server/**
+!public/
+!public/**
+!deploy/
+!deploy/Caddyfile
+# Keep any nested local data, env files and test artifacts out of the context.
+**/node_modules
+**/.local
+**/.data
+**/.env
+**/.env.*
+**/providers.env
+**/*.test.*
+**/__tests__
