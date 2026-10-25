@@ -8,5 +8,5 @@ export function ResetCountdown() {
     const timer = setInterval(() => setSeconds(Math.max(0, 10 - Math.floor((Date.now() - started) / 1000))), 250);
     return () => clearInterval(timer);
   }, []);
-  return <span className="checkin-countdown">Starting over for the next person in {seconds} s</span>;
+  return <span className="checkin-countdown" aria-live="off">Starting over for the next person in {seconds} s</span>;
 }
