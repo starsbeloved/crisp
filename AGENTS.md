@@ -2,10 +2,7 @@
 
 ## What we are building tonight
 
-**Crisp — proactive AI assistant for healthcare** (SBUHacks 2026, due 2026-10-25 21:00).
-Product vision: [.plans/content/CRISP-VISION.md](.plans/content/CRISP-VISION.md). Crisp is envisioned as an assistant
-with a personality across hospital/clinic systems, helping patients, nurses and doctors. The current patient-journey
-demo is one example of that vision. Read the vision before writing product descriptions or film scripts. Demo spec:
+**Crisp — Waiting Room Companion** (SBUHacks 2026, due 2026-10-25 21:00). Product spec:
 [.plans/waiting-room-demo-rescue-spec.md](.plans/waiting-room-demo-rescue-spec.md). Your task packet lives in
 [.plans/codex/](.plans/codex/README.md) — read the spec once, then only your packet.
 
