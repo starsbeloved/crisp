@@ -133,3 +133,16 @@ it('speaks an alert immediately when a non-alert announcement is already playing
   expect(speak).toHaveBeenCalledOnce();
   expect(players[0].pause).toHaveBeenCalled();
 });
+
+it('interrupts an earlier alert immediately for a newly opened red request', async () => {
+  setup();
+  const speak = vi.fn(), cancel = vi.fn();
+  vi.stubGlobal('SpeechSynthesisUtterance', class { onend = null; onerror = null; constructor(public text: string) {} });
+  vi.stubGlobal('speechSynthesis', { speak, cancel });
+  await act(() => root!.render(<AlertHarness enabled items={[alert('earlier')]} />));
+  await act(() => root!.render(<AlertHarness enabled items={[alert('earlier'), alert('new-fall')]} />));
+  expect(speak).toHaveBeenCalledTimes(2);
+  expect(cancel).toHaveBeenCalledOnce();
+  await act(() => root!.render(<AlertHarness enabled items={[alert('earlier'), { ...alert('new-fall'), updatedAt: 20 }]} />));
+  expect(speak).toHaveBeenCalledTimes(2);
+});

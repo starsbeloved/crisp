@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Alert } from '../../shared/types.ts';
-export interface VoiceItem { key: string; id: string; url: string | null; speech: string; priority?: boolean }
+export interface VoiceItem { key: string; id: string; url: string | null; speech: string; priority?: boolean; interrupt?: boolean }
 
 const soundKey = 'crisp-monitoring-sound';
 /** sessionStorage remembers the explicit sound gesture within this tab. */
@@ -25,7 +25,7 @@ export function alertVoiceItems(alerts: Alert[], replayVisitIds: string[] = []):
   return alerts.filter(alert => alert.status !== 'checked').map(alert => {
     const cue = alert.facts.postureEvents.some(event => event.kind === 'fall') ? 'Fall-like movement detected. ' :
       alert.facts.postureEvents.some(event => event.kind === 'headDrop') ? 'Head below shoulders. ' : '';
-    return { key: `alert:${alert.id}:${alert.level}`, id: alert.id, url: null, priority: true,
+    return { key: `alert:${alert.id}:${alert.level}`, id: alert.id, url: null, priority: true, interrupt: alert.level === 'red',
       speech: `${replayVisitIds.includes(alert.visitId) ? 'Replay. ' : ''}${cue}${alert.facts.name}, number ${alert.facts.queueNo}, may need a check.` };
   });
 }
@@ -43,7 +43,8 @@ export function useVoice(enabled: boolean, items: VoiceItem[]) {
   const [, setCompletedKey] = useState<string | null>(null);
   const currentKey = useRef<string | null>(null);
   const current = items.find(i => i.key === currentKey.current);
-  const item = current?.priority ? current : items.find(i => i.priority && !seen.current.has(i.key)) ?? current ?? items.find(i => !seen.current.has(i.key));
+  const item = items.find(i => i.interrupt && !seen.current.has(i.key)) ??
+    (current?.priority ? current : items.find(i => i.priority && !seen.current.has(i.key)) ?? current ?? items.find(i => !seen.current.has(i.key)));
   useEffect(() => {
     if (!enabled || !item) { currentKey.current = null; setTalkingId(null); return; }
     let cancelled = false, audio: HTMLAudioElement | null = null, utterance: SpeechSynthesisUtterance | null = null;
