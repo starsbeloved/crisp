@@ -24,7 +24,8 @@ export function createCheckInTools(getController: () => CheckInController, fetch
   let scanFailures = 0;
   let completed: string | null = null;
   let finishing: Promise<string> | null = null;
-  let requested: { key: string; prompt: FollowUpPrompt } | null = null;
+  let requested: { key: string; prompt: FollowUpPrompt; answered: boolean } | null = null;
+  let followUpCount = 0;
   const complaintKey = (c: CheckInController) => JSON.stringify([c.answers.reason, c.answers.reasonChips, c.answers.onset, c.answers.trend]);
   function controller() { const c = getController(); c.setVia('voice'); return c; }
   const tools = {
@@ -64,17 +65,20 @@ export function createCheckInTools(getController: () => CheckInController, fetch
       if (p.onset !== undefined) patch.onset = typeof p.onset === 'string' ? onsetChip(p.onset) : null;
       if (p.trend !== undefined) patch.trend = typeof p.trend === 'string' ? trendChip(p.trend) : null;
       const c = controller(); c.setAnswers(patch); c.goTo('questions');
-      return 'answers saved. Once all three answers are confirmed, call get_follow_up_question and ask its returned question.';
+      return 'answers saved in the patient’s words. Call get_follow_up_question for one specific follow-up.';
     },
     async get_follow_up_question() {
       const c = controller();
-      if ((!c.answers.reason.trim() && !c.answers.reasonChips.length) || !c.answers.onset || !c.answers.trend) return 'Please ask all three questions and call save_answers before get_follow_up_question.';
+      if (!c.answers.reason.trim() && !c.answers.reasonChips.length) return 'Next: ask what brings them in and call save_answers first.';
+      if (requested?.key === complaintKey(c) && requested.answered) return 'The follow-up is saved. Next: wrap up and call finish_check_in.';
       c.goTo('followup');
       const key = complaintKey(c);
       if (requested?.key === key) { c.setFollowUpPrompt(requested.prompt); return requested.prompt.question; }
+      if (followUpCount >= 2) return 'Follow-up limit reached. Next: wrap up and call finish_check_in.';
       const prompt = await loadFollowUp({ ...c.answers, via: 'voice' }, fetcher);
-      if (key !== complaintKey(getController())) return 'Answers changed. Call get_follow_up_question again.';
-      requested = { key, prompt };
+      if (key !== complaintKey(getController())) return 'Answers changed. Next: call get_follow_up_question again.';
+      followUpCount += 1;
+      requested = { key, prompt, answered: false };
       c.setFollowUpPrompt(prompt);
       return prompt.question;
     },
@@ -84,6 +88,7 @@ export function createCheckInTools(getController: () => CheckInController, fetch
       if (!requested || requested.key !== complaintKey(c)) return 'Call get_follow_up_question before saving a follow-up.';
       if (p.question.trim() !== requested.prompt.question) return 'Please ask the returned question from get_follow_up_question and save that exact question.';
       c.setFollowUp(requested.prompt.question, p.answer.trim().slice(0, 4000));
+      requested.answered = true;
       return 'follow-up saved';
     },
     async finish_check_in(): Promise<string> {
@@ -92,7 +97,7 @@ export function createCheckInTools(getController: () => CheckInController, fetch
       const c = controller();
       if (!c.name.trim()) return 'Please ask for a name before finishing.';
       if (!c.answers.reason.trim()) return 'Please ask what brings the patient in before finishing.';
-      if (!requested || requested.key !== complaintKey(c)) return 'Call get_follow_up_question, ask its returned question, then save_follow_up (or skip if the patient declines) before finishing.';
+      if (followUpCount < 2 && (!requested || requested.key !== complaintKey(c))) return 'Call get_follow_up_question, ask its returned question, then save_follow_up (or skip if the patient declines) before finishing.';
       finishing = c.finish().then(result => { completed = `Queue number ${result.queueNo}. Please take a seat — Crisp will call you.`; return completed; })
         .catch(() => 'Check-in could not be saved. Please try again or use the form.')
         .finally(() => { finishing = null; });
@@ -102,8 +107,8 @@ export function createCheckInTools(getController: () => CheckInController, fetch
   const next = {
     set_name: 'ask date of birth and phone, then call set_patient_details; use null for declined details.',
     set_patient_details: 'confirm the date of birth and phone, or save null for declined details.',
-    start_face_scan: 'ask the three questions: reason, when it started, and whether it is worse, same or better; call save_answers. If scanning failed, use Continue to skip.',
-    save_answers: 'confirm all three answers, then call get_follow_up_question.',
+    start_face_scan: 'ask what brings them in, listen, and call save_answers with their words. Save timing or changes only if volunteered. If scanning failed, use Continue to skip.',
+    save_answers: 'call get_follow_up_question for one natural follow-up; do not ask a list of required questions.',
     get_follow_up_question: 'ask the returned question, then call save_follow_up; if declined, call finish_check_in.',
     save_follow_up: 'call finish_check_in.',
     finish_check_in: 'if a queue number was returned, take a seat; otherwise follow the instruction above and retry, or use Continue.',

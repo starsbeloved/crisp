@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
 import { useRoomState } from '../lib/useRoomState.ts';
 import { Crisp } from '../ui/Crisp.tsx';
-import { useVoice } from '../dashboard/useVoice.ts';
+import { useMonitoringSound } from '../dashboard/useVoice.ts';
+import { useHallwayCallout } from './useHallwayCallout.ts';
+import { hallwaySpeech } from './callout.ts';
+import { roomLabel } from '../staff/rooms.ts';
 import { WaitTimeBoard } from './WaitTimeBoard.tsx';
 import './lobby.css';
 
@@ -11,41 +13,26 @@ function AppleMark() {
 
 export function LobbyPage() {
   const { state, connected } = useRoomState();
-  const [sound, setSound] = useState(false);
+  const { enabled: sound, toggle: toggleSound } = useMonitoringSound();
   const call = state?.nowCalling;
   // Public screen: first name only for the person being called; the queue below stays initial-only.
   const initial = call ? call.name.trim().split(/\s+/)[0] ?? '' : '';
-  const [chimedCall, setChimedCall] = useState<string | null>(null);
-  const heard = useRef<string | null>(null);
-  const callReady = Boolean(call && (call.audio === 'ready' || call.audio === 'failed'));
-  useEffect(() => {
-    if (!sound || !call || !callReady) return;
-    if (heard.current === call.id) { setChimedCall(call.id); return; }
-    let active = true;
-    const id = call.id, chime = new Audio('/sounds/lobby-chime.wav');
-    chime.volume = .3;
-    function finish() { if (active) { heard.current = id; setChimedCall(id); } }
-    chime.onended = finish; chime.onerror = finish;
-    const timeout = setTimeout(finish, 1500);
-    void chime.play().catch(finish);
-    return () => { active = false; clearTimeout(timeout); chime.pause(); chime.onended = null; chime.onerror = null; };
-  }, [sound, call?.id, callReady]);
-  const voice = useVoice(sound && chimedCall === call?.id, call && callReady ? [{ key: call.id, id: call.id, url: call.audio === 'ready' ? `/api/calls/${call.id}/audio` : null, speech: `${initial}, number ${call.queueNo}, please come to ${call.room}.` }] : []);
+  const voice = useHallwayCallout(sound, call ?? null, true);
   const now = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   const queueKey = state?.visits.map(v => `${v.id}:${v.status}:${v.calledAt}`).join(',') ?? '';
 
   return <div className="lobby">
-    <header className="lobby-header"><a href="/" className="lobby-brand"><AppleMark /><span>Waiting room</span></a><time dateTime={new Date().toISOString()}>{now}</time><button className="lobby-sound" aria-pressed={sound} onClick={() => setSound(v => !v)}>{sound ? 'Disable sound' : 'Enable sound'}</button></header>
+    <header className="lobby-header"><a href="/" className="lobby-brand"><AppleMark /><span>Waiting room</span></a><time dateTime={new Date().toISOString()}>{now}</time><button className="lobby-sound" aria-pressed={sound} onClick={toggleSound}>{sound ? 'Disable sound' : 'Enable sound'}</button></header>
     <div className="lobby-main">
       <section className={`lobby-mascot-stage ${voice.talkingId ? 'speaking' : ''}`} aria-hidden={call ? undefined : 'true'}>
-        {call && <p className="lobby-quote">“{initial}, number {call.queueNo}, please come to {call.room}.”</p>}
+        {call && <p className="lobby-quote">“{hallwaySpeech(call)}”</p>}
         <div className="lobby-mascot-disc"><Crisp size={600} state={voice.talkingId ? 'talking' : call ? 'pointing' : 'idle'} /></div>
       </section>
       <div className="lobby-right"><section className="lobby-call-panel" aria-live="polite">
         {call ? <>
           <div className="lobby-call-label">Now calling</div>
           <div className="lobby-called-person"><span>{initial}</span><strong>#{call.queueNo}</strong></div>
-          <div className="lobby-room"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h12M13 7l5 5-5 5" /></svg>{call.room}</div>
+          <div className="lobby-room"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h12M13 7l5 5-5 5" /></svg>{roomLabel(call.room)}</div>
         </> : <>
           <div className="lobby-call-label">Welcome</div>
           <div className="lobby-idle-title">Please take a seat.</div>

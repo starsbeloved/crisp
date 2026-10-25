@@ -14,7 +14,7 @@ describe('follow-up provenance', () => {
     for (const response of [new Response('{}', { status: 503 }), new Response('{"question":""}'), new Response('{"question":"Anything else?","source":"unknown"}')]) {
       const prompt = await loadFollowUp(answers, vi.fn().mockResolvedValue(response));
       expect(prompt.source).toBe('template');
-      expect(prompt.question).toContain('nurse');
+      expect(prompt.question).toMatch(/chest|arm|jaw|back/);
     }
     const offline = await loadFollowUp(answers, vi.fn().mockRejectedValue(new Error('offline')));
     expect(offline.source).toBe('template');

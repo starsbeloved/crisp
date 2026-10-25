@@ -2,6 +2,7 @@ import type { Alert, NowCalling, Visit } from '../shared/types.ts';
 import * as providers from './providers/index.ts';
 import type { RoomStore } from './store.ts';
 import type { MjpegBuffer } from './mjpeg.ts';
+import { hallwaySpeech } from '../client/lobby/callout.ts';
 
 async function withinSixSeconds<T>(work: Promise<T>): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -61,7 +62,7 @@ export class Orchestrator {
   }
 
   async onCall(call: NowCalling, visit: Visit): Promise<void> {
-    const line = `${visit.name}, number ${visit.queueNo}, please come to room ${call.room}.`;
+    const line = hallwaySpeech({ ...call, name: visit.name, queueNo: visit.queueNo });
     const speech = withinSixSeconds(providers.speak(line, 'crisp')).then(audio => {
       if (audio) this.callAudio.set(call.id, audio);
       if (this.store.state.nowCalling?.id === call.id) {

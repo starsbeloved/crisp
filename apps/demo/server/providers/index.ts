@@ -3,6 +3,7 @@ import { Type, type Schema } from '@google/genai';
 import type { Alert, CheckInAnswers, Handoff, ProviderSource, RoomState, Visit, Vitals } from '../../shared/types.ts';
 import { generate } from './gemini.ts';
 import { grounded, shorten } from './grounding.ts';
+import { complaintQuestion, specificQuestion } from '../../client/checkin/followup-policy.ts';
 
 const complaints = ['chest pain', 'breathing', 'dizziness/fainting', 'headache', 'fever', 'abdominal pain', 'injury', 'nausea', 'allergic reaction', 'other'] as const;
 function schema(fields: string[], enums: Record<string, string[]> = {}): Schema {
@@ -35,22 +36,18 @@ export async function summarize(visit: Visit): Promise<Visit['summary']> {
   return { chiefComplaint: result.value.chiefComplaint, text: result.value.summary, source: result.source };
 }
 
-const followUps: Record<string, string> = {
-  'chest pain': 'Does the tightness spread to your arm, jaw, or back?',
-  breathing: 'Does the breathing difficulty happen while you are resting?',
-  'dizziness/fainting': 'Have you fainted or felt close to fainting?',
-  headache: 'Did the headache start suddenly or build up gradually?',
-  fever: 'Have you measured your temperature?',
-  'abdominal pain': 'Where in your belly does it hurt?',
-  injury: 'How did the injury happen?', nausea: 'Have you been able to keep fluids down?',
-  'allergic reaction': 'What were you exposed to before this started?',
-};
 export async function followUpQuestion(answers: CheckInAnswers): Promise<{ question: string; source: ProviderSource }> {
   const result = await generate({ job: 'followUpQuestion', key: answers, facts: answers,
-    task: 'Ask one short plain-English question useful to a nurse about these answers. At most 20 words, ending with a question mark. No advice or treatment.',
+    task: `Ask the patient one natural, specific follow-up tied to their own words. At most 20 words, one question mark. Do not ask for facts already given. No advice, treatment, generic catch-all or meta questions about what staff need to know. Missing onset/trend are allowed; never infer them.
+Examples (style only; never copy example facts into this patient's record):
+Patient: "My chest feels tight." Question: "Does that chest tightness feel like pressure or a sharp pain?"
+Patient: "My headache came on all at once." Question: "Where in your head is the pain strongest?"
+Patient: "I twisted my ankle stepping off a curb." Question: "Can you put weight on that ankle?"
+Patient: "I get dizzy when I stand." Question: "Does that dizziness feel like spinning or like you might faint?"
+Never ask "Is there anything else the nurse would like to know?" or "What other symptoms do you have?"`,
     schema: z.object({ question: z.string().trim().min(1) }), responseSchema: schema(['question']),
-    valid: output => grounded(output.question, answers, 20) && output.question.endsWith('?') && (output.question.match(/\?/g)?.length === 1) && !/you should|you must|take |try |recommend|call |go to /i.test(output.question),
-    fallback: { question: followUps[complaint(answers).toLowerCase()] || 'Is there anything else the nurse should know?' },
+    valid: output => grounded(output.question, answers, 20) && specificQuestion(output.question, answers),
+    fallback: { question: complaintQuestion(answers) },
   });
   return { ...result.value, source: result.source };
 }
