@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import type { GalleryEntry, Visit } from '../../shared/types.ts';
 import { replaySource } from '../lib/camera.ts';
+import { detectFaces } from '../lib/face.ts';
 import { useVideoSource } from '../lib/useVideoSource.ts';
 import { examVisits, recognizeArrival } from './model.ts';
 
-export function useExamRecognition(video: RefObject<HTMLVideoElement | null>, visits: Visit[], room: string, active: boolean, onRecognized: (id: string) => void) {
-  const replay = replaySource();
+export function useExamRecognition(video: RefObject<HTMLVideoElement | null>, visits: Visit[], room: string, active: boolean, onRecognized: (id: string) => void, replayFile?: string | null) {
+  const replay = replayFile ?? replaySource();
   const { ready, message } = useVideoSource(video, active, replay);
   const [status, setStatus] = useState('Camera off');
   const current = useRef({ visits, onRecognized }); current.current = { visits, onRecognized };
@@ -34,8 +35,6 @@ export function useExamRecognition(video: RefObject<HTMLVideoElement | null>, vi
       if (busy || disposed || !video.current || video.current.readyState < 2) return;
       busy = true;
       try {
-        const { detectFaces } = await import('../lib/face.ts');
-        if (disposed) return;
         const faces = await detectFaces(video.current);
         if (disposed) return;
         const id = recognizeArrival(faces, gallery.current, current.current.visits, room);

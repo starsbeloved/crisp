@@ -52,3 +52,6 @@
 .exam-voice-status { min-height: 24px; font-size: 13px; }
 @media (max-width: 800px) { .exam-chart-columns { grid-template-columns: minmax(0, 1fr); } .exam-tools { gap: 12px; } .exam-camera { margin-left: 0; } }
 @media (max-width: 480px) { .exam-section { padding: 18px; } .exam-tools select { max-width: 100%; } .exam-queue { align-items: flex-start; } .exam-timeline li { grid-template-columns: 70px minmax(0, 1fr); } }
+.exam-replay { flex-basis: 100%; color: var(--c-text-2); }
+.exam-replay input { width: min(100%, 420px); font-size: 12px; padding: 6px 10px; }
+.exam-agent { border-top: 1px solid var(--c-hairline); padding: 12px 0; margin-bottom: 12px; }

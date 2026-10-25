@@ -11,6 +11,13 @@ export function ExamChart({ visit, state, record, recordStatus, connected }: {
   const stale = !connected || !vitals || state.serverNow - vitals.lastSeenAt > 5000;
   const age = ageFromDob(visit.answers.dateOfBirth, new Date(state.serverNow));
   const handoff = state.handoffs[visit.id];
+  const rejectedHandoff = Boolean(handoff && /\b(?:heart rate|breathing|HR|RR)[^\n;]*\b\d+(?:\.\d+)?[^\n;]*\b(?:low|none)\b/i.test(handoff.text));
+  const handoffText = rejectedHandoff ? [
+    `Situation: ${visit.name}, number ${visit.queueNo}, called to ${visit.room}.`,
+    `Background: ${visit.answers.reason}${visit.answers.followUp ? `\n${visit.answers.followUp.question} ${visit.answers.followUp.answer}` : ''}`,
+    'Assessment: See the recorded request timeline above. Camera values with low signal are omitted.',
+    'Request: Review the recorded facts with the patient.',
+  ].join('\n') : handoff?.text;
   const events: { key: string; at: number; title: string; text: string }[] = [];
   for (const alert of state.alerts.filter(item => item.visitId === visit.id)) {
     events.push({ key: `${alert.id}:opened`, at: alert.openedAt, title: `${alert.level === 'red' ? 'Red' : 'Amber'} · may need a check`, text: alert.reasons.join(' · ') });
@@ -38,7 +45,7 @@ export function ExamChart({ visit, state, record, recordStatus, connected }: {
           <p className="exam-muted">Camera estimates; requests for a human check. Historical request source and signal quality are not retained.</p>
           <ol className="exam-timeline">{events.map(event => <li key={event.key}><time dateTime={new Date(event.at).toISOString()}>{time(event.at)}</time><div><strong>{event.title}</strong>{event.text && <p>{event.text}</p>}</div></li>)}</ol>
           {!vitals && <p>No camera estimates recorded.</p>}
-          <h3>SBAR handoff {handoff && <span className="exam-tag">{source(handoff.source)}</span>}</h3><p className="exam-handoff">{handoff?.text ?? 'Handoff pending…'}</p>
+          <h3>SBAR handoff {handoff && <span className="exam-tag">{rejectedHandoff ? 'Template · exam view' : source(handoff.source)}</span>}</h3><p className="exam-handoff">{handoffText ?? 'Handoff pending…'}</p>
         </section>
       </div>
       <section className="exam-section exam-history"><p className="exam-eyebrow">History</p><h2>Prior record</h2><span className="exam-demo-label">{RECORDS_LABEL}</span>

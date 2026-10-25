@@ -38,4 +38,13 @@ describe('exam room page', () => {
     const voice = [...node.querySelectorAll('button')].find(button => button.textContent?.includes('Hey Crisp'));
     expect(voice?.disabled).toBe(true);
   });
+  it('clears allergy read-back when a different patient is called to the room', async () => {
+    setup(); room.state = { ...empty(), visits: [visit('Ama')] };
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({ label: RECORDS_LABEL, visitId: 'Ama', record: DEMO_RECORDS[0], allergyText: 'Penicillin' }) })));
+    await render();
+    await act(async () => { [...node.querySelectorAll('button')].find(button => button.textContent === 'Read recorded allergies')!.click(); });
+    expect(node.textContent).toContain('Penicillin');
+    room.state.visits = [visit('Ben')]; await render();
+    expect(node.textContent).not.toContain('Penicillin');
+  });
 });

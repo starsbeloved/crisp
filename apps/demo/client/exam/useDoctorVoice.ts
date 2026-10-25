@@ -36,7 +36,12 @@ export function useDoctorVoice(enabled: boolean, onCommand: (command: ExamComman
     listener.onend = () => { if (!stopped) timer = setTimeout(start, 400); };
     listener.onerror = event => { setStatus(`Microphone: ${event.error}`); if (event.error === 'not-allowed' || event.error === 'service-not-allowed' || event.error === 'audio-capture') stopped = true; };
     start();
-    return () => { stopped = true; clearTimeout(timer); listener.onend = null; listener.onresult = null; listener.onerror = null; listener.abort(); recognition.current = null; };
+    return () => {
+      stopped = true; clearTimeout(timer); listener.onend = null; listener.onresult = null; listener.onerror = null;
+      listener.abort(); recognition.current = null;
+      if (speaking.current) window.speechSynthesis?.cancel();
+      speaking.current = false;
+    };
   }, [enabled]);
   useEffect(() => () => { if (speaking.current) window.speechSynthesis?.cancel(); }, []);
   function speak(text: string) {

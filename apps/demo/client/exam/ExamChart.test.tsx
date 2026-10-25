@@ -25,6 +25,7 @@ describe('read-only exam chart', () => {
   });
   it('labels replay and hides low-quality historical and current values', () => {
     const s: RoomState = { ...state, vitals: { ama: { visitId: 'ama', lastSeenAt: 182000, cameraId: 'A', box: { x: 0, y: 0, w: 1, h: 1 }, hrBpm: 197, rrBpm: 47, hrQuality: 'low', rrQuality: 'low', baselineHr: null, baselineRr: null, posture: null, hint: 'too dark', source: 'replay', pulseTrace: null, level: 'none', history: [{ t: 181000, hr: 197, rr: 47 }] } } };
+    s.handoffs.ama = { visitId: 'ama', source: 'template', createdAt: 182000, text: 'Situation: Ama. Assessment: Camera estimates: heart rate 197 (low); breathing 47 (low); replay.' };
     const html = renderToStaticMarkup(<ExamChart visit={visit} state={s} record={null} recordStatus="ready" connected />);
     expect(html).toContain('REPLAY'); expect(html).toContain('Low signal');
     const node = document.createElement('div'); node.innerHTML = html;
