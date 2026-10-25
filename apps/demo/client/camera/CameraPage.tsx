@@ -91,6 +91,7 @@ export function CameraPage({ roomView = false }: { roomView?: boolean }) {
     <div className="camera-status"><Chip>{replay ? `REPLAY · ${filename}` : 'LIVE'}</Chip><Chip>{vision.stats.count} {vision.stats.count === 1 ? 'person' : 'people'}</Chip><Chip>{vision.poseStatus}</Chip><Chip>Overlay {vision.stats.fps.toFixed(1)} fps</Chip>{privacy && <Chip>Unknown faces blurred</Chip>}{debug && <Chip>Debug · face/body identity + posture counters</Chip>}</div>
     {debug && <section className="camera-debug" aria-label="Camera debug readings">
       <div>fps: {vision.stats.fps.toFixed(1)} · {vision.poseStatus} · {vision.models}</div>
+      <div>{vision.memory}</div>
       {vision.debugTracks?.length ? vision.debugTracks.map(line => <pre key={line.split('\n')[0]}>{line}</pre>) :
         <pre>{'No body/face tracked · track: none · visit: unknown · source: none\nreferenceReady: false · slumpSec: 0.0 · headDropSec: 0.0\nfallSuspected: false · velocity: 0.00\nfaceVelocity: 0.00 heights/s · trigger: none · faceBox: unavailable'}</pre>}
     </section>}

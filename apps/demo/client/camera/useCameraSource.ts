@@ -1,7 +1,9 @@
 import { useEffect, useState, type RefObject } from 'react';
+import { usePageActive } from './usePageActive.ts';
 import { listCameras, openCamera } from '../lib/camera.ts';
 
 export function useCameraSource(videoRef: RefObject<HTMLVideoElement | null>, cam: string, replay: string | null, deviceId: string) {
+  const pageActive = usePageActive();
   const [ready, setReady] = useState(false);
   const [message, setMessage] = useState('Opening camera…');
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
@@ -13,7 +15,7 @@ export function useCameraSource(videoRef: RefObject<HTMLVideoElement | null>, ca
   }, []);
   useEffect(() => {
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || !pageActive) { setReady(false); setMessage('Camera paused while page is hidden'); return; }
     let disposed = false, stream: MediaStream | null = null;
     let retry: ReturnType<typeof setTimeout> | undefined;
     setReady(false);
@@ -54,7 +56,10 @@ export function useCameraSource(videoRef: RefObject<HTMLVideoElement | null>, ca
       }
     }
     video.addEventListener('error', failure); void start();
-    return () => { disposed = true; clearTimeout(retry); video.removeEventListener('error', failure); release(); video.pause(); video.removeAttribute('src'); video.load(); };
-  }, [videoRef, cam, replay, deviceId]);
+    const stop = () => { disposed = true; clearTimeout(retry); video.removeEventListener('error', failure); release(); video.pause(); video.removeAttribute('src'); video.load(); };
+    const visibility = () => { if (document.visibilityState === 'hidden') stop(); };
+    window.addEventListener('pagehide', stop); document.addEventListener('visibilitychange', visibility);
+    return () => { stop(); window.removeEventListener('pagehide', stop); document.removeEventListener('visibilitychange', visibility); };
+  }, [pageActive, videoRef, cam, replay, deviceId]);
   return { ready, message, devices };
 }

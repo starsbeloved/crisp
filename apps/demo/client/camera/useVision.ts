@@ -3,7 +3,7 @@ import type { PoseLandmarker } from '@mediapipe/tasks-vision';
 import type { GalleryEntry, RoomState } from '../../shared/types.ts';
 import { api } from '../lib/api.ts';
 import { scheduleVideoFrame } from '../lib/camera.ts';
-import { detectFaces, loadFaceModels } from '../lib/face.ts';
+import { detectFaces, disposeFaceModels, faceMemory, loadFaceModels } from '../lib/face.ts';
 import { createSignalTracker, type SignalTracker, type PoseSample } from './signals/index.ts';
 import { BodyTracker, FaceTracker, poseForFace, type BodyTrack } from './tracking.ts';
 import { meanCheekSample } from './sampling.ts';
@@ -11,10 +11,13 @@ import { drawOverlay, type RenderTrack } from './overlay.ts';
 import { makeObservation } from './output.ts';
 import { loadPoseModel } from './pose.ts';
 import { debugReading } from './debug.ts';
+import { usePageActive } from './usePageActive.ts';
 import { withFaceMotion } from './signals/faceMotion.ts';
 
 export function useVision(videoRef: RefObject<HTMLVideoElement | null>, canvasRef: RefObject<HTMLCanvasElement | null>,
   options: { ready: boolean; cam: string; replayName: string | null; state: RoomState | null; privacy: boolean; debug?: boolean }) {
+  const pageActive = usePageActive();
+  const [memory, setMemory] = useState('Memory: waiting for sample');
   const [models, setModels] = useState('Loading face models…');
   const [poseStatus, setPoseStatus] = useState('Pose model: loading');
   const [error, setError] = useState('');
@@ -39,10 +42,13 @@ export function useVision(videoRef: RefObject<HTMLVideoElement | null>, canvasRe
     return () => clearInterval(timer);
   }, []);
   useEffect(() => {
+    if (!pageActive) { setModels('Face models paused'); setPoseStatus('Pose model: paused'); return; }
     let active = true;
+    setModels('Loading face models…'); setPoseStatus('Pose model: loading');
     void (async () => {
       try {
         await loadFaceModels();
+        if (!active) return;
         const blank = document.createElement('canvas'); blank.width = 320; blank.height = 240;
         await detectFaces(blank);
         if (active) { faceReady.current = true; setModels('Face models ready'); }
@@ -50,22 +56,30 @@ export function useVision(videoRef: RefObject<HTMLVideoElement | null>, canvasRe
     })();
     void (async () => {
       try {
-        const result = await loadPoseModel();
+        const result = await loadPoseModel(new URLSearchParams(location.search).get('pose') === 'gpu' ? 'GPU' : 'CPU');
         if (active) { pose.current = result.model; setPoseStatus(`Pose model: ready · ${result.delegate}`); } else result.model.close();
       } catch (error) {
         if (active) setPoseStatus(`Pose model: error ${error instanceof Error ? error.message : String(error)}`);
       }
     })();
-    return () => { active = false; faceReady.current = false; pose.current?.close(); pose.current = null; };
-  }, []);
+    const stop = () => {
+      if (!active) return;
+      active = false; faceReady.current = false; pose.current?.close(); pose.current = null;
+      void disposeFaceModels();
+    };
+    const visibility = () => { if (document.visibilityState === 'hidden') stop(); };
+    window.addEventListener('pagehide', stop); document.addEventListener('visibilitychange', visibility);
+    return () => { stop(); window.removeEventListener('pagehide', stop); document.removeEventListener('visibilitychange', visibility); };
+  }, [pageActive]);
 
   useEffect(() => {
-    if (!options.ready || !videoRef.current || !canvasRef.current) return;
+    if (!pageActive || !options.ready || !videoRef.current || !canvasRef.current) return;
     const video = videoRef.current, output = canvasRef.current;
     const ctx = output.getContext('2d');
-    const sampleCanvas = document.createElement('canvas'), detectorCanvas = document.createElement('canvas');
-    const sampleCtx = sampleCanvas.getContext('2d', { willReadFrequently: true }), detectorCtx = detectorCanvas.getContext('2d');
-    if (!ctx || !sampleCtx || !detectorCtx) return;
+    // One reusable, unmirrored processing surface for sampling, face snapshots and pose.
+    const sampleCanvas = document.createElement('canvas');
+    const sampleCtx = sampleCanvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx || !sampleCtx) return;
     tracker.current = new FaceTracker();
     setDebugTracks([]);
     const bodies = new BodyTracker();
@@ -84,11 +98,13 @@ export function useVision(videoRef: RefObject<HTMLVideoElement | null>, canvasRe
       cancel = scheduleVideoFrame(video, frame);
       const now = performance.now();
       if (video.readyState < 2 || !video.videoWidth) return;
-      const width = Math.min(640, video.videoWidth), height = Math.round(video.videoHeight * width / video.videoWidth);
+      const scale = Math.min(1, 640 / Math.max(video.videoWidth, video.videoHeight));
+      const width = Math.round(video.videoWidth * scale), height = Math.round(video.videoHeight * scale);
       if (output.width !== width || output.height !== height) {
         output.width = width; output.height = height;
-        sampleCanvas.width = Math.min(320, width); sampleCanvas.height = Math.round(height * sampleCanvas.width / width);
+        sampleCanvas.width = width; sampleCanvas.height = height;
       }
+      sampleCtx!.drawImage(video, 0, 0, width, height);
       frameCount++;
       const faces = tracker.current.current(now);
       if (poseAt !== appliedPoseAt) {
@@ -109,7 +125,6 @@ export function useVision(videoRef: RefObject<HTMLVideoElement | null>, canvasRe
       const tracks = [...bodyTracks, ...faces.filter(face => !bodyTracks.some(body =>
         poseForFace(face.face.box, [body.pose], width, height) || face.match && body.match?.visitId === face.match.visitId))];
       const pixels = tracks.some(track => track.source !== 'body' && track.match) ? (() => {
-        sampleCtx!.drawImage(video, 0, 0, sampleCanvas.width, sampleCanvas.height);
         return sampleCtx!.getImageData(0, 0, sampleCanvas.width, sampleCanvas.height);
       })() : null;
       const activeIds = new Set(tracks.map(track => track.id));
@@ -141,7 +156,12 @@ export function useVision(videoRef: RefObject<HTMLVideoElement | null>, canvasRe
       if (now - lastStats >= 1000) {
         fps = frameCount * 1000 / (now - lastStats); frameCount = 0; lastStats = now;
         setStats({ fps, count: tracks.length });
-        if (options.debug) setDebugTracks(rendered.map(debugReading));
+        if (options.debug) {
+          setDebugTracks(rendered.map(debugReading));
+          const heap = (performance as Performance & { memory?: { usedJSHeapSize: number } }).memory?.usedJSHeapSize;
+          const face = faceMemory(), mb = (bytes: number) => (bytes / 1048576).toFixed(1);
+          setMemory(`JS heap: ${heap === undefined ? 'unavailable' : mb(heap) + ' MiB'} · TF: ${face.tensors} tensors / ${mb(face.bytes)} MiB · TF GPU: ${face.gpuBytes === null ? 'unavailable' : mb(face.gpuBytes) + ' MiB'} · TF GPU pool: ${face.gpuAllocatedBytes == null ? 'unavailable' : mb(face.gpuAllocatedBytes) + ' MiB'} · input: ${width}×${height}`);
+        }
       }
       const urgent = rendered.filter(({ track, reading }) => track.match &&
         (reading.posture?.fallSuspected || (reading.posture?.headDropSec ?? 0) >= 3));
@@ -170,11 +190,8 @@ export function useVision(videoRef: RefObject<HTMLVideoElement | null>, canvasRe
           faceDetecting = true; lastFaceAt = now;
           const largeFaces = faces.length > 0 && faces.every(face => face.face.box.w >= width * .16);
           const smallFaces = !faces.length || faces.some(face => face.face.box.w < 80);
-          detectorCanvas.width = Math.min(largeFaces ? 320 : 640, video.videoWidth);
-          detectorCanvas.height = Math.round(video.videoHeight * detectorCanvas.width / video.videoWidth);
-          detectorCtx!.drawImage(video, 0, 0, detectorCanvas.width, detectorCanvas.height);
-          const sx = width / detectorCanvas.width, sy = height / detectorCanvas.height;
-          void detectFaces(detectorCanvas, largeFaces ? 320 : smallFaces ? 640 : 512).then(faces => {
+          const sx = width / sampleCanvas.width, sy = height / sampleCanvas.height;
+          void detectFaces(sampleCanvas, largeFaces ? 320 : smallFaces ? 640 : 512).then(faces => {
             if (!stopped) tracker.current.update(faces.map(face => ({ ...face,
               box: { x: face.box.x * sx, y: face.box.y * sy, w: face.box.w * sx, h: face.box.h * sy },
               landmarks: face.landmarks.map(p => ({ x: p.x * sx, y: p.y * sy })) })), gallery.current, now);
@@ -183,13 +200,21 @@ export function useVision(videoRef: RefObject<HTMLVideoElement | null>, canvasRe
       }
       if (!poseDetecting && pose.current && now - lastPoseAt >= poseInterval) {
         poseDetecting = true; lastPoseAt = now;
-        try { poses = pose.current.detectForVideo(video, now).landmarks; poseAt = now; }
+        try { poses = pose.current.detectForVideo(sampleCanvas, now).landmarks; poseAt = now; }
         catch (error) { poses = []; if (!stopped) setPoseStatus(`Pose model: error ${error instanceof Error ? error.message : String(error)}`); }
         finally { poseDetecting = false; }
       }
     }
     cancel = scheduleVideoFrame(video, frame);
-    return () => { stopped = true; cancel(); signals.clear(); };
-  }, [videoRef, canvasRef, options.ready, options.cam, options.replayName, options.privacy, options.debug]);
-  return { models, poseStatus, error, stats, debugTracks, tracker, refreshGallery };
+    const stop = () => {
+      if (stopped) return;
+      stopped = true; cancel(); signals.clear(); missingBodies.clear();
+      sampleCanvas.width = sampleCanvas.height = 0;
+      output.width = output.height = 0;
+    };
+    const visibility = () => { if (document.visibilityState === 'hidden') stop(); };
+    window.addEventListener('pagehide', stop); document.addEventListener('visibilitychange', visibility);
+    return () => { stop(); window.removeEventListener('pagehide', stop); document.removeEventListener('visibilitychange', visibility); };
+  }, [pageActive, videoRef, canvasRef, options.ready, options.cam, options.replayName, options.privacy, options.debug]);
+  return { models, poseStatus, error, stats, memory, debugTracks, tracker, refreshGallery };
 }
