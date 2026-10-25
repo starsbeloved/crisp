@@ -102,7 +102,7 @@ export function DashboardPage() {
         void perform(async () => { const response = await fetch('/api/suggestions/dismiss', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }), signal: AbortSignal.timeout(6000) }); confirm(await response.json()); window.dispatchEvent(new Event('crisp-staff-change')); });
       }} />
     <button type="button" className="secondary" disabled={!connected || synthetic || busy} onClick={() => { void perform(async () => { const result = await staffRequest('shift_summary', {}); confirm(result, !result.ok); window.dispatchEvent(new Event('crisp-staff-change')); }); }}>Summarize this shift</button>
-    <div className="dashboard-columns"><div className="dashboard-left"><AskCrisp synthetic={synthetic} /></div>
+    <div className="dashboard-columns"><div className="dashboard-left"><AskCrisp synthetic={synthetic} snapshot={{ state: live, connected }} /></div>
       {state ? <Queue state={state} now={synthetic ? state.serverNow : now} onSelect={setSelected} actions={actions} busy={busy} talkingId={audio.talkingId} synthetic={synthetic} /> : <section className="panel"><h2>Waiting queue</h2><p>Connecting to the room…</p></section>}
     </div>
     {selectedVisit && state && <PatientDrawer key={selectedVisit.id} visit={selectedVisit} state={state} onClose={() => setSelected(null)} synthetic={synthetic} actions={actions} actionBusy={busy} />}

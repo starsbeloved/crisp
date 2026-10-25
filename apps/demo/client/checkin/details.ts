@@ -22,7 +22,12 @@ export function detailsError(answers: Pick<CheckInAnswers, 'dateOfBirth' | 'phon
 
 /** Accept spoken month names and numeric dates only when their order is unambiguous. */
 export function normalizeSpokenDate(value: string, today = localToday()): string | null {
-  const text = value.trim().toLowerCase().replace(/(\d)(st|nd|rd|th)\b/g, '$1').replace(/,/g, '').replace(/\s+/g, ' ');
+  let text = value.trim().toLowerCase().replace(/(\d)(st|nd|rd|th)\b/g, '$1').replace(/,/g, '').replace(/\s+/g, ' ');
+  const ordinals = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth', 'eleventh', 'twelfth', 'thirteenth', 'fourteenth', 'fifteenth', 'sixteenth', 'seventeenth', 'eighteenth', 'nineteenth', 'twentieth', 'twenty first', 'twenty second', 'twenty third', 'twenty fourth', 'twenty fifth', 'twenty sixth', 'twenty seventh', 'twenty eighth', 'twenty ninth', 'thirtieth', 'thirty first'];
+  for (let day = ordinals.length; day >= 1; day--) {
+    const ordinal = ordinals[day - 1].replace(/ /g, '[ -]');
+    text = text.replace(new RegExp(`\\b${ordinal}\\b`, 'g'), String(day));
+  }
   let date = text;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) {
     const months = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];

@@ -37,3 +37,16 @@ it('stops retrying after mic permission denial', async () => {
   await act(() => { instance.onerror({ error: 'not-allowed' }); instance.onend(); vi.advanceTimersByTime(1000); });
   expect(instance.start).toHaveBeenCalledTimes(1); expect(node.textContent).toContain('not-allowed');
 });
+it('shows the last heard phrase and restarts after Chrome ends recognition', async () => {
+  vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true); vi.useFakeTimers(); let instance: any;
+  class Recognition { onresult: any; onend: any; onerror: any; onstart: any; start = vi.fn(() => this.onstart?.()); abort = vi.fn(); constructor() { instance = this; } }
+  vi.stubGlobal('webkitSpeechRecognition', Recognition);
+  function Harness() { const value = useWakeWord(true, vi.fn()); return <p>{value.status} · {value.lastHeard} · {value.listening ? 'live' : 'off'}</p>; }
+  const node = document.createElement('div'); root = createRoot(node);
+  await act(() => root!.render(<Harness />));
+  await act(() => instance.onresult({ resultIndex: 0, results: [{ isFinal: true, 0: { transcript: 'What is happening in the room' } }] }));
+  expect(node.textContent).toContain('What is happening in the room');
+  expect(node.textContent).toContain('live');
+  await act(() => { instance.onend(); vi.advanceTimersByTime(400); });
+  expect(instance.start).toHaveBeenCalledTimes(2);
+});

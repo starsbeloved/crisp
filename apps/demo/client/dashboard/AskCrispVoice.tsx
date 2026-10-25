@@ -35,16 +35,23 @@ export function roomDigest(state: RoomState | null, now = Date.now()): string {
 export interface StaffVoiceProps {
   room?: string; visitId?: string; onRecord?: (result: unknown) => void;
   enabled?: boolean;
+  snapshot?: { state: RoomState | null; connected: boolean };
 }
 export function AskCrispVoice(props: StaffVoiceProps = {}) {
   const [holding, setHolding] = useState(false), [handsFree, setHandsFree] = useState(false);
-  return <ConversationProvider isMuted={!holding && !handsFree}><NurseVoice {...props} holding={holding} setHolding={setHolding} handsFree={handsFree} setHandsFree={setHandsFree} /></ConversationProvider>;
+  const controls = { holding, setHolding, handsFree, setHandsFree };
+  return <ConversationProvider isMuted={!holding && !handsFree}>{props.snapshot
+    ? <NurseVoice {...props} {...controls} snapshot={props.snapshot} />
+    : <ConnectedNurseVoice {...props} {...controls} />}</ConversationProvider>;
 }
 
-function NurseVoice({ holding, setHolding, handsFree, setHandsFree, room, visitId, onRecord, enabled = true }: StaffVoiceProps & {
-  holding: boolean; setHolding: (value: boolean) => void; handsFree: boolean; setHandsFree: (value: boolean) => void;
-}) {
-  const { state, connected: liveConnected } = useRoomState();
+type VoiceControls = { holding: boolean; setHolding: (value: boolean) => void; handsFree: boolean; setHandsFree: (value: boolean) => void };
+function ConnectedNurseVoice(props: StaffVoiceProps & VoiceControls) {
+  const snapshot = useRoomState();
+  return <NurseVoice {...props} snapshot={snapshot} />;
+}
+function NurseVoice({ holding, setHolding, handsFree, setHandsFree, room, visitId, onRecord, enabled = true, snapshot }: StaffVoiceProps & VoiceControls & { snapshot: { state: RoomState | null; connected: boolean } }) {
+  const { state, connected: liveConnected } = snapshot;
   const connected = liveConnected && enabled;
   const [wakeEnabled, setWakeEnabled] = useState(false);
   const [notice, setNotice] = useState<CommandResult | null>(null);
@@ -64,9 +71,12 @@ function NurseVoice({ holding, setHolding, handsFree, setHandsFree, room, visitI
     onRecord: result => current.current.onRecord?.(result),
   }), []);
   const context = JSON.stringify({ screen: room ? 'Exam room' : 'Crisp Command Center', room, selectedVisitId: visitId,
-    instruction: 'Use client tools for every staff action. Speak their returned confirmation exactly once. Ask for clarification on ambiguous names. Get the selected patient name from get_room_digest before any allergies request. Read allergies verbatim and label demo records fictional. Never diagnose or rank patients clinically.' });
+    instruction: 'Use remove_patient({name}) to remove a patient from the queue only after asking staff to confirm. Records are retained. Use client tools for every staff action. Speak their returned confirmation exactly once. Ask for clarification on ambiguous names. Get the selected patient name from get_room_digest before any allergies request. Read allergies verbatim and label demo records fictional. Never diagnose or rank patients clinically.' });
   const voice = useVoiceAgent('nurse', enabled && Boolean(state?.providers.agent), tools, context);
   const { endSession, status, sendUserMessage } = voice;
+  const captionBox = useRef<HTMLDivElement>(null);
+  const followCaptions = useRef(true);
+  useEffect(() => { if (followCaptions.current && captionBox.current) captionBox.current.scrollTop = captionBox.current.scrollHeight; }, [voice.captions]);
   const wake = useWakeWord(wakeEnabled && connected && voice.available && status === 'disconnected' && !handsFree && !holding,
     command => { if (starting.current) return; pending.current = command || null; starting.current = true; setHandsFree(true); void voice.start(); });
   function release() { setHolding(false); }
@@ -102,16 +112,21 @@ function NurseVoice({ holding, setHolding, handsFree, setHandsFree, room, visitI
         onKeyUp={event => { if (event.key === ' ' || event.key === 'Enter') { event.preventDefault(); release(); } }}>
         {holding ? status === 'connected' ? 'Listening… release to ask' : 'Connecting… keep holding' : 'Hold to ask Crisp'}
       </button>
+      <button type="button" disabled={!connected || !voice.available || status === 'connecting'} aria-pressed={handsFree} onClick={() => {
+        if (handsFree) { end(); return; }
+        wake.pause(); pending.current = null; starting.current = true; setHandsFree(true); void voice.start();
+      }}>Talk to Crisp</button>
       <button type="button" className="secondary" aria-pressed={wakeEnabled} disabled={!connected || !wake.available || !voice.available}
         onClick={() => { const next = !wakeEnabled; setWakeEnabled(next); if (!next) end(); }}>
         {wakeEnabled ? 'Stop listening for Hey Crisp' : 'Listen for Hey Crisp'}
       </button>
       {status !== 'disconnected' && <button type="button" onClick={end}>End voice</button>}
     </div>
-    <p role="status" className="staff-mic">{!connected ? 'Mic off · room disconnected.' : !voice.available ? 'Mic off · nurse agent unavailable. Use text or on-screen actions.' : handsFree ? `Mic on · nurse session ${status}` : holding ? 'Mic on · hold to speak' : wakeEnabled ? wake.status : 'Mic off · wake word is off.'}</p>
+    <p role="status" className="staff-mic"><span className="staff-mic-light" data-live={wake.listening || holding || (handsFree && status === 'connected')} aria-hidden="true" />{!connected ? 'Mic off · room disconnected.' : !voice.available ? 'Mic off · nurse agent unavailable. Use text or on-screen actions.' : handsFree ? `Mic on · nurse session ${status}` : holding ? 'Mic on · hold to speak' : wakeEnabled ? wake.status : 'Mic off · wake word is off.'}</p>
+    <p className="staff-last-heard">Last heard: {wake.lastHeard || voice.captions.filter(c => c.speaker === 'You').at(-1)?.text || 'Nothing yet'}</p>
     <small>Wake listening uses browser speech recognition. Say “Hey Crisp”, then your request. End voice to return to wake listening.</small>
     <StaffToast result={notice} />
-    <div role="log" aria-label="Nurse voice captions" aria-live="polite" style={{ maxHeight: 160, overflowY: 'auto' }}>
+    <div ref={captionBox} onScroll={event => { const box = event.currentTarget; followCaptions.current = box.scrollHeight - box.scrollTop - box.clientHeight < 48; }} role="log" aria-label="Nurse voice captions" aria-live="polite" style={{ maxHeight: 160, overflowY: 'auto' }}>
       {voice.captions.map((caption, i) => <p key={i}><strong>{caption.speaker}:</strong> {caption.text}</p>)}
     </div>
   </section>;

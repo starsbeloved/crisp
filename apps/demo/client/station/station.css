@@ -19,3 +19,5 @@ button.station-corner:hover, button.station-corner:focus-visible, button.station
 .station-status { border-top: 1px solid var(--c-hairline); padding-top: 8px; overflow-wrap: anywhere; }
 @media (max-width: 760px) { .station-picker { padding: 28px 20px; } .station-choices { grid-template-columns: repeat(2, minmax(0, 1fr)); } .station-heading { gap: 12px; } .station-heading .crisp-character { width: 80px; height: auto; } }
 @media (max-width: 430px) { .station-choices { grid-template-columns: 1fr; } button.station-choice { min-height: 120px; } }
+
+button.station-corner { display: flex; align-items: center; gap: 6px; opacity: .7; padding: 8px 10px; min-height: 36px; font-size: 12px; background: var(--c-surface); border-color: var(--c-border); }

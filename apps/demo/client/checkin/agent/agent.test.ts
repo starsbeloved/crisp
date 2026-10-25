@@ -90,7 +90,7 @@ describe('check-in client tools', () => {
     expect(await tools.finish_check_in()).toMatch(/^Queue number 3\. Please take a seat — Crisp will call you\. Next:/);
     expect(controller.finish).toHaveBeenCalledOnce();
   });
-  it.each(['June 15th 1994', '15 June 1994', '15/6/94'])('normalizes spoken date %s in the tool itself', async dateOfBirth => {
+  it.each(['June 15th 1994', '15 June 1994', 'June fifteenth 1994', '15/6/94'])('normalizes spoken date %s in the tool itself', async dateOfBirth => {
     const controller = mockController();
     const result = await createCheckInTools(() => controller).set_patient_details({ dateOfBirth, phone: '202-555-0100' });
     expect(controller.answers.dateOfBirth).toBe('1994-06-15');
