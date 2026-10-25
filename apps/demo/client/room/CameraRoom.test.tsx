@@ -29,3 +29,18 @@ it('opens one local camera with overlays inside /room and retains the standalone
     expect(Array.from(container.querySelectorAll('button')).some(button => button.textContent === 'Demo view')).toBe(true);
   } finally { await act(() => root.unmount()); vi.unstubAllGlobals(); }
 });
+
+it('keeps every debug field visible when no face or body is detected and settings are closed', async () => {
+  vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+  history.replaceState(null, '', '/room?debug=1');
+  const container = document.createElement('div'), root = createRoot(container);
+  try {
+    await act(() => root.render(<CameraPage roomView />));
+    const debug = container.querySelector('[aria-label="Camera debug readings"]');
+    expect(debug).not.toBeNull();
+    expect(debug?.closest('[hidden]')).toBeNull();
+    for (const field of ['track', 'visit', 'source', 'referenceReady', 'slumpSec', 'headDropSec', 'fallSuspected', 'velocity', 'fps', 'Pose model: loading']) {
+      expect(debug?.textContent).toContain(field);
+    }
+  } finally { await act(() => root.unmount()); history.replaceState(null, '', '/'); vi.unstubAllGlobals(); }
+});

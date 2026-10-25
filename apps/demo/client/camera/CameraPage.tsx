@@ -89,6 +89,11 @@ export function CameraPage({ roomView = false }: { roomView?: boolean }) {
     </div>
     {requests.length > 0 && <div className="camera-check-request" role="alert"><strong>Check requested</strong> · {requests.map(alert => `${state?.vitals[alert.visitId]?.source === 'replay' ? 'REPLAY · ' : ''}${alert.facts.name} · #${alert.facts.queueNo}: ${alert.reasons[0] ?? 'may need a check'}`).join(' / ')} · May need a check</div>}
     <div className="camera-status"><Chip>{replay ? `REPLAY · ${filename}` : 'LIVE'}</Chip><Chip>{vision.stats.count} {vision.stats.count === 1 ? 'person' : 'people'}</Chip><Chip>{vision.poseStatus}</Chip><Chip>Overlay {vision.stats.fps.toFixed(1)} fps</Chip>{privacy && <Chip>Unknown faces blurred</Chip>}{debug && <Chip>Debug · face/body identity + posture counters</Chip>}</div>
+    {debug && <section className="camera-debug" aria-label="Camera debug readings">
+      <div>fps: {vision.stats.fps.toFixed(1)} · {vision.poseStatus} · {vision.models}</div>
+      {vision.debugTracks?.length ? vision.debugTracks.map(line => <pre key={line.split('\n')[0]}>{line}</pre>) :
+        <pre>{'No body/face tracked · track: none · visit: unknown · source: none\nreferenceReady: false · slumpSec: 0.0 · headDropSec: 0.0\nfallSuspected: false · velocity: 0.00'}</pre>}
+    </section>}
     <p className="camera-source-message" role="status">{message}</p>
     <video ref={video} muted playsInline autoPlay className="source-video" aria-label="Camera source video" />
     <div className="camera-stage"><canvas ref={canvas} className="camera-canvas" aria-label="Face detection overlay" onClick={event => {

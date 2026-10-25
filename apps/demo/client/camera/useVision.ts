@@ -10,6 +10,7 @@ import { meanCheekSample } from './sampling.ts';
 import { drawOverlay, type RenderTrack } from './overlay.ts';
 import { makeObservation } from './output.ts';
 import { loadPoseModel } from './pose.ts';
+import { debugReading } from './debug.ts';
 
 export function useVision(videoRef: RefObject<HTMLVideoElement | null>, canvasRef: RefObject<HTMLCanvasElement | null>,
   options: { ready: boolean; cam: string; replayName: string | null; state: RoomState | null; privacy: boolean; debug?: boolean }) {
@@ -17,6 +18,7 @@ export function useVision(videoRef: RefObject<HTMLVideoElement | null>, canvasRe
   const [poseStatus, setPoseStatus] = useState('Pose model: loading');
   const [error, setError] = useState('');
   const [stats, setStats] = useState({ fps: 0, count: 0 });
+  const [debugTracks, setDebugTracks] = useState<string[]>([]);
   const pose = useRef<PoseLandmarker | null>(null);
   const poseStatusRef = useRef(poseStatus);
   poseStatusRef.current = poseStatus;
@@ -64,6 +66,7 @@ export function useVision(videoRef: RefObject<HTMLVideoElement | null>, canvasRe
     const sampleCtx = sampleCanvas.getContext('2d', { willReadFrequently: true }), detectorCtx = detectorCanvas.getContext('2d');
     if (!ctx || !sampleCtx || !detectorCtx) return;
     tracker.current = new FaceTracker();
+    setDebugTracks([]);
     const bodies = new BodyTracker();
     const signals = new Map<string, { visitId: string; tracker: SignalTracker }>();
     const missingBodies = new Map<string, { track: BodyTrack; until: number }>();
@@ -134,6 +137,7 @@ export function useVision(videoRef: RefObject<HTMLVideoElement | null>, canvasRe
       if (now - lastStats >= 1000) {
         fps = frameCount * 1000 / (now - lastStats); frameCount = 0; lastStats = now;
         setStats({ fps, count: tracks.length });
+        if (options.debug) setDebugTracks(rendered.map(debugReading));
       }
       const urgent = rendered.filter(({ track, reading }) => track.match &&
         (reading.posture?.fallSuspected || (reading.posture?.headDropSec ?? 0) >= 3));
@@ -182,5 +186,5 @@ export function useVision(videoRef: RefObject<HTMLVideoElement | null>, canvasRe
     cancel = scheduleVideoFrame(video, frame);
     return () => { stopped = true; cancel(); signals.clear(); };
   }, [videoRef, canvasRef, options.ready, options.cam, options.replayName, options.privacy, options.debug]);
-  return { models, poseStatus, error, stats, tracker, refreshGallery };
+  return { models, poseStatus, error, stats, debugTracks, tracker, refreshGallery };
 }
