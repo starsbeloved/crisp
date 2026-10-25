@@ -4,7 +4,7 @@ export type CrispState = 'idle' | 'listening' | 'thinking' | 'talking' | 'happy'
 export const CRISP_NAME = 'Crisp';
 
 type Point = readonly [number, number];
-type Arm = { shoulder: Point; bend: Point; wrist: Point; hand?: 'open' | 'rest'; front?: boolean };
+type Arm = { shoulder: Point; bend: Point; wrist: Point; hand?: 'open' | 'rest' | 'chin'; front?: boolean };
 type Pose = { left: Arm; right: Arm; pupil: string; lean?: string; open?: boolean };
 const downLeft: Arm = { shoulder: [61, 143], bend: [27, 165], wrist: [40, 192] };
 const downRight: Arm = { shoulder: [219, 143], bend: [253, 165], wrist: [240, 192] };
@@ -13,7 +13,7 @@ const poses: Record<CrispState, Pose> = {
   idle: { left: downLeft, right: downRight, pupil: 'translate(0 0)' },
   happy: { left: { shoulder: [62, 142], bend: [15, 150], wrist: [28, 104], hand: 'open' }, right: hip, pupil: 'translate(0 -2)', open: true },
   listening: { left: downLeft, right: { shoulder: [218, 145], bend: [270, 153], wrist: [258, 111], hand: 'open' }, pupil: 'translate(3 -1)', lean: 'rotate(4 140 267)' },
-  thinking: { left: downLeft, right: { shoulder: [218, 150], bend: [260, 226], wrist: [178, 194], front: true }, pupil: 'translate(3 -6)', lean: 'rotate(-3 140 267)' },
+  thinking: { left: downLeft, right: { shoulder: [218, 150], bend: [245, 235], wrist: [164, 209], hand: 'chin', front: true }, pupil: 'translate(3 -6)', lean: 'rotate(-3 140 267)' },
   talking: { left: { shoulder: [62, 145], bend: [14, 170], wrist: [20, 151], hand: 'open' }, right: downRight, pupil: 'translate(0 1)', open: true },
   pointing: { left: downLeft, right: { shoulder: [218, 143], bend: [236, 141], wrist: [258, 141], hand: 'open' }, pupil: 'translate(4 0)', open: true },
 };
@@ -94,11 +94,14 @@ function Hand({ arm: { wrist, bend, hand = 'rest' } }: { arm: Arm }) {
       {hand === 'open' ? <>
         <path d="M-10-10 C-16-14-20-20-23-25 C-26-31-21-35-17-30 L-12-25 L-17-38 C-19-45-12-48-9-41 L-5-30 L-6-45 C-6-52 2-52 3-45 L4-30 L8-42 C10-49 18-46 16-39 L13-27 L19-33 C24-38 30-32 25-27 L16-14 Q14-10 10-9Z" />
         <path d="M-10-23 Q-2-26 2-18 M-3-13 Q3-16 9-14" fill="none" strokeWidth="1.6" />
+      </> : hand === 'chin' ? <>
+        <path d="M-8-7 C-13-10-16-15-15-22 Q-15-29-9-30 L-10-33 Q-10-38-5-38 Q-2-38 0-35 Q4-39 8-35 Q14-37 16-31 Q21-29 19-22 L15-13 Q13-8 8-7Z" />
+        <path d="M-9-28 Q-2-24 1-17 M2-31 Q7-28 12-30" fill="none" strokeWidth="1.6" />
       </> : <>
         <path d="M-9-8 C-14-12-16-18-12-22 Q-9-24-6-20 L-7-27 Q-6-32-1-29 Q3-33 6-29 Q11-30 13-25 Q18-24 15-16 L9-8Z" />
         <path d="M-6-20 Q-1-17 0-13 M-1-27 0-22 M5-27 6-22 M11-24 11-20" fill="none" strokeWidth="1.6" />
       </>}
-      <path d="M-11-10 Q0-7 11-10 L12 2 Q0 6-12 2Z" />
+      <path d={hand === 'chin' ? 'M-8-7 Q0-5 8-7 L8 1 Q0 4-8 1Z' : 'M-11-10 Q0-7 11-10 L12 2 Q0 6-12 2Z'} />
     </g>
   </g>;
 }
