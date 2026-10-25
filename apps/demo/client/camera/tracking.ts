@@ -1,6 +1,7 @@
 import type { GalleryEntry, Observation } from '../../shared/types.ts';
 import type { DetectedFace } from '../lib/face.ts';
 import type { PoseSample } from './signals/index.ts';
+import { createFaceMotionSignals, type FaceMotionReading } from './signals/faceMotion.ts';
 
 export type Match = { visitId: string; name: string; score: number };
 export interface FaceTrack {
@@ -11,6 +12,8 @@ export interface FaceTrack {
   match: Match | null;
   identity: 'identified' | 'identifying' | 'unknown';
   source?: 'face' | 'body';
+  faceMotion?: FaceMotionReading;
+  faceMissing?: boolean;
 }
 type Box = DetectedFace['box'];
 
@@ -36,9 +39,13 @@ function overlap(a: Box, b: Box): number {
 export class FaceTracker {
   private tracks: FaceTrack[] = [];
   private nextId = 1;
+  private motion = new Map<string, ReturnType<typeof createFaceMotionSignals>>();
+  private lastUpdate = -Infinity;
 
   update(faces: DetectedFace[], gallery: GalleryEntry[], now: number): void {
-    this.tracks = this.tracks.filter(track => now - track.lastSeen < 1000);
+    if (!Number.isFinite(now) || now <= this.lastUpdate) return;
+    this.lastUpdate = now;
+    this.tracks = this.tracks.filter(track => now - track.lastSeen < 1000 || this.motion.get(track.id)?.read(now).fallSuspected);
     const candidates: { track: FaceTrack; index: number; cost: number }[] = [];
     for (const track of this.tracks) for (const [index, face] of faces.entries()) {
       const descriptorDistance = distance(track.face.descriptor, face.descriptor);
@@ -61,10 +68,16 @@ export class FaceTracker {
       if (!usedFaces.has(index)) this.tracks.push({ id: `face-${this.nextId++}`, face, lastSeen: now, votes: [], match: null, identity: 'identifying' });
     }
     for (const track of this.tracks) {
+      let motion = this.motion.get(track.id);
+      if (!motion) { motion = createFaceMotionSignals(); this.motion.set(track.id, motion); }
+      track.faceMissing = track.lastSeen !== now;
+      motion.push(now, track.faceMissing ? null : track.face.box);
       if (track.lastSeen !== now) continue;
       track.votes.push(matchDescriptor(track.face.descriptor, gallery));
       track.votes = track.votes.slice(-10);
     }
+    const activeIds = new Set(this.tracks.map(t => t.id));
+    for (const id of this.motion.keys()) if (!activeIds.has(id)) this.motion.delete(id);
     this.setGallery(gallery);
   }
 
@@ -85,7 +98,10 @@ export class FaceTracker {
     this.resolve();
   }
 
-  current(now: number): FaceTrack[] { return this.tracks.filter(track => now - track.lastSeen < 700); }
+  current(now: number): FaceTrack[] {
+    return this.tracks.map(track => ({ ...track, faceMotion: this.motion.get(track.id)?.read(now) }))
+      .filter(track => now - track.lastSeen < 700 || track.faceMotion?.fallSuspected);
+  }
 
   private resolve(): void {
     for (const track of this.tracks) {
@@ -132,6 +148,7 @@ export interface BodyTrack extends FaceTrack {
   pose: PoseSample['landmarks'];
   source: 'face' | 'body';
   lastFaceAt: number;
+  faceTrackId?: string;
 }
 type Torso = { x: number; y: number; size: number };
 function torso(p: PoseSample['landmarks']): Torso | null {
@@ -182,6 +199,7 @@ export class BodyTracker {
         const face = attached[0];
         track.match = face.match && waiting.has(face.match.visitId) ? { ...face.match } : null;
         track.face = face.face; track.source = 'face';
+        track.faceTrackId = face.id; track.faceMissing = face.faceMissing;
         track.lastFaceAt = face.lastSeen;
       }
       track.identity = track.match ? 'identified' : 'identifying';

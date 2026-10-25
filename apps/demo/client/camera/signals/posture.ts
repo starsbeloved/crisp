@@ -79,7 +79,10 @@ export function createPoseSignals() {
         const shoulderDrop = g.shoulderY - v.shoulderY, hipDrop = g.hipY - v.hipY;
         return (shoulderDrop + hipDrop) / 2 > POSE_THRESHOLDS.fallDrop && shoulderDrop > 0.15 && hipDrop > 0.15 ||
           v.hipY < 0.98 && g.hipY >= 0.98 && shoulderDrop > 0.12;
-      }) || (s.t - fastDropAt <= POSE_THRESHOLDS.fallHoldMs && g.hipY >= POSE_THRESHOLDS.lowHipY);
+      }) || (s.t - fastDropAt <= POSE_THRESHOLDS.fallHoldMs && (g.hipY >= POSE_THRESHOLDS.lowHipY ||
+        recent.some(v =>
+          !returningToSeat && (g.shoulderY - v.shoulderY) / g.width >= 1 ||
+          g.head > -.25 && finitePoint(g.points[0]) && finitePoint(v.points[0]) && (g.points[0].y - v.points[0].y) / g.width >= 1)));
       if (fell) fallUntil = s.t + POSE_THRESHOLDS.fallHoldMs;
       if (!g.bodyVisible) {
         const observedUntil = fallUntil, fall = s.t <= observedUntil;

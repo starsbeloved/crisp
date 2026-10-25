@@ -12,6 +12,7 @@ function token(name: string, fallback: string): string {
 }
 
 function postureLabel(reading: SignalReading): string {
+  if (reading.posture?.fallSuspected) return 'Fall-like movement · may need a check';
   if (!reading.posture || !reading.referenceReady) return 'Learning posture…';
   if (reading.posture.headDropSec > 0) return `Head below shoulders · ${Math.round(reading.posture.headDropSec)} s`;
   if (reading.posture.slumpSec > 0) return `Slumped forward · ${Math.round(reading.posture.slumpSec)} s`;
@@ -40,7 +41,7 @@ export function drawOverlay(ctx: CanvasRenderingContext2D, tracks: RenderTrack[]
   for (const { track, reading, pose } of tracks) {
     const box = track.face.box;
     const request = track.match ? requests.find(alert => alert.visitId === track.match!.visitId) : undefined;
-    const level = request?.level ?? (track.match ? state?.vitals[track.match.visitId]?.level : undefined);
+    const level = track.match && reading.posture?.fallSuspected ? 'red' : request?.level ?? (track.match ? state?.vitals[track.match.visitId]?.level : undefined);
     const color = !track.match ? muted : level === 'red' ? red : level === 'amber' ? amber : surface;
     const skeleton = !track.match ? surface : level === 'red' ? red : level === 'amber' ? amber : surface;
     if (options.privacy && !track.match) {
@@ -100,6 +101,8 @@ export function drawOverlay(ctx: CanvasRenderingContext2D, tracks: RenderTrack[]
         `source: ${track.source ?? 'face'} · referenceReady: ${reading.referenceReady ?? false}`,
         `slumpSec: ${(posture?.slumpSec ?? 0).toFixed(1)} · headDropSec: ${(posture?.headDropSec ?? 0).toFixed(1)}`,
         `fallSuspected: ${posture?.fallSuspected ?? false} · velocity: ${(reading.velocity ?? 0).toFixed(2)}`,
+        `faceVelocity: ${(reading.faceVelocity ?? 0).toFixed(2)} heights/s · trigger: ${reading.fallTrigger ?? 'none'}`,
+        `faceBox: ${track.faceMissing || track.source === 'body' ? 'unavailable' : `${box.w.toFixed(0)}×${box.h.toFixed(0)} px`}`,
         `fps: ${options.fps.toFixed(1)} · ${options.modelStatus ?? 'Pose model: unknown'}`];
       ctx.font = '11px monospace';
       const debugWidth = Math.min(width - 8, Math.max(...lines.map(line => ctx.measureText(line).width)) + 12);
