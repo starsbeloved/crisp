@@ -6,6 +6,7 @@ import { Card } from '../ui/Card.tsx';
 import { Chip } from '../ui/Chip.tsx';
 import { useCameraSource } from './useCameraSource.ts';
 import { useVision } from './useVision.ts';
+import './camera.css';
 
 export function CameraPage() {
   const { connected, state } = useRoomState();
@@ -34,8 +35,8 @@ export function CameraPage() {
     } catch { setCorrectionError('Could not save correction. Try again.'); }
     finally { setSaving(false); }
   }
-  return <><h1>Room camera</h1><p>Camera {cam} · {connected ? 'Connected' : 'Connecting…'}</p><Card>
-    <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'end' }}>
+  return <div className="camera-page"><div className="camera-page-heading"><div><p className="camera-eyebrow">Crisp · room processing</p><h1>Room camera</h1><p>Camera {cam} · {connected ? 'Connected' : 'Connecting…'}</p></div><Chip className={replay ? 'camera-replay-chip' : 'camera-live-chip'}>{replay ? 'REPLAY' : 'LIVE'}</Chip></div><Card className="camera-card">
+    <div className="camera-controls">
       <label>Camera source<select aria-label="Camera source" value={deviceId} onChange={event => { setDeviceId(event.target.value); setReplay(null); setFilename(null); }} style={{ display: 'block', minHeight: 44, maxWidth: 320 }}>
         <option value="">Default camera</option>{devices.map((device, i) => <option key={device.deviceId || i} value={device.deviceId}>{device.label || `Camera ${i + 1}`}</option>)}
       </select></label>
@@ -45,7 +46,7 @@ export function CameraPage() {
       }} /></label>
       {replay && <button onClick={() => { setReplay(null); setFilename(null); setSelectedTrack(null); }}>Use live camera</button>}
     </div>
-    <p><Chip>{replay ? `REPLAY: ${filename}` : 'LIVE'}</Chip><Chip>{vision.stats.fps.toFixed(1)} fps</Chip><Chip>{vision.stats.count} faces</Chip>{privacy && <Chip>Unknown faces blurred</Chip>}</p>
+    <div className="camera-status"><Chip>{replay ? `REPLAY: ${filename}` : 'LIVE'}</Chip><Chip>{vision.stats.fps.toFixed(1)} fps</Chip><Chip>{vision.stats.count} faces</Chip>{privacy && <Chip>Unknown faces blurred</Chip>}</div>
     <p role="status">{message} · {vision.models} · {vision.poseStatus}</p>
     <video ref={video} muted playsInline autoPlay className="source-video" aria-label="Camera source video" />
     <canvas ref={canvas} className="camera-canvas" aria-label="Face detection overlay" onClick={event => {
@@ -55,7 +56,7 @@ export function CameraPage() {
       const track = vision.tracker.current.current(performance.now()).find(item => x >= item.face.box.x && x <= item.face.box.x + item.face.box.w && y >= item.face.box.y && y <= item.face.box.y + item.face.box.h);
       setSelectedTrack(track?.id ?? null); setCorrectionError('');
     }} />
-    <details><summary>Staff identity correction</summary><p>Click a face box, then choose the waiting patient.</p>
+    <details className="camera-correction"><summary>Staff identity correction</summary><p>Click a face box, then choose the waiting patient.</p>
       {selectedTrack && <p>Selected {selectedTrack}</p>}
       <div className="actions" style={{ flexWrap: 'wrap' }}>{state?.visits.filter(visit => visit.status === 'waiting').map(visit => <button key={visit.id} disabled={!selectedTrack || saving} onClick={() => void correct(visit.id)}>{visit.name} · #{visit.queueNo}</button>)}</div>
       {!state?.visits.some(visit => visit.status === 'waiting') && <p>No waiting visits.</p>}
@@ -63,5 +64,5 @@ export function CameraPage() {
     </details>
     {vision.error && <p role="alert">{vision.error}</p>}
     <p>{state?.cameras[cam] ? `Streaming · ${state.cameras[cam].fps.toFixed(1)} fps` : 'Waiting for frames'} · Camera estimates; not a diagnosis.</p>
-  </Card></>;
+  </Card></div>;
 }

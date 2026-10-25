@@ -29,7 +29,8 @@ export function PatientDrawer({ visit, state, onClose, synthetic }: { visit: Vis
   // History points carry no per-point quality in P0. Hide the affected trace when its current signal is rejected.
   const history = vitals?.history.map(p => ({ ...p, hr: vitals.hrQuality === 'low' || vitals.hrQuality === 'none' ? null : p.hr, rr: vitals.rrQuality === 'low' || vitals.rrQuality === 'none' ? null : p.rr })) ?? [];
   return <dialog ref={dialog} className="patient-drawer" onCancel={onClose} onClick={e => { if (e.target === dialog.current) onClose(); }} aria-labelledby="patient-title">
-    <div className="drawer-heading"><div><small>Patient details · #{visit.queueNo}</small><h2 id="patient-title">{visit.name}</h2></div><button className="secondary" onClick={onClose}>Close</button></div>
+    <div className="drawer-heading"><span className={`drawer-number ${latest?.level ?? ''}`}>#{visit.queueNo}</span><div><small>Patient details</small><h2 id="patient-title">{visit.name}</h2><p className="drawer-subtitle">Checked in {new Date(visit.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} by {visit.answers.via} · waiting</p></div><button className="secondary" aria-label="Close details" onClick={onClose}>Close</button></div>
+    {latest && <div className={`drawer-status ${latest.level}`}><span>{latest.level === 'red' ? 'Check requested' : 'May need a check'}</span><small>{latest.reasons.join(' · ')}</small></div>}
     {synthetic && <p className="synthetic-label">SYNTHETIC · illustration only</p>}
     <section><h3>Original check-in</h3><dl><dt>Reason · verbatim</dt><dd>{visit.answers.reason || 'Not provided'}</dd>
       <dt>Selected symptoms</dt><dd>{visit.answers.reasonChips.join(', ') || 'None selected'}</dd><dt>Onset</dt><dd>{visit.answers.onset ?? 'Not provided'}</dd><dt>Trend</dt><dd>{visit.answers.trend ?? 'Not provided'}</dd>

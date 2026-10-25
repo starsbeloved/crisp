@@ -1,0 +1,27 @@
+.camera-page { color: var(--c-text); font-family: var(--font); }
+.camera-page-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--s-4); margin-bottom: var(--s-4); }
+.camera-page-heading h1 { margin: 0; font-size: 32px; line-height: 1.1; letter-spacing: -.04em; }
+.camera-page-heading p { margin: 6px 0 0; color: var(--c-text-2); font-size: 14px; }
+.camera-page-heading .camera-eyebrow { margin: 0 0 6px; color: var(--c-leaf); font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.camera-page-heading .chip { min-height: 30px; padding-inline: 12px; border-radius: var(--r-pill); background: var(--c-text); color: var(--c-surface); font-size: 12px; font-weight: 700; }
+.camera-page-heading .camera-live-chip { background: var(--c-leaf-tint); color: var(--c-leaf); }
+.camera-page-heading .camera-replay-chip { background: var(--c-text); color: var(--c-surface); }
+.camera-card { padding: var(--s-3); border-color: var(--c-hairline); border-radius: var(--r-panel); box-shadow: var(--shadow-card); }
+.camera-controls { display: flex; align-items: flex-end; flex-wrap: wrap; gap: var(--s-3); padding-bottom: var(--s-3); border-bottom: 1px solid var(--c-hairline); }
+.camera-controls label { color: var(--c-text-2); font-size: 13px; }
+.camera-controls select, .camera-controls input { display: block; min-height: 44px; margin-top: 6px; padding: 0 12px; border: 1px solid var(--c-border); border-radius: var(--r-control); background: var(--c-surface); color: var(--c-text); font: inherit; }
+.camera-controls select { min-width: 220px; }
+.camera-controls input { width: 260px; padding-block: 9px; }
+.camera-status { display: flex; flex-wrap: wrap; gap: 8px; margin: var(--s-3) 0; }
+.camera-status .chip { min-height: 30px; padding-inline: 10px; border-radius: var(--r-pill); background: var(--c-canvas); color: var(--c-text-2); font-size: 12px; font-weight: 600; }
+.camera-page .camera-canvas { display: block; width: 100%; max-width: none; border-radius: var(--r-control); background: var(--c-text); box-shadow: inset 0 0 0 1px rgba(255,255,255,.12); }
+.camera-page .camera-correction { margin-top: var(--s-3); padding: var(--s-3); border: 1px solid var(--c-hairline); border-radius: var(--r-control); background: var(--c-canvas); }
+.camera-page .camera-correction summary { color: var(--c-text); font-size: 14px; font-weight: 700; cursor: pointer; }
+.camera-page .camera-correction p { color: var(--c-text-2); font-size: 13px; }
+.camera-page .camera-correction .actions { margin: var(--s-3) 0 0; }
+.camera-page .camera-card > p { color: var(--c-text-2); font-size: 13px; }
+@media (max-width: 760px) {
+  .camera-page-heading { align-items: flex-start; flex-direction: column; gap: 8px; }
+  .camera-controls { align-items: stretch; flex-direction: column; }
+  .camera-controls select, .camera-controls input { width: 100%; }
+}
