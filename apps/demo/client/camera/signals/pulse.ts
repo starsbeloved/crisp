@@ -27,7 +27,7 @@ function clean(samples: FaceSample[]): FaceSample[] | null {
 }
 
 /** POS projections and overlap-add, copied/adapted from the earlier rPPG implementation. */
-export function estimatePulse(samples: FaceSample[]): { bpm: number | null; quality: Quality; trace: number[] | null } {
+export function estimatePulse(samples: FaceSample[]): { bpm: number | null; quality: Quality; trace: number[] | null; snr?: number } {
   const reject = () => ({ bpm: null, quality: 'low' as const, trace: null });
   const duration = samples.at(-1)!.t - samples[0].t;
   if ((samples.length - 1) * 1000 / duration < 10) return reject();
@@ -55,5 +55,5 @@ export function estimatePulse(samples: FaceSample[]): { bpm: number | null; qual
     const index = i * (filtered.length - 1) / 59, left = Math.floor(index), right = Math.min(left + 1, filtered.length - 1);
     return (filtered[left] + (filtered[right] - filtered[left]) * (index - left)) / scale;
   }) : null;
-  return { bpm: peak.hz * 60, quality, trace };
+  return { bpm: peak.hz * 60, quality, trace, snr: peak.ratio };
 }

@@ -9,7 +9,7 @@ export interface FaceSample { t: number; rgb: [number, number, number]; brightne
 export interface PoseSample { t: number; landmarks: { x: number; y: number; z: number; visibility: number }[] }
 export interface SignalReading { hrBpm: number | null; hrQuality: Quality; rrBpm: number | null; rrQuality: Quality;
   posture: PostureState | null; hint: string | null; hrSecondsCollected: number; pulseTrace: number[] | null;
-  hrDisplay?: HeartRateDisplay; referenceReady?: boolean; velocity: number; faceVelocity?: number; fallTrigger?: FallTrigger }
+  hrDisplay?: HeartRateDisplay; hrSnr?: number; referenceReady?: boolean; velocity: number; faceVelocity?: number; fallTrigger?: FallTrigger }
 export interface SignalTracker { pushFace(s: FaceSample): void; pushPose(s: PoseSample): void; read(now: number): SignalReading; reset(): void }
 export function createSignalTracker(): SignalTracker {
   const pose = createPoseSignals();
@@ -63,7 +63,7 @@ export function createSignalTracker(): SignalTracker {
       const usable = fresh && validFace(latest) && hint !== 'hold still';
       const hrBpm = usable && seconds >= 10 ? pulse.bpm : null;
       const hrQuality = !latest ? 'none' : !usable ? 'low' : seconds < 10 ? 'none' : pulse.quality;
-      return { hrBpm, hrQuality, hrDisplay: display.update(hrBpm, hrQuality, lastEstimate, now),
+      return { hrBpm, hrQuality, hrSnr: usable ? pulse.snr : undefined, hrDisplay: display.update(hrBpm, hrQuality, lastEstimate, now),
         hrSecondsCollected: seconds, pulseTrace: usable && seconds >= 5 ? pulse.trace : null,
         ...pose.read(now), hint };
     },
