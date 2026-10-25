@@ -17,7 +17,7 @@ export function VideoPanel({ cameras, now }: { cameras: Record<string, CameraSta
         {now - c.lastFrameAt > 2000 && <span className="tag warning">STALE</span>}<span className="video-meta">{c.fps.toFixed(0)} fps · frame {Math.max(0, (now - c.lastFrameAt) / 1000).toFixed(1)} s ago</span></figcaption>
       <img className="stream" src={`${direct ? origin : ''}${api.streamUrl(c.cameraId)}`} alt={`Camera ${c.cameraId} · ${c.source === 'replay' ? 'REPLAY' : 'LIVE'}`} onError={() => setError('Stream unavailable. Check the camera window or try the direct stream.')} />
     </figure>)}</div>
-    {!Object.keys(cameras).length && <div className="empty-camera"><p>Waiting for a camera stream</p><a href="/camera?cam=A" target="_blank" rel="noreferrer">Open room camera →</a><small>Keep the camera window visible for continuous processing.</small></div>}
+    {!Object.keys(cameras).length && <div className="empty-camera"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="3" /><path d="m16 10 5-3v10l-5-3" /></svg><p>Your room view starts here</p><a href="/camera?cam=A" target="_blank" rel="noreferrer">Open room camera <span aria-hidden="true">↗</span></a><small>Keep the camera window visible for continuous processing.</small></div>}
     {Object.keys(cameras).length > 0 && <p className="privacy-note">Unknown faces blurred · no images stored</p>}
     {error && <p role="status">{error}</p>}
   </section>;

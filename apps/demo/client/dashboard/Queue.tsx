@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef } from 'react';
 import type { RoomState } from '../../shared/types.ts';
 import { QueueRow, type QueueActions } from './QueueRow.tsx';
 import { activeAlert, waitingQueue } from './presentation.ts';
+import { Crisp } from '../ui/Crisp.tsx';
 export function Queue({ state, now, onSelect, actions, busy, talkingId, synthetic }: {
   state: RoomState; now: number; onSelect: (id: string) => void; actions: QueueActions; busy: boolean; talkingId: string | null; synthetic: boolean;
 }) {
@@ -19,7 +20,7 @@ export function Queue({ state, now, onSelect, actions, busy, talkingId, syntheti
   return <section className="panel queue-panel"><div className="section-heading"><h2>Waiting queue</h2><span className="tag">{visits.length} waiting</span></div>
     <p className="queue-help">Requests first · then arrival order</p>
     <div ref={root} className="patient-list">{visits.map(visit => { const alert = activeAlert(state, visit.id); return <QueueRow key={visit.id} visit={visit} vitals={state.vitals[visit.id]} alert={alert} now={now} onSelect={() => onSelect(visit.id)} actions={actions} busy={busy} talking={talkingId === alert?.id} synthetic={synthetic} />; })}</div>
-    {!visits.length && <p>No one is waiting yet.</p>}
+    {!visits.length && <div className="queue-empty"><div aria-hidden="true"><Crisp size={156} /></div><h3>No one is waiting</h3><p>Check someone in to start. They’ll appear here when they’re ready.</p><a className="empty-action" href="/check-in" target="_blank" rel="noreferrer">Check someone in <span aria-hidden="true">↗</span></a><small>Keep this dashboard open to follow the room.</small></div>}
     {called.length > 0 && <details className="called-list"><summary>With clinician · {called.length}</summary>{called.map(v => <button className="patient-select" key={v.id} onClick={() => onSelect(v.id)}>#{v.queueNo} · {v.name} — {v.room}</button>)}</details>}
   </section>;
 }
