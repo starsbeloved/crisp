@@ -6,6 +6,7 @@ import { Crisp, type CrispState } from '../../ui/Crisp.tsx';
 import { createCheckInTools } from './tools.ts';
 import { useVoiceAgent } from './useVoiceAgent.ts';
 import { KioskIcon } from '../ui/KioskIcon.tsx';
+import { Understood } from '../ui/Understood.tsx';
 
 export function CrispAgent() {
   const controller = useContext(CheckInContext);
@@ -47,20 +48,6 @@ function VoiceCheckIn({ controller }: { controller: CheckInController }) {
       </div>
     </div>
     {active && <Understood controller={controller} />}
-  </section>;
-}
-
-/** A read-only view of the same fields filled by the existing voice tools. */
-function Understood({ controller: c }: { controller: CheckInController }) {
-  const reason = c.answers.reason || c.answers.reasonChips.join(', ');
-  return <section className="checkin-understood" aria-label="What Crisp understood">
-    <h2>What Crisp understood</h2><p>Your answers appear here as we talk. You can switch to tapping to make changes.</p>
-    <div key={`name-${c.name}`} className="checkin-understood-field" data-filled={Boolean(c.name.trim())}><span>Name</span><strong>{c.name.trim() || 'Listening for your name…'}</strong></div>
-    <div key={`face-${c.face.status}`} className="checkin-understood-field" data-filled={c.face.status === 'saved'}><span>Face scan</span><strong>{c.face.status === 'saved' ? '✓ Face saved' : c.face.message || 'Not scanned yet'}</strong></div>
-    <div key={`reason-${reason}`} className="checkin-understood-field" data-filled={Boolean(reason)}><span>Why you’re here</span><strong>{reason ? `“${reason}”` : 'Listening…'}</strong></div>
-    <div key={`onset-${c.answers.onset}`} className="checkin-understood-field" data-filled={Boolean(c.answers.onset)}><span>When it started</span><div className="checkin-understood-chips">{([['<1h', 'Under 1 hour'], ['today', 'Today'], ['1-3d', '1–3 days'], ['longer', 'Longer']] as const).map(([value, label]) => <span key={value} className={c.answers.onset === value ? 'is-selected' : undefined}>{label}{c.answers.onset === value && <span className="checkin-sr-only"> — selected</span>}</span>)}</div></div>
-    <div key={`trend-${c.answers.trend}`} className="checkin-understood-field" data-filled={Boolean(c.answers.trend)}><span>How it’s changed{!c.answers.trend && ' · listening…'}</span><div className="checkin-understood-chips">{([['worse', 'Getting worse'], ['same', 'About the same'], ['better', 'Getting better']] as const).map(([value, label]) => <span key={value} className={c.answers.trend === value ? 'is-selected' : undefined}>{label}{c.answers.trend === value && <span className="checkin-sr-only"> — selected</span>}</span>)}</div></div>
-    <div className="checkin-understood-next">{c.answers.followUp?.answer ? c.answers.followUp.answer : 'One follow-up question from Crisp — next'}</div>
   </section>;
 }
 
