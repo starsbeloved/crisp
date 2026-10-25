@@ -111,8 +111,8 @@ export function CheckInPage() {
           <Button className="checkin-secondary checkin-skip" type="button" disabled={c.busy} onClick={() => { c.setAnswers({ followUp: null }); void c.finish().catch(() => {}); }}>Skip question and check in</Button>
         </section>}
       </form>
-      {c.pulseNotice && <p className="checkin-pulse-notice" role="status">{c.pulseNotice}</p>}
       {c.step === 'done' && <div className="checkin-done-content" role="status"><div className="checkin-ticket-row"><strong className="checkin-queue">{c.queueNo}</strong><p>Please take a seat. Crisp will call you by name on the screen when it’s your turn.</p></div><p className="checkin-done-note"><KioskIcon name="info" />If you feel worse while you wait, tell the front desk right away.</p><div className="checkin-done-actions"><Button className="checkin-secondary" onClick={c.reset}>Check in someone else</Button><ResetCountdown /></div></div>}
+      {c.pulseNotice && <p className="checkin-pulse-notice" role="status">{c.pulseNotice}</p>}
       {(validation || c.error) && <p id="checkin-error" className="checkin-error" role="alert">{validation || c.error}</p>}
       {help && <p className="checkin-help" role="status">{help}. You can skip the face scan and continue with the form.</p>}
     </div>
