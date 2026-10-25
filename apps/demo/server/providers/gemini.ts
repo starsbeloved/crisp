@@ -46,14 +46,13 @@ export async function generate<T>(options: {
       let text: string | undefined;
       for (let attempt = 0; attempt < 2; attempt++) {
         try {
-          // Two 2.5s attempts fit under the server's 6s outer deadline.
+          // Our own race enforces the deadline: the Gemini API rejects per-request deadlines under 10 s.
           const response = await timed(signal => client.models.generateContent({
-            model: config.GEMINI_MODEL || 'gemini-2.5-flash',
+            model: config.GEMINI_MODEL || 'gemini-3.5-flash-lite',
             contents: JSON.stringify({ task: options.task, facts: options.facts }),
             config: { systemInstruction: instructions, temperature: 0, maxOutputTokens: 1024,
-              responseMimeType: 'application/json', responseSchema: options.responseSchema,
-              abortSignal: signal, httpOptions: { timeout: 2500, retryOptions: { attempts: 1 } } },
-          }), 2500);
+              responseMimeType: 'application/json', responseSchema: options.responseSchema, abortSignal: signal },
+          }), 5000);
           text = response.text;
           break;
         } catch (error) { if (attempt || !retryable(error)) throw error; }
