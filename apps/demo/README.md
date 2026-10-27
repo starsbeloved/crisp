@@ -11,7 +11,7 @@ npm ci
 npm run dev
 ```
 
-Open `http://localhost:5173/station` to choose a role. `npm run demo` builds and serves the optimized version. Run `npm run typecheck`, `npm test`, and `npm run build` here rather than in the historical repository-root application.
+Open `http://localhost:5173/station` to choose a role. `npm run demo` builds and serves the optimized version. Run `npm run typecheck` and `npm run build` here rather than in the historical repository-root application.
 
 Vision assets are in [`public/models`](public/models/). See [model locations and providers](docs/models.md) and [conversational agent setup](docs/crisp-agent.md).
 
@@ -42,7 +42,6 @@ npm install
 API_PORT=8833 WEB_PORT=5233 PROVIDERS_ENV=/dev/null npm run demo
 # In a second terminal, from apps/demo:
 node deploy/check.mjs http://localhost:5233
-npm test
 npm run typecheck
 ```
 

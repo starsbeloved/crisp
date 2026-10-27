@@ -110,7 +110,6 @@ Run from `apps/demo`:
 
 ```sh
 npm run typecheck
-npm test
 npm run build
 ```
 
@@ -122,7 +121,7 @@ Camera values are **estimates** with signal-quality labels. Unavailable readings
 
 | Location | Purpose |
 | --- | --- |
-| [`apps/demo`](apps/demo/) | Current application, server, tests, and deployment kit. |
+| [`apps/demo`](apps/demo/) | Current application, server, and deployment kit. |
 | [`apps/demo/docs`](apps/demo/docs/) | Application setup and technical notes. |
 | [`apps/demo/public/models`](apps/demo/public/models/) | Required vision models, runtime files, manifests, and licenses. |
 

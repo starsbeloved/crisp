@@ -10,7 +10,6 @@
     "postinstall": "npm --prefix apps/demo install",
     "dev": "npm --prefix apps/demo run dev",
     "demo": "npm --prefix apps/demo run demo",
-    "test": "npm --prefix apps/demo test",
     "typecheck": "npm --prefix apps/demo run typecheck"
   }
 }
