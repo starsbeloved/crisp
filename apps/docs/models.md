@@ -1,10 +1,10 @@
 # Crisp models and providers
 
-Crisp combines local computer-vision models, signal-processing code, and hosted generative AI services. The active application is `apps/demo`.
+Crisp combines local computer-vision models, signal-processing code, and hosted generative AI services. The active application is `apps`.
 
 ## Local vision assets
 
-All paths below are relative to `apps/demo`.
+All paths below are relative to `apps`.
 
 | Component | Local assets | Used for |
 | --- | --- | --- |
@@ -46,4 +46,4 @@ There is a legacy absolute default pointing to `apps/waiting-room/.local/provide
 
 ## Historical duplicate
 
-`apps/waiting-room/public/models/` contains an older copy of the same asset set. The current application's loaders use `apps/demo/public/models/`. The duplicate is a cleanup candidate; the active copy and its licenses are required. No model files were removed as part of this documentation update.
+`apps/waiting-room/public/models/` contains an older copy of the same asset set. The current application's loaders use `apps/public/models/`. The duplicate is a cleanup candidate; the active copy and its licenses are required. No model files were removed as part of this documentation update.

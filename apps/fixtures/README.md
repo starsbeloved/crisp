@@ -1,6 +1,6 @@
 # Local REPLAY fixtures
 
-On a Mac, open QuickTime Player → File → New Movie Recording. Choose the camera and record two consenting people seated facing the camera for about 60 seconds. Save/export as `room.mp4` into `apps/demo/public/fixtures/` (convert to H.264 MP4 if QuickTime saves MOV). Record one consenting person facing the camera for about 10 seconds as `checkin.mp4`.
+On a Mac, open QuickTime Player → File → New Movie Recording. Choose the camera and record two consenting people seated facing the camera for about 60 seconds. Save/export as `room.mp4` into `apps/public/fixtures/` (convert to H.264 MP4 if QuickTime saves MOV). Record one consenting person facing the camera for about 10 seconds as `checkin.mp4`.
 
 Open `/camera?cam=A&video=/fixtures/room.mp4` and `/check-in?video=/fixtures/checkin.mp4`. Videos loop and are labeled REPLAY on the camera and dashboard. Real face detection and JPEG streaming use this source. These personal videos are gitignored: never commit them. No fixture is bundled.
 

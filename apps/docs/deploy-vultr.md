@@ -74,7 +74,7 @@ publishes 80/443.
 ## 3. Owner: transfer the committed app
 
 On your **Mac**, from the repository root, check that HEAD includes the desired
-integrated filming changes. The archive contains committed `apps/demo` files,
+integrated filming changes. The archive contains committed `apps` files,
 including model binaries, and excludes untracked keys, node_modules and room data.
 The `ssh` destination below is the VPS you own; replace `VPS_IP` before running.
 Use a new `/opt/crisp` directory for the first transfer. For updates, use a new
@@ -83,7 +83,7 @@ release directory as described below rather than overlaying an old release.
 ```sh
 git branch --show-current
 git log -1 --oneline
-git archive --format=tar HEAD apps/demo | ssh root@VPS_IP 'mkdir -p /opt/crisp && tar -xf - -C /opt/crisp'
+git archive --format=tar HEAD apps | ssh root@VPS_IP 'mkdir -p /opt/crisp && tar -xf - -C /opt/crisp'
 ```
 
 No GitHub credentials or provider file needs to be copied from the Mac. Do not use
@@ -135,7 +135,7 @@ The Caddy image contains the client build, not this file or the API source.
 On the VPS:
 
 ```sh
-cd /opt/crisp/apps/demo/deploy
+cd /opt/crisp/apps/deploy
 cp -n .env.example .env
 nano .env
 ```
@@ -169,7 +169,7 @@ hostname changes require `docker compose ... up -d` to recreate its environment.
 
 Replace `YOUR_HOST` consistently with the same hostname on both laptops.
 
-1. On your Mac, from `apps/demo/`, using Node 24 or newer:
+1. On your Mac, from `apps/`, using Node 24 or newer:
    ```sh
    curl -I http://YOUR_HOST/check-in
    node deploy/check.mjs https://YOUR_HOST
@@ -256,7 +256,7 @@ that release. Do not prune images or delete volumes as part of this packet.
 Stop services without deleting containers or volumes:
 
 ```sh
-cd /opt/crisp/apps/demo/deploy
+cd /opt/crisp/apps/deploy
 sudo docker compose --env-file .env -f compose.yaml stop
 ```
 
@@ -266,7 +266,7 @@ or permanent cleanup commands. Keep room data and certificates recoverable.
 
 ## Local production fallback
 
-On the Mac, from `apps/demo/`:
+On the Mac, from `apps/`:
 
 ```sh
 npm install

@@ -1,4 +1,4 @@
-# Build with apps/demo as context: docker build -f deploy/Dockerfile ... .
+# Build with apps as context: docker build -f deploy/Dockerfile ... .
 FROM node:24-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json ./

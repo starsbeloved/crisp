@@ -51,7 +51,7 @@ Rules:
 7. **Security:** enable authentication / private agent so the page connects only with a **signed URL** from our server
    (the server fetches it with your API key; the key never reaches the browser).
 8. Copy the **agent id** → add `ELEVENLABS_AGENT_ID=<id>` to
-   `apps/demo/.local/providers.env` (or the file named by `PROVIDERS_ENV`).
+   `apps/.local/providers.env` (or the file named by `PROVIDERS_ENV`).
 
 ## Agent 2 — "Crisp Nurse Assistant" (Ask Crisp on the dashboard)
 
@@ -177,7 +177,7 @@ No signed URLs, provider keys or transcript content are logged by P7.
 
 ## Verification
 
-From `apps/demo`:
+From `apps`:
 
 ```sh
 npm test
@@ -188,7 +188,7 @@ API_PORT=8788 WEB_PORT=5188 npm run dev
 
 With the servers running and no agent IDs configured, run `node client/checkin/agent/browser-check.mjs` for the
 headless Chrome check. It checks all six states, reduced motion, 375px layout, hidden voice control and console errors,
-and saves screenshots under the ignored `apps/demo/output/` directory.
+and saves screenshots under the ignored `apps/output/` directory.
 
 Open `http://127.0.0.1:5188/check-in?crispdemo=1` for a six-state character switcher and mouth slider, including when
 no agent is configured. The regular form remains below it. With **Reduce motion** enabled, the animations stop.

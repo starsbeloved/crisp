@@ -139,7 +139,7 @@ coordinates, so pure sideways translation cannot be detected from this interface
 
 ## Verification and offline CSV
 
-From `apps/demo`: `npm test` and `npm run typecheck`.
+From `apps`: `npm test` and `npm run typecheck`.
 
 ```
 node scripts/ubfc-eval.ts /path/to/samples.csv

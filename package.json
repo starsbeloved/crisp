@@ -7,9 +7,9 @@
     "node": ">=24.0.0"
   },
   "scripts": {
-    "postinstall": "npm --prefix apps/demo install",
-    "dev": "npm --prefix apps/demo run dev",
-    "demo": "npm --prefix apps/demo run demo",
-    "typecheck": "npm --prefix apps/demo run typecheck"
+    "postinstall": "npm --prefix apps install",
+    "dev": "npm --prefix apps run dev",
+    "demo": "npm --prefix apps run demo",
+    "typecheck": "npm --prefix apps run typecheck"
   }
 }

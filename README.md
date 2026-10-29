@@ -34,7 +34,7 @@ Crisp notices events and proposes next steps. Staff confirm workflow suggestions
 
 ## How it works
 
-The active application is **[`apps/demo`](apps/demo/)**.
+The active application is **[`apps`](apps/)**.
 
 - **React + TypeScript + Vite** provide the station interfaces and the animated SVG Crisp character.
 - **face-api.js + MediaPipe** run face and pose inference in the browser using locally served model assets.
@@ -60,7 +60,7 @@ The current camera input is a browser-accessible webcam or labeled replay. Reusi
 Requires **Node.js 24 or newer** and npm.
 
 ```sh
-cd apps/demo
+cd apps
 npm ci
 npm run dev
 ```
@@ -76,19 +76,19 @@ The web app runs at `http://localhost:5173`; the API runs at `http://localhost:8
 | `/exam?room=1` | Exam-room context and voice actions. |
 | `/lobby` | Public queue and call-outs. |
 
-For the optimized demo build, run `npm run demo` from `apps/demo`.
+For the optimized demo build, run `npm run demo` from `apps`.
 
-Camera and microphone use require browser permission. Remote devices need a trusted HTTPS origin. See the [deployment guide](apps/demo/docs/deploy-vultr.md) for the provided hosting kit.
+Camera and microphone use require browser permission. Remote devices need a trusted HTTPS origin. See the [deployment guide](apps/docs/deploy-vultr.md) for the provided hosting kit.
 
 ### Provider configuration
 
-Keep provider credentials in a private, untracked environment file. By default the server reads `apps/demo/.local/providers.env` (git-ignored); select another file with `PROVIDERS_ENV`:
+Keep provider credentials in a private, untracked environment file. By default the server reads `apps/.local/providers.env` (git-ignored); select another file with `PROVIDERS_ENV`:
 
 ```sh
 PROVIDERS_ENV=/absolute/path/to/providers.env npm run demo
 ```
 
-Configuration supports `GEMINI_API_KEY`, `GEMINI_MODEL`, `ELEVENLABS_API_KEY`, `ELEVENLABS_MODEL_ID`, `ELEVENLABS_VOICE_ID`, `ELEVENLABS_CRISP_VOICE_ID`, `ELEVENLABS_AGENT_ID`, and `ELEVENLABS_NURSE_AGENT_ID`. [Agent configuration](apps/demo/docs/crisp-agent.md) describes the conversational setup.
+Configuration supports `GEMINI_API_KEY`, `GEMINI_MODEL`, `ELEVENLABS_API_KEY`, `ELEVENLABS_MODEL_ID`, `ELEVENLABS_VOICE_ID`, `ELEVENLABS_CRISP_VOICE_ID`, `ELEVENLABS_AGENT_ID`, and `ELEVENLABS_NURSE_AGENT_ID`. [Agent configuration](apps/docs/crisp-agent.md) describes the conversational setup.
 
 Provider failures use template text, browser speech, or visible controls where supported. To exercise fallback behavior without loading the provider file:
 
@@ -98,7 +98,7 @@ PROVIDERS_ENV=/dev/null GEMINI_API_KEY= ELEVENLABS_API_KEY= ELEVENLABS_AGENT_ID=
 
 ## Models and data
 
-Computer-vision weights and their browser runtime are versioned under **[`apps/demo/public/models`](apps/demo/public/models/)**, approximately **50.8 MiB** in total. They are served by the app and run in the browser. [Model locations, sources, and provider configuration](apps/demo/docs/models.md) explains each component.
+Computer-vision weights and their browser runtime are versioned under **[`apps/public/models`](apps/public/models/)**, approximately **50.8 MiB** in total. They are served by the app and run in the browser. [Model locations, sources, and provider configuration](apps/docs/models.md) explains each component.
 
 Gemini and ElevenLabs run through hosted APIs; their model weights are not included in this repository. Pulse estimation uses signal-processing code rather than a separate downloaded pulse model.
 
@@ -106,7 +106,7 @@ Environment files, local visit data, generated output, and recordings belong out
 
 ## Verification
 
-Run from `apps/demo`:
+Run from `apps`:
 
 ```sh
 npm run typecheck
@@ -121,12 +121,12 @@ Camera values are **estimates** with signal-quality labels. Unavailable readings
 
 | Location | Purpose |
 | --- | --- |
-| [`apps/demo`](apps/demo/) | Current application, server, and deployment kit. |
-| [`apps/demo/docs`](apps/demo/docs/) | Application setup and technical notes. |
-| [`apps/demo/public/models`](apps/demo/public/models/) | Required vision models, runtime files, manifests, and licenses. |
+| [`apps`](apps/) | Current application, server, and deployment kit. |
+| [`apps/docs`](apps/docs/) | Application setup and technical notes. |
+| [`apps/public/models`](apps/public/models/) | Required vision models, runtime files, manifests, and licenses. |
 
 Earlier prototypes are preserved in git history and the `checkpoint-*` tags. The default branch is **`crisp-demo`**.
 
 ## License
 
-Crisp is released under the [MIT License](LICENSE) © 2026 Thanh Nguyen. Bundled vision models keep their own licenses in [`apps/demo/public/models`](apps/demo/public/models/).
+Crisp is released under the [MIT License](LICENSE) © 2026 Thanh Nguyen. Bundled vision models keep their own licenses in [`apps/public/models`](apps/public/models/).

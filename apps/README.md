@@ -1,6 +1,6 @@
 # Crisp demo application
 
-**Crisp is a proactive, ambient AI assistant for hospitals and clinics.** The [project README](../../README.md) describes the hospital-wide vision and the current demonstration across intake, room awareness, staff coordination, and exam-room context.
+**Crisp is a proactive, ambient AI assistant for hospitals and clinics.** The [project README](../README.md) describes the hospital-wide vision and the current demonstration across intake, room awareness, staff coordination, and exam-room context.
 
 Its apple character appears across connected stations, talks with patients and staff, and offers next steps based on recorded events and room state.
 
@@ -26,7 +26,7 @@ Provider keys are mounted only into the API container; room state and certificat
 use persistent volumes. There is no Vite development or preview server in the kit.
 
 These deployment files do not provision an account or VPS. To check an existing deployment,
-run the read-only smoke check from `apps/demo/` with Node 24 or newer:
+run the read-only smoke check from `apps/` with Node 24 or newer:
 
 ```sh
 node deploy/check.mjs https://YOUR_HOST
@@ -40,7 +40,7 @@ For local production verification:
 ```sh
 npm install
 API_PORT=8833 WEB_PORT=5233 PROVIDERS_ENV=/dev/null npm run demo
-# In a second terminal, from apps/demo:
+# In a second terminal, from apps:
 node deploy/check.mjs http://localhost:5233
 npm run typecheck
 ```
